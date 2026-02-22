@@ -1,0 +1,35 @@
+{
+	"name": "pubmon-server",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-02-22",
+	"compatibility_flags": ["nodejs_compat"],
+
+	// Environment variables
+	"vars": {
+		"ADMIN_SECRET": "change-me-in-production"
+	},
+
+	// Durable Object bindings for the dual-room architecture
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "MAIN_EVENT_SERVER",
+				"class_name": "MainEventServer",
+				"script_name": "pubmon-server"
+			},
+			{
+				"name": "BATTLE_SERVER",
+				"class_name": "BattleServer",
+				"script_name": "pubmon-server"
+			}
+		]
+	},
+
+	// Migrations for Durable Objects
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": ["MainEventServer", "BattleServer"]
+		}
+	]
+}

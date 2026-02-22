@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { PartySocket } from "partysocket";
 import { useCallback, useEffect, useRef, useState } from "react";
 import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
@@ -12,7 +13,9 @@ export interface PlayerInfo {
 }
 
 interface PlayerCreateProps {
-	onComplete: (player: PlayerInfo) => void;
+	onComplete: (player: PlayerInfo, existingState?: any) => void;
+	socket: PartySocket;
+	sessionId: string;
 }
 
 function ProfessorSprite() {
@@ -151,9 +154,13 @@ function GirlSprite({ size = 72 }: { size?: number }) {
 	);
 }
 
-type Phase = "welcome" | "gender" | "name" | "confirm";
+type Phase = "welcome" | "gender" | "name" | "confirm" | "take_over_prompt";
 
-export function PlayerCreate({ onComplete }: PlayerCreateProps) {
+export function PlayerCreate({
+	onComplete,
+	socket,
+	sessionId,
+}: PlayerCreateProps) {
 	const [phase, setPhase] = useState<Phase>("welcome");
 	const [dialogIdx, setDialogIdx] = useState(0);
 	const [gender, setGender] = useState<"boy" | "girl" | null>(null);
@@ -201,15 +208,101 @@ export function PlayerCreate({ onComplete }: PlayerCreateProps) {
 
 	const handleNameSubmit = useCallback(() => {
 		if (name.trim().length > 0) {
-			setPhase("confirm");
+			// Send check_name message to server
+			socket.send(
+				JSON.stringify({
+					type: "check_name",
+					name: name.trim().toUpperCase(),
+				}),
+			);
+
+			// Listen for response
+			const handleMessage = (event: MessageEvent) => {
+				const msg = JSON.parse(event.data);
+				if (msg.type === "name_status") {
+					if (msg.available) {
+						setPhase("confirm");
+					} else {
+						setPhase("take_over_prompt");
+					}
+					socket.removeEventListener("message", handleMessage);
+				}
+			};
+
+			socket.addEventListener("message", handleMessage);
 		}
-	}, [name]);
+	}, [name, socket]);
 
 	const handleConfirm = useCallback(() => {
 		if (gender && name.trim()) {
-			onComplete({ name: name.trim().toUpperCase(), gender });
+			// Send create_player message
+			socket.send(
+				JSON.stringify({
+					type: "create_player",
+					sessionId,
+					playerInfo: {
+						name: name.trim().toUpperCase(),
+						sprite: gender === "boy" ? "boy" : "girl",
+					},
+				}),
+			);
+
+			// Listen for response (either player_created for new players or player_state for returning users)
+			const handleMessage = (event: MessageEvent) => {
+				const msg = JSON.parse(event.data);
+				if (msg.type === "player_created" || msg.type === "player_state") {
+					// For player_state, pass the existing state
+					const existingState =
+						msg.type === "player_state" ? msg.playerState : undefined;
+					onComplete(
+						{ name: name.trim().toUpperCase(), gender },
+						existingState,
+					);
+					socket.removeEventListener("message", handleMessage);
+				} else if (msg.type === "error") {
+					// Handle error (e.g., name already taken due to race condition)
+					alert(msg.message);
+					setPhase("name");
+					socket.removeEventListener("message", handleMessage);
+				}
+			};
+
+			socket.addEventListener("message", handleMessage);
 		}
-	}, [gender, name, onComplete]);
+	}, [gender, name, onComplete, socket, sessionId]);
+
+	const handleTakeOver = useCallback(() => {
+		// Send claim_player message
+		socket.send(
+			JSON.stringify({
+				type: "claim_player",
+				name: name.trim().toUpperCase(),
+				newSessionId: sessionId,
+			}),
+		);
+
+		// Listen for player_state response
+		const handleMessage = (event: MessageEvent) => {
+			const msg = JSON.parse(event.data);
+			if (msg.type === "player_state") {
+				if (gender) {
+					// Pass both the basic player info and the full state
+					onComplete(
+						{ name: name.trim().toUpperCase(), gender },
+						msg.playerState,
+					);
+				}
+				socket.removeEventListener("message", handleMessage);
+			}
+		};
+
+		socket.addEventListener("message", handleMessage);
+	}, [name, sessionId, socket, gender, onComplete]);
+
+	const handleRejectTakeOver = useCallback(() => {
+		setPhase("name");
+		setName("");
+	}, []);
 
 	const handleBack = useCallback(() => {
 		if (phase === "name") setPhase("gender");
@@ -225,7 +318,11 @@ export function PlayerCreate({ onComplete }: PlayerCreateProps) {
 				<div>
 					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
 						<div className="flex flex-col items-center">
-							<div className="pixel-bounce 0.5s step-end infinite">
+							<div
+								style={{
+									animation: "pixel-bounce 0.5s step-end infinite",
+								}}
+							>
 								<ProfessorSprite />
 							</div>
 						</div>
@@ -353,6 +450,42 @@ export function PlayerCreate({ onComplete }: PlayerCreateProps) {
 								onSelect={(i) => {
 									if (i === 0) handleConfirm();
 									else handleBack();
+								}}
+							/>
+						</div>
+					</div>
+				</>
+			)}
+
+			{/* Take Over Prompt Phase */}
+			{phase === "take_over_prompt" && gender && (
+				<>
+					<div>
+						<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
+							<div className="flex flex-col items-center">
+								<div
+									style={{
+										animation: "pixel-bounce 0.5s step-end infinite",
+									}}
+								>
+									<ProfessorSprite />
+								</div>
+							</div>
+						</PixelBox>
+					</div>
+
+					<PixelTextBox
+						text={`Character ${name.trim().toUpperCase()} already exists.\nAre you this player?`}
+						showContinue={false}
+					/>
+
+					<div className="mt-[4px] flex justify-end">
+						<div style={{ width: 90 }}>
+							<PixelMenu
+								items={["YES", "NO"]}
+								onSelect={(i) => {
+									if (i === 0) handleTakeOver();
+									else handleRejectTakeOver();
 								}}
 							/>
 						</div>

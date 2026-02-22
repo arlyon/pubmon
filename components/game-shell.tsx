@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getRandomPubMon, type PubMon, type PubType } from "@/lib/pokemon-data";
 import { BattleScreen } from "./battle-screen";
 import { CollapsibleGymPath } from "./CollapsibleGymPath";
@@ -16,6 +16,14 @@ import { StarterSelect } from "./starter-select";
 import { TrainerCard } from "./TrainerCard";
 import { TeamManagement } from "./team-management";
 
+function generateUUID(): string {
+	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+		const r = (Math.random() * 16) | 0;
+		const v = c === "x" ? r : (r & 0x3) | 0x8;
+		return v.toString(16);
+	});
+}
+
 type GamePhase =
 	| "player-create"
 	| "starter"
@@ -26,42 +34,223 @@ type GamePhase =
 	| "caught"
 	| "xp";
 
-export function GameShell() {
-	const [phase, setPhase] = useState<GamePhase>("player-create");
-	const [player, setPlayer] = useState<PlayerInfo | null>(null);
-	const [team, setTeam] = useState<PubMon[]>([]);
-	const [activeIdx, setActiveIdx] = useState(0);
+import { PartySocket } from "partysocket";
+
+const socket = new PartySocket({
+	host: "http://localhost:8787",
+	party: "main",
+	room: "pubmon",
+});
+
+interface GameShellProps {
+	initialPlayerState?: any;
+}
+
+export function GameShell({ initialPlayerState }: GameShellProps) {
+	const [phase, setPhase] = useState<GamePhase>(
+		initialPlayerState
+			? initialPlayerState.party.length > 0
+				? "crawl"
+				: "starter"
+			: "player-create",
+	);
+	const [sessionId, setSessionId] = useState<string>("");
+	const [player, setPlayer] = useState<PlayerInfo | null>(
+		initialPlayerState
+			? {
+					name: initialPlayerState.info.name,
+					gender: initialPlayerState.info.sprite === "boy" ? "boy" : "girl",
+				}
+			: null,
+	);
+	const [team, setTeam] = useState<PubMon[]>(initialPlayerState?.party || []);
+	const [activeIdx, setActiveIdx] = useState(
+		initialPlayerState?.activeIndex || 0,
+	);
 	const [wildPokemon, setWildPokemon] = useState<PubMon | null>(null);
-	const [drinksCollected, setDrinksCollected] = useState(0);
+	const [drinksCollected, setDrinksCollected] = useState(
+		initialPlayerState?.drinksLogged || 0,
+	);
 	const [xpGained, setXpGained] = useState(0);
 	const [caughtPokemon, setCaughtPokemon] = useState<PubMon | null>(null);
-	const [seenIds, setSeenIds] = useState<Set<number>>(new Set());
-	const [caughtIds, setCaughtIds] = useState<Set<number>>(new Set());
+	const [seenIds, setSeenIds] = useState<Set<number>>(
+		initialPlayerState ? new Set(initialPlayerState.pokedex.seen) : new Set(),
+	);
+	const [caughtIds, setCaughtIds] = useState<Set<number>>(
+		initialPlayerState ? new Set(initialPlayerState.pokedex.caught) : new Set(),
+	);
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
-	const [currentGymId, setCurrentGymId] = useState(1);
-	const [badges, setBadges] = useState<Set<number>>(new Set());
+	const [currentGymId, setCurrentGymId] = useState(
+		initialPlayerState?.currentGymId || 1,
+	);
+	const [badges, setBadges] = useState<Set<number>>(
+		initialPlayerState ? new Set(initialPlayerState.badges) : new Set(),
+	);
+	const battleMusicRef = useRef<HTMLAudioElement | null>(null);
 
-	const handlePlayerCreate = useCallback((info: PlayerInfo) => {
-		setPlayer(info);
-		setPhase("starter");
+	// Initialize or retrieve sessionId from cookie
+	useEffect(() => {
+		const getCookie = (name: string) => {
+			const value = `; ${document.cookie}`;
+			const parts = value.split(`; ${name}=`);
+			if (parts.length === 2) return parts.pop()?.split(";").shift();
+		};
+
+		const setCookie = (name: string, value: string, days: number = 365) => {
+			const expires = new Date();
+			expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+			document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+		};
+
+		const stored = getCookie("pubmon_session_id");
+		if (stored) {
+			setSessionId(stored);
+		} else {
+			const newId = generateUUID();
+			setCookie("pubmon_session_id", newId);
+			setSessionId(newId);
+		}
 	}, []);
 
-	const handleStarterSelect = useCallback((pokemon: PubMon) => {
-		setTeam([pokemon]);
-		setActiveIdx(0);
-		setDrinksCollected(1);
-		setSeenIds((prev) => new Set(prev).add(pokemon.id));
-		setCaughtIds((prev) => new Set(prev).add(pokemon.id));
-		setPhase("crawl");
-	}, []);
+	// Check if session has existing player when sessionId is loaded (only if not pre-loaded server-side)
+	useEffect(() => {
+		if (!sessionId || initialPlayerState) return;
 
-	const handleDrinkSelect = useCallback((type: PubType) => {
-		const wild = getRandomPubMon(type);
-		setWildPokemon(wild);
-		setDrinksCollected((prev) => prev + 1);
-		setSeenIds((prev) => new Set(prev).add(wild.id));
-		setShowBattleTransition(true);
-	}, []);
+		// Send check_session message
+		socket.send(
+			JSON.stringify({
+				type: "check_session",
+				sessionId,
+			}),
+		);
+
+		// Listen for response
+		const handleMessage = (event: MessageEvent) => {
+			const msg = JSON.parse(event.data);
+			if (msg.type === "player_state") {
+				// Player exists, restore state
+				const playerState = msg.playerState;
+				setPlayer({
+					name: playerState.info.name,
+					gender: playerState.info.sprite === "boy" ? "boy" : "girl",
+				});
+				setTeam(playerState.party);
+				setActiveIdx(playerState.activeIndex);
+				setDrinksCollected(playerState.drinksLogged);
+				setSeenIds(new Set(playerState.pokedex.seen));
+				setCaughtIds(new Set(playerState.pokedex.caught));
+				setBadges(new Set(playerState.badges));
+				setCurrentGymId(playerState.currentGymId);
+
+				// Determine phase based on player state
+				if (playerState.party.length === 0) {
+					setPhase("starter");
+				} else {
+					setPhase("crawl");
+				}
+
+				socket.removeEventListener("message", handleMessage);
+			} else if (msg.type === "name_status") {
+				// No existing player, stay in player-create phase
+				socket.removeEventListener("message", handleMessage);
+			}
+		};
+
+		socket.addEventListener("message", handleMessage);
+
+		return () => {
+			socket.removeEventListener("message", handleMessage);
+		};
+	}, [sessionId, initialPlayerState]);
+
+	// Play battle music during transition and battle phase
+	useEffect(() => {
+		const shouldPlayMusic = showBattleTransition || phase === "battle";
+
+		if (shouldPlayMusic && battleMusicRef.current) {
+			battleMusicRef.current.play().catch((e) => console.log("Audio play prevented:", e));
+		} else if (!shouldPlayMusic && battleMusicRef.current) {
+			battleMusicRef.current.pause();
+			battleMusicRef.current.currentTime = 0;
+		}
+	}, [showBattleTransition, phase]);
+
+	const handlePlayerCreate = useCallback(
+		(info: PlayerInfo, existingState?: any) => {
+			setPlayer(info);
+
+			if (existingState) {
+				// Restore full player state
+				setTeam(existingState.party);
+				setActiveIdx(existingState.activeIndex);
+				setDrinksCollected(existingState.drinksLogged);
+				setSeenIds(new Set(existingState.pokedex.seen));
+				setCaughtIds(new Set(existingState.pokedex.caught));
+				setBadges(new Set(existingState.badges));
+				setCurrentGymId(existingState.currentGymId);
+
+				// Skip to crawl if they have a team, otherwise go to starter
+				if (existingState.party.length > 0) {
+					setPhase("crawl");
+				} else {
+					setPhase("starter");
+				}
+			} else {
+				// New player, go to starter selection
+				setPhase("starter");
+			}
+		},
+		[],
+	);
+
+	const handleStarterSelect = useCallback(
+		(pokemon: PubMon) => {
+			// Send select_starter message to server
+			socket.send(
+				JSON.stringify({
+					type: "select_starter",
+					sessionId,
+					pubmonId: pokemon.id,
+				}),
+			);
+
+			setTeam([pokemon]);
+			setActiveIdx(0);
+			setDrinksCollected(1);
+			setSeenIds((prev) => new Set(prev).add(pokemon.id));
+			setCaughtIds((prev) => new Set(prev).add(pokemon.id));
+			setPhase("crawl");
+		},
+		[sessionId],
+	);
+
+	const handleDrinkSelect = useCallback(
+		(type: PubType) => {
+			// Send order_drink message to server
+			socket.send(
+				JSON.stringify({
+					type: "order_drink",
+					sessionId,
+					drinkType: type,
+				}),
+			);
+
+			// Listen for encounter_result
+			const handleMessage = (event: MessageEvent) => {
+				const msg = JSON.parse(event.data);
+				if (msg.type === "encounter_result") {
+					setWildPokemon(msg.wildPubmon);
+					setDrinksCollected((prev) => prev + 1);
+					setSeenIds((prev) => new Set(prev).add(msg.wildPubmon.id));
+					setShowBattleTransition(true);
+					socket.removeEventListener("message", handleMessage);
+				}
+			};
+
+			socket.addEventListener("message", handleMessage);
+		},
+		[sessionId],
+	);
 
 	const handleBattleTransitionMidpoint = useCallback(() => {
 		setPhase("battle");
@@ -72,41 +261,91 @@ export function GameShell() {
 	}, []);
 
 	const handleFight = useCallback(() => {
-		// Gain XP for fighting
-		const xp = Math.floor(Math.random() * 20) + 10;
-		setXpGained(xp);
-		if (team.length > 0) {
-			setTeam((prev) =>
-				prev.map((mon, i) =>
-					i === activeIdx ? { ...mon, xp: mon.xp + xp } : mon,
-				),
-			);
-		}
-		setPhase("xp");
-	}, [team, activeIdx]);
+		if (!wildPokemon) return;
+
+		// Send fight message to server
+		socket.send(
+			JSON.stringify({
+				type: "fight",
+				sessionId,
+				pubmonId: wildPokemon.id,
+			}),
+		);
+
+		// Listen for fight_result
+		const handleMessage = (event: MessageEvent) => {
+			const msg = JSON.parse(event.data);
+			if (msg.type === "fight_result") {
+				setXpGained(msg.xpGained);
+				setTeam(msg.updatedParty);
+				setPhase("xp");
+				socket.removeEventListener("message", handleMessage);
+			}
+		};
+
+		socket.addEventListener("message", handleMessage);
+	}, [wildPokemon, sessionId]);
 
 	const handleCatch = useCallback(() => {
-		if (wildPokemon && team.length < 6) {
-			setCaughtPokemon(wildPokemon);
-			setTeam((prev) => [...prev, wildPokemon]);
-			setCaughtIds((prev) => new Set(prev).add(wildPokemon.id));
-			setPhase("caught");
-		}
-	}, [wildPokemon, team]);
+		if (!wildPokemon) return;
+
+		// Send catch_attempt message to server
+		socket.send(
+			JSON.stringify({
+				type: "catch_attempt",
+				sessionId,
+				pubmonId: wildPokemon.id,
+			}),
+		);
+
+		// Listen for catch_result
+		const handleMessage = (event: MessageEvent) => {
+			const msg = JSON.parse(event.data);
+			if (msg.type === "catch_result") {
+				if (msg.success && msg.pubmon) {
+					setCaughtPokemon(msg.pubmon);
+					setTeam((prev) => [...prev, msg.pubmon]);
+					setCaughtIds((prev) => new Set(prev).add(msg.pubmon.id));
+					setPhase("caught");
+				} else {
+					// Handle failed catch (could show error message)
+					setPhase("crawl");
+				}
+				socket.removeEventListener("message", handleMessage);
+			}
+		};
+
+		socket.addEventListener("message", handleMessage);
+	}, [wildPokemon, sessionId]);
 
 	const handleRun = useCallback(() => {
 		setWildPokemon(null);
 		setPhase("crawl");
 	}, []);
 
-	const handleSelectGym = useCallback((gymId: number) => {
-		setCurrentGymId(gymId);
+	// Listen for gym updates from server
+	useEffect(() => {
+		const handleMessage = (event: MessageEvent) => {
+			const msg = JSON.parse(event.data);
+			if (msg.type === "gym_update") {
+				setCurrentGymId(msg.gymId);
+			}
+		};
+
+		socket.addEventListener("message", handleMessage);
+
+		return () => {
+			socket.removeEventListener("message", handleMessage);
+		};
 	}, []);
 
 	const activePokemon = team.length > 0 ? team[activeIdx] : null;
 
 	return (
 		<div className="flex flex-col relative min-h-screen">
+			{/* Battle music (hidden audio element) */}
+			<audio ref={battleMusicRef} src="/battle.mp3" loop />
+
 			{/* Battle transition overlay */}
 			<div
 				className="fixed inset-0 pointer-events-none"
@@ -168,8 +407,12 @@ export function GameShell() {
 
 			{/* Main content */}
 			<main className="flex-1 px-2">
-				{phase === "player-create" && (
-					<PlayerCreate onComplete={handlePlayerCreate} />
+				{phase === "player-create" && sessionId && (
+					<PlayerCreate
+						onComplete={handlePlayerCreate}
+						socket={socket}
+						sessionId={sessionId}
+					/>
 				)}
 
 				{phase === "starter" && (

@@ -1,14 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pnpm add:*)"
     ]
   },
-  "disabledMcpjsonServers": [
-    "homeassistant"
-  ],
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "homeassistant"
   ],
-  "enableAllProjectMcpServers": true
+  "disabledMcpjsonServers": [
+    "homeassistant"
+  ]
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data"
 import { PixelSprite, TypeBadge } from "./pixel-sprite"
 import PixelBox from "./pixel/PixelBox"
@@ -33,16 +33,8 @@ export function BattleScreen({ wildPokemon, playerPokemon, onFight, onCatch, onR
   const [showCatchAnim, setShowCatchAnim] = useState(false)
   const [slideFrame, setSlideFrame] = useState(0)
   const [showMenu, setShowMenu] = useState(false)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const wildType = TYPE_INFO[wildPokemon.type]
-
-  // Play battle music on mount
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.play().catch((e) => console.log("Audio play prevented:", e))
-    }
-  }, [])
 
   // Frame-based slide-in animation for battle start
   useEffect(() => {
@@ -145,8 +137,6 @@ export function BattleScreen({ wildPokemon, playerPokemon, onFight, onCatch, onR
 
   return (
     <div className="w-full max-w-md mx-auto flex flex-col" style={{ background: wildType.bgColor }}>
-      <audio ref={audioRef} src="/battle.mp3" loop />
-
       {/* Battle arena */}
       <div className="relative aspect-[4/3] overflow-hidden">
         {/* Background */}
