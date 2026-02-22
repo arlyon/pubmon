@@ -1,0 +1,378 @@
+"use client";
+
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	ALL_PUBMON,
+	type PubMon,
+	type PubType,
+	TYPE_INFO,
+} from "@/lib/pokemon-data";
+import PixelBox from "./pixel/PixelBox";
+import PixelMenu from "./pixel/PixelMenu";
+import PixelTextBox from "./pixel/PixelTextBox";
+import { PixelSprite, TypeBadge } from "./pixel-sprite";
+
+const STARTERS: Record<PubType, string> = {
+	beer: "Hoppsin",
+	shot: "Tequilar",
+	wine: "Charderan",
+	water: "Stillbar",
+	cocktail: "Martini",
+};
+
+const TYPE_ORDER: PubType[] = ["beer", "shot", "wine", "water", "cocktail"];
+
+interface StarterSelectProps {
+	onSelect: (pokemon: PubMon) => void;
+}
+
+function ProfessorSprite() {
+	return (
+		<Image
+			src="/profbarley.png"
+			alt="Professor Barley"
+			className="pixel-perfect"
+			style={{ imageRendering: "pixelated" }}
+			width={96}
+			height={96}
+		/>
+	);
+}
+
+function PokeballRow() {
+	return (
+		<div className="flex items-center justify-center gap-[12px]">
+			{TYPE_ORDER.map((type) => {
+				const info = TYPE_INFO[type];
+				return (
+					<svg
+						key={type}
+						viewBox="0 0 10 10"
+						width={16}
+						height={16}
+						className="pixel-perfect"
+					>
+						<circle cx={5} cy={5} r={4.5} fill={info.color} />
+						<rect
+							x={0.5}
+							y={4.5}
+							width={9}
+							height={1}
+							fill="rgb(var(--pixel-black))"
+						/>
+						<circle
+							cx={5}
+							cy={5}
+							r={4.5}
+							fill="none"
+							stroke="rgb(var(--pixel-black))"
+							strokeWidth={0.5}
+						/>
+						<rect
+							x={0.5}
+							y={5}
+							width={9}
+							height={4.5}
+							rx={4.5}
+							fill="rgb(var(--pixel-white))"
+						/>
+						<circle
+							cx={5}
+							cy={5}
+							r={1.2}
+							fill="rgb(var(--pixel-white))"
+							stroke="rgb(var(--pixel-black))"
+							strokeWidth={0.4}
+						/>
+						<circle cx={5} cy={5} r={0.6} fill="rgb(var(--pixel-black))" />
+					</svg>
+				);
+			})}
+		</div>
+	);
+}
+
+export function StarterSelect({ onSelect }: StarterSelectProps) {
+	const [phase, setPhase] = useState<"intro" | "pick" | "confirm" | "receive">(
+		"intro",
+	);
+	const [dialogIdx, setDialogIdx] = useState(0);
+	const [selectedType, setSelectedType] = useState<PubType | null>(null);
+	const [selectedPokemon, setSelectedPokemon] = useState<PubMon | null>(null);
+	const [textVisible, setTextVisible] = useState(true);
+	const [audioStarted, setAudioStarted] = useState(false);
+
+	const audioRef = useRef<HTMLAudioElement | null>(null);
+
+	const introDialogs = [
+		"Welcome to the world of PUBMON!",
+		"My name is PROF. BARLEY. People call me the PubMon Professor!",
+		"This world is inhabited by creatures known as PUBMON!",
+		"People and PUBMON live together in pubs across the land.",
+		"Your very own PUBMON adventure is about to begin!",
+		"First, order your very first drink to choose a starter PUBMON!",
+	];
+
+	const startAudio = useCallback(() => {
+		if (!audioStarted && audioRef.current) {
+			audioRef.current
+				.play()
+				.catch((e) => console.log("Audio play prevented:", e));
+			setAudioStarted(true);
+		}
+	}, [audioStarted]);
+
+	useEffect(() => {
+		// Try to play audio immediately if user has already interacted
+		if (audioRef.current) {
+			audioRef.current.play().catch(() => {
+				// Autoplay prevented, will start on user interaction
+			});
+		}
+	}, []);
+
+	useEffect(() => {
+		setTextVisible(false);
+		const t = setTimeout(() => setTextVisible(true), 50);
+		return () => clearTimeout(t);
+	}, [dialogIdx, phase]);
+
+	const advanceIntro = useCallback(() => {
+		startAudio();
+		if (dialogIdx < introDialogs.length - 1) {
+			setDialogIdx((prev) => prev + 1);
+		} else {
+			setPhase("pick");
+		}
+	}, [dialogIdx, introDialogs.length, startAudio]);
+
+	const handleTypeSelect = useCallback((type: PubType) => {
+		const starterName = STARTERS[type];
+		const pokemon = ALL_PUBMON.find((p) => p.name === starterName);
+		if (pokemon) {
+			setSelectedType(type);
+			setSelectedPokemon({ ...pokemon, hp: pokemon.maxHp });
+			setPhase("confirm");
+		}
+	}, []);
+
+	const handleConfirm = useCallback(() => {
+		if (selectedPokemon) {
+			setPhase("receive");
+		}
+	}, [selectedPokemon]);
+
+	const handleFinalSelect = useCallback(() => {
+		if (selectedPokemon) {
+			onSelect(selectedPokemon);
+		}
+	}, [selectedPokemon, onSelect]);
+
+	return (
+		<div className="p-[2px] w-full">
+			<audio ref={audioRef} src="/pokemon-lab.mp3" loop />
+
+			{/* Professor Scene (Shared for intro and pick phases) */}
+			{(phase === "intro" || phase === "pick") && (
+				<div className="mb-[4px]">
+					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
+						<div className="flex flex-col items-center py-[4px] gap-[4px]">
+							<div className="relative w-[120px] h-[120px] flex items-center justify-center">
+								<div className="absolute bottom-0 left-0 right-0 h-[8px] border-t-2 border-pixel-black bg-pixel-gray-light" />
+								<div
+									style={{
+										animation:
+											textVisible && phase === "intro"
+												? "pixel-bounce 0.5s step-end infinite"
+												: "none",
+									}}
+								>
+									<ProfessorSprite />
+								</div>
+							</div>
+							<PokeballRow />
+						</div>
+					</PixelBox>
+				</div>
+			)}
+
+			{/* Intro Phase */}
+			{phase === "intro" && (
+				<button
+					onClick={advanceIntro}
+					className="w-full text-left cursor-pointer border-none bg-transparent p-0 flex flex-col focus:outline-none"
+				>
+					<PixelTextBox
+						text={introDialogs[dialogIdx]}
+						showContinue={true}
+						rows={2}
+					/>
+				</button>
+			)}
+
+			{/* Pick Phase - choose drink type for starter */}
+			{phase === "pick" && (
+				<>
+					<PixelTextBox
+						text="Order your first drink! Each type comes with a starter PUBMON."
+						showContinue={false}
+						rows={2}
+					/>
+
+					<div className="mt-[4px]">
+						<PixelBox>
+							<div className="flex flex-col gap-[2px]">
+								{TYPE_ORDER.map((type) => {
+									const info = TYPE_INFO[type];
+									const starterName = STARTERS[type];
+									const starter = ALL_PUBMON.find(
+										(p) => p.name === starterName,
+									)!;
+									return (
+										<button
+											key={type}
+											onClick={() => handleTypeSelect(type)}
+											className="group flex flex-row items-center cursor-pointer border-none bg-transparent hover:bg-pixel-gray-light p-[2px] text-left"
+										>
+											<div
+												className="w-[32px] h-[32px] border-2 flex items-center justify-center bg-pixel-white mr-[4px]"
+												style={{ borderColor: info.color }}
+											>
+												<PixelSprite name={starter.sprite} size={2} />
+											</div>
+											<div className="flex-1 overflow-hidden">
+												<div className="flex items-center gap-[4px] mb-[2px]">
+													<span className="font-pixel text-[8px] text-pixel-black">
+														{info.label.toUpperCase()}
+													</span>
+													<span
+														className="font-pixel text-[5px] px-[2px] py-[1px] text-pixel-white"
+														style={{ backgroundColor: info.color }}
+													>
+														{info.element.toUpperCase()}
+													</span>
+												</div>
+												<p className="font-pixel text-[6px] text-pixel-black m-0">
+													{starterName.toUpperCase()}
+												</p>
+											</div>
+											<span className="font-pixel text-[8px] opacity-0 group-hover:opacity-100">
+												&gt;
+											</span>
+										</button>
+									);
+								})}
+							</div>
+						</PixelBox>
+					</div>
+				</>
+			)}
+
+			{/* Confirm Phase */}
+			{phase === "confirm" && selectedPokemon && selectedType && (
+				<>
+					<PixelTextBox
+						text={`So, you want ${selectedPokemon.name.toUpperCase()}?`}
+						showContinue={false}
+					/>
+
+					<div className="my-[4px]">
+						<PixelBox>
+							<div className="flex flex-col items-center py-[2px]">
+								<div
+									className="w-[80px] h-[80px] border-2 flex items-center justify-center bg-pixel-white mb-[4px]"
+									style={{
+										borderColor: TYPE_INFO[selectedType].color,
+									}}
+								>
+									<PixelSprite
+										name={selectedPokemon.sprite}
+										size={6}
+										animated
+									/>
+								</div>
+
+								<span className="font-pixel text-pixel-sm text-pixel-black mb-[2px]">
+									{selectedPokemon.name.toUpperCase()}
+								</span>
+								<TypeBadge type={selectedType} />
+
+								<div className="w-full border-t-2 border-pixel-gray-light mt-[4px] pt-[2px]">
+									<p className="font-pixel text-[6px] text-pixel-black text-center m-0 leading-tight">
+										{selectedPokemon.description}
+									</p>
+								</div>
+							</div>
+						</PixelBox>
+					</div>
+
+					<div className="flex justify-end mt-[4px]">
+						<div style={{ width: 60 }}>
+							<PixelMenu
+								items={["YES", "NO"]}
+								onSelect={(i) => {
+									if (i === 0) handleConfirm();
+									else setPhase("pick");
+								}}
+							/>
+						</div>
+					</div>
+				</>
+			)}
+
+			{/* Receive Phase - celebration */}
+			{phase === "receive" && selectedPokemon && selectedType && (
+				<>
+					<PixelTextBox
+						text={`You received ${selectedPokemon.name.toUpperCase()}!`}
+						showContinue={false}
+					/>
+
+					<div className="my-[4px]">
+						<PixelBox>
+							<div className="flex justify-center items-center py-[16px] relative overflow-hidden h-[120px]">
+								{/* Sparkle effects */}
+								<div className="absolute inset-0 pointer-events-none">
+									{Array.from({ length: 8 }).map((_, i) => (
+										<div
+											key={i}
+											className="absolute w-[4px] h-[4px]"
+											style={{
+												left: `${15 + Math.random() * 70}%`,
+												top: `${10 + Math.random() * 80}%`,
+												backgroundColor: TYPE_INFO[selectedType].color,
+												animation: `cursor-blink ${0.5 + Math.random() * 1}s step-end infinite`,
+												animationDelay: `${Math.random() * 1}s`,
+											}}
+										/>
+									))}
+								</div>
+
+								{/* Pokemon reveal */}
+								<div
+									className="flex items-center justify-center"
+									style={{
+										animation: "slide-in-left 0.5s ease-out",
+									}}
+								>
+									<PixelSprite
+										name={selectedPokemon.sprite}
+										size={10}
+										animated
+									/>
+								</div>
+							</div>
+						</PixelBox>
+					</div>
+
+					<div className="flex justify-end mt-[4px]">
+						<div style={{ width: 60 }}>
+							<PixelMenu items={["OK"]} onSelect={handleFinalSelect} />
+						</div>
+					</div>
+				</>
+			)}
+		</div>
+	);
+}

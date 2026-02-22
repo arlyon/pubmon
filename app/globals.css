@@ -1,0 +1,264 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: 'PokemonPixel';
+  src: local('Press Start 2P');
+}
+
+:root {
+  --background: #1a1c2c;
+  --foreground: #f4f4f4;
+  --card: #262b44;
+  --card-foreground: #f4f4f4;
+  --popover: #262b44;
+  --popover-foreground: #f4f4f4;
+  --primary: #e8c170;
+  --primary-foreground: #1a1c2c;
+  --secondary: #3a4466;
+  --secondary-foreground: #f4f4f4;
+  --muted: #3a4466;
+  --muted-foreground: #8b9bb4;
+  --accent: #5a6988;
+  --accent-foreground: #f4f4f4;
+  --destructive: #e43b44;
+  --destructive-foreground: #f4f4f4;
+  --border: #5a6988;
+  --input: #3a4466;
+  --ring: #e8c170;
+  --chart-1: #c28b4a;
+  --chart-2: #e43b44;
+  --chart-3: #f4a4c0;
+  --chart-4: #63c6e1;
+  --chart-5: #63c74d;
+  --radius: 0rem;
+
+  /* Game-specific type colors */
+  --type-beer: #c28b4a;
+  --type-shot: #e43b44;
+  --type-wine: #f4a4c0;
+  --type-water: #63c6e1;
+  --type-cocktail: #63c74d;
+
+  --sidebar: #262b44;
+  --sidebar-foreground: #f4f4f4;
+  --sidebar-primary: #e8c170;
+  --sidebar-primary-foreground: #1a1c2c;
+  --sidebar-accent: #3a4466;
+  --sidebar-accent-foreground: #f4f4f4;
+  --sidebar-border: #5a6988;
+  --sidebar-ring: #e8c170;
+
+  /* FireRed specific tokens */
+  --pixel-white: 248 248 248;
+  --pixel-black: 40 40 40;
+  --pixel-blue: 72 120 208;
+  --pixel-blue-dark: 48 80 160;
+  --pixel-red: 208 56 56;
+  --pixel-red-dark: 168 40 40;
+  --pixel-green: 80 176 88;
+  --pixel-yellow: 248 208 48;
+  --pixel-gray: 168 176 184;
+  --pixel-gray-light: 216 224 232;
+  --pixel-hp-green: 80 200 72;
+  --pixel-hp-yellow: 248 176 32;
+  --pixel-hp-red: 240 64 56;
+}
+
+@theme inline {
+  --font-sans: var(--font-pixel), 'Press Start 2P', monospace;
+  --font-mono: var(--font-pixel), 'Press Start 2P', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-type-beer: var(--type-beer);
+  --color-type-shot: var(--type-shot);
+  --color-type-wine: var(--type-wine);
+  --color-type-water: var(--type-water);
+  --color-type-cocktail: var(--type-cocktail);
+
+  --color-pixel-white: rgb(var(--pixel-white));
+  --color-pixel-black: rgb(var(--pixel-black));
+  --color-pixel-blue: rgb(var(--pixel-blue));
+  --color-pixel-blue-dark: rgb(var(--pixel-blue-dark));
+  --color-pixel-red: rgb(var(--pixel-red));
+  --color-pixel-red-dark: rgb(var(--pixel-red-dark));
+  --color-pixel-green: rgb(var(--pixel-green));
+  --color-pixel-yellow: rgb(var(--pixel-yellow));
+  --color-pixel-gray: rgb(var(--pixel-gray));
+  --color-pixel-gray-light: rgb(var(--pixel-gray-light));
+  --color-pixel-hp-green: rgb(var(--pixel-hp-green));
+  --color-pixel-hp-yellow: rgb(var(--pixel-hp-yellow));
+  --color-pixel-hp-red: rgb(var(--pixel-hp-red));
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    image-rendering: pixelated;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Pixel art animation keyframes */
+@keyframes pixel-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+@keyframes pixel-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@keyframes hp-drain {
+  from { width: 100%; }
+  to { width: var(--hp-width); }
+}
+
+@keyframes grass-sway {
+  0%, 100% { transform: skewX(0deg); }
+  25% { transform: skewX(3deg); }
+  75% { transform: skewX(-3deg); }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes text-type {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes pokeball-shake {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(0deg); }
+  75% { transform: rotate(-15deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes encounter-flash {
+  0% { background: transparent; }
+  25% { background: #f4f4f4; }
+  50% { background: transparent; }
+  75% { background: #f4f4f4; }
+  100% { background: transparent; }
+}
+
+/* Pixel-perfect rendering */
+.pixel-perfect {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+}
+
+/* FireRed dialog box - uses inset box-shadow for pixel border */
+.pixel-box {
+  background: rgb(var(--pixel-white));
+  border: 3px solid rgb(var(--pixel-black));
+  box-shadow:
+    inset 2px 2px 0 rgb(var(--pixel-gray-light)),
+    inset -2px -2px 0 rgb(var(--pixel-gray));
+  padding: 8px;
+}
+
+.pixel-box-blue {
+  background: rgb(var(--pixel-blue));
+  border: 3px solid rgb(var(--pixel-blue-dark));
+  box-shadow:
+    inset 2px 2px 0 rgb(var(--pixel-blue) / 0.6),
+    inset -2px -2px 0 rgb(var(--pixel-blue-dark) / 0.8);
+  color: rgb(var(--pixel-white));
+  padding: 8px;
+}
+
+.pixel-box-red {
+  background: rgb(var(--pixel-red));
+  border: 3px solid rgb(var(--pixel-red-dark));
+  box-shadow:
+    inset 2px 2px 0 rgb(var(--pixel-red) / 0.6),
+    inset -2px -2px 0 rgb(var(--pixel-red-dark) / 0.8);
+  color: rgb(var(--pixel-white));
+  padding: 8px;
+}
+
+/* Pixel cursor arrow */
+.pixel-cursor::before {
+  content: '▶';
+  position: absolute;
+  left: -1.5px;
+  top: -0.5px;
+  font-size: 6px;
+  color: rgb(var(--pixel-black));
+  animation: cursor-blink 0.8s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Scrollbar hiding for pixel feel */
+.pixel-scroll::-webkit-scrollbar {
+  display: none;
+}
+.pixel-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
