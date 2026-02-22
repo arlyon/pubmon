@@ -44,9 +44,13 @@ const socket = new PartySocket({
 
 interface GameShellProps {
 	initialPlayerState?: any;
+	initialGymId?: number;
 }
 
-export function GameShell({ initialPlayerState }: GameShellProps) {
+export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) {
+	console.log("GameShell initialPlayerState:", initialPlayerState);
+	console.log("Initial currentGymId:", initialGymId);
+
 	const [phase, setPhase] = useState<GamePhase>(
 		initialPlayerState
 			? initialPlayerState.party.length > 0
@@ -80,9 +84,7 @@ export function GameShell({ initialPlayerState }: GameShellProps) {
 		initialPlayerState ? new Set(initialPlayerState.pokedex.caught) : new Set(),
 	);
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
-	const [currentGymId, setCurrentGymId] = useState(
-		initialPlayerState?.currentGymId || 1,
-	);
+	const [currentGymId, setCurrentGymId] = useState(initialGymId || 1);
 	const [badges, setBadges] = useState<Set<number>>(
 		initialPlayerState ? new Set(initialPlayerState.badges) : new Set(),
 	);
@@ -140,7 +142,6 @@ export function GameShell({ initialPlayerState }: GameShellProps) {
 				setSeenIds(new Set(playerState.pokedex.seen));
 				setCaughtIds(new Set(playerState.pokedex.caught));
 				setBadges(new Set(playerState.badges));
-				setCurrentGymId(playerState.currentGymId);
 
 				// Determine phase based on player state
 				if (playerState.party.length === 0) {
@@ -168,7 +169,9 @@ export function GameShell({ initialPlayerState }: GameShellProps) {
 		const shouldPlayMusic = showBattleTransition || phase === "battle";
 
 		if (shouldPlayMusic && battleMusicRef.current) {
-			battleMusicRef.current.play().catch((e) => console.log("Audio play prevented:", e));
+			battleMusicRef.current
+				.play()
+				.catch((e) => console.log("Audio play prevented:", e));
 		} else if (!shouldPlayMusic && battleMusicRef.current) {
 			battleMusicRef.current.pause();
 			battleMusicRef.current.currentTime = 0;
@@ -187,7 +190,6 @@ export function GameShell({ initialPlayerState }: GameShellProps) {
 				setSeenIds(new Set(existingState.pokedex.seen));
 				setCaughtIds(new Set(existingState.pokedex.caught));
 				setBadges(new Set(existingState.badges));
-				setCurrentGymId(existingState.currentGymId);
 
 				// Skip to crawl if they have a team, otherwise go to starter
 				if (existingState.party.length > 0) {
@@ -323,12 +325,19 @@ export function GameShell({ initialPlayerState }: GameShellProps) {
 		setPhase("crawl");
 	}, []);
 
+	// Debug: Log when currentGymId changes
+	useEffect(() => {
+		console.log("currentGymId changed to:", currentGymId);
+	}, [currentGymId]);
+
 	// Listen for gym updates from server
 	useEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
 			const msg = JSON.parse(event.data);
-			if (msg.type === "gym_update") {
-				setCurrentGymId(msg.gymId);
+			console.log("Received message:", msg.type, msg);
+			if (msg.type === "gym_update" && msg.currentGymId != null) {
+				console.log("Setting gym from gym_update:", msg.currentGymId);
+				setCurrentGymId(msg.currentGymId);
 			}
 		};
 
@@ -423,7 +432,6 @@ export function GameShell({ initialPlayerState }: GameShellProps) {
 					<DrinkSelect
 						onSelect={handleDrinkSelect}
 						drinksCollected={drinksCollected}
-						onSelectGym={handleSelectGym}
 						badges={badges}
 						currentGymId={currentGymId}
 					/>

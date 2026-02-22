@@ -20,7 +20,6 @@ export interface PlayerState {
   activeIndex: number;
   badges: Set<number>;
   drinksLogged: number;
-  currentGymId: number;
   tournamentOptIn: boolean;
   createdAt: number;
   lastActivity: number;
@@ -92,7 +91,6 @@ export interface SerializablePlayerState {
   activeIndex: number;
   badges: number[];
   drinksLogged: number;
-  currentGymId: number;
   tournamentOptIn: boolean;
   createdAt: number;
   lastActivity: number;

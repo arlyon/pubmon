@@ -36,14 +36,43 @@ async function getPlayerState() {
 	}
 }
 
+async function getCurrentGym() {
+	try {
+		const response = await fetch(
+			"http://localhost:8787/parties/main/rpc/gym",
+			{
+				cache: "no-store",
+			},
+		);
+
+		if (!response.ok) {
+			console.error("Failed to fetch current gym:", response.statusText);
+			return 1; // Default to gym 1
+		}
+
+		const data = await response.json();
+		return data.currentGymId;
+	} catch (error) {
+		console.error("Failed to fetch current gym:", error);
+		return 1; // Default to gym 1
+	}
+}
+
 export default async function Page() {
-	const initialPlayerState = await getPlayerState();
+	const [initialPlayerState, initialGymId] = await Promise.all([
+		getPlayerState(),
+		getCurrentGym(),
+	]);
 
 	console.log("initialPlayerState", initialPlayerState);
+	console.log("initialGymId", initialGymId);
 
 	return (
 		<PixelScreen>
-			<GameShell initialPlayerState={initialPlayerState} />
+			<GameShell
+				initialPlayerState={initialPlayerState}
+				initialGymId={initialGymId}
+			/>
 		</PixelScreen>
 	);
 }

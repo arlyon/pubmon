@@ -75,6 +75,19 @@ export class MainEventServer extends Server {
       type: "gym_update",
       currentGymId: this.gameState.currentGymId,
     });
+
+    // Send current leaderboard to new connection
+    const leaderboard = Array.from(this.gameState.players.values()).map((p) => ({
+      name: p.info.name,
+      drinksLogged: p.drinksLogged,
+      badges: Array.from(p.badges),
+      partyCount: p.party.length,
+    }));
+
+    this.sendToConnection(connection, {
+      type: "leaderboard_sync",
+      players: leaderboard,
+    });
   }
 
   /**
@@ -169,6 +182,11 @@ export class MainEventServer extends Server {
     const pathname = url.pathname;
 
     console.log(`[MainEventServer] HTTP ${request.method} ${pathname}`);
+
+    // GET /rpc/gym - Fetch global gym ID
+    if (request.method === "GET" && pathname === "/parties/main/rpc/gym") {
+      return Response.json({ currentGymId: this.gameState.currentGymId });
+    }
 
     // GET /rpc/player/:sessionId - Fetch full player state
     if (request.method === "GET" && pathname.startsWith("/parties/main/rpc/player/")) {
@@ -329,7 +347,6 @@ export class MainEventServer extends Server {
       activeIndex: 0,
       badges: new Set(),
       drinksLogged: 0,
-      currentGymId: this.gameState.currentGymId,
       tournamentOptIn: false,
       createdAt: Date.now(),
       lastActivity: Date.now(),
