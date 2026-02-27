@@ -221,8 +221,7 @@ export function TeamManagement({
 									<button
 										type="button"
 										onClick={() => playPokemonCry(selected.id)}
-										className={`ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors ${
-										className="ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors border-pixel-white bg-pixel-blue-dark text-pixel-white hover:bg-pixel-yellow hover:text-pixel-black hover:border-pixel-black"
+										className={`ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors`}
 										title="Play cry"
 									>
 										🔊

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
 import PixelHeader from "./pixel/PixelHeader";
 import PixelMenu from "./pixel/PixelMenu";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
-import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 
 interface PokedexProps {
 	seenIds: Set<number>;
@@ -148,13 +148,13 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 			{/* Type filter tabs */}
 			<div className="flex gap-[2px] flex-wrap mb-[4px]">
 				<button
+					type="button"
 					onClick={() => setFilterType("all")}
-					className={`px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors
-            ${
-							filterType === "all"
-								? "border-pixel-black bg-pixel-white text-pixel-black"
-								: "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
-						}`}
+					className={`px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors ${
+						filterType === "all"
+							? "border-pixel-black bg-pixel-white text-pixel-black"
+							: "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
+					}`}
 				>
 					ALL
 				</button>
@@ -163,6 +163,7 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 					return (
 						<button
 							key={type}
+							type="button"
 							onClick={() => setFilterType(type)}
 							className={`px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors
                 ${
@@ -198,6 +199,7 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 							return (
 								<button
 									key={mon.id}
+									type="button"
 									onClick={() => setSelectedId(isSelected ? null : mon.id)}
 									className={`
                     relative flex flex-col items-center gap-[1px] p-[2px] border-2 cursor-pointer transition-all font-pixel
@@ -291,9 +293,9 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 										{selected.name.toUpperCase()}
 									</h3>
 									<button
+										type="button"
 										onClick={() => playPokemonCry(selected.id)}
-										className={`ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors ${
-										className="ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors border-pixel-white bg-pixel-blue-dark text-pixel-white hover:bg-pixel-yellow hover:text-pixel-black hover:border-pixel-black"
+										className={`ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors`}
 										title="Play cry"
 									>
 										🔊

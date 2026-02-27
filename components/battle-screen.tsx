@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBattle } from "@/hooks/use-battle";
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data";
+import { useAudio } from "./audio-manager";
 import PixelBox from "./pixel/PixelBox";
 import PixelStatCard from "./pixel/PixelStatCard";
 import PixelTextBox from "./pixel/PixelTextBox";
 import { PixelSprite } from "./pixel-sprite";
-import { useAudio } from "./audio-manager";
 
 interface BattleScreenProps {
 	wildPokemon: PubMon;
@@ -18,7 +18,7 @@ interface BattleScreenProps {
 	onBattleEnd?: (result: "win" | "loss") => void;
 }
 
-const SLIDE_FRAMES = 100;
+const SLIDE_FRAMES = 80;
 const FRAME_MS = 16;
 
 export function BattleScreen({
@@ -45,6 +45,7 @@ export function BattleScreen({
 		enemyActivePokemon,
 		battleEnded,
 		battleResult,
+		continueMessage,
 	} = useBattle({ wildPokemon, playerPokemon });
 	const { playBGM, playCry, preloadCry } = useAudio();
 
@@ -402,9 +403,12 @@ export function BattleScreen({
 			<div className="p-2">
 				{/* Message display */}
 				{message && (
-					<div className="mb-2">
-						<PixelTextBox text={message || ""} showContinue={false} rows={2} />
-					</div>
+					<button
+						onClick={continueMessage}
+						className="w-full mb-2 text-left cursor-pointer border-none bg-transparent p-0 flex flex-col focus:outline-none"
+					>
+						<PixelTextBox text={message || ""} showContinue={true} rows={2} />
+					</button>
 				)}
 
 				{/* Main menu */}

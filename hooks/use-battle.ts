@@ -9,7 +9,8 @@ import { generatePubMonModData } from "@/lib/pokemon-data"
 import { useAudio } from "@/components/audio-manager"
 
 const customDex = Dex.mod('pubmon' as ID, generatePubMonModData() as any);
-const gens = new Generations(customDex as any);
+// Pass the custom dex to Generations so move lookups use our custom mod
+const gens = new Generations(customDex);
 
 export type BattleMenu = "main" | "fight" | "message"
 
@@ -56,15 +57,127 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
     // Track PP usage for player's moves
     const movePPUsage = useRef<Map<string, number>>(new Map())
 
+    // Track HP from protocol messages
+    const p1HpRef = useRef<{ hp: number; maxhp: number }>({ hp: 0, maxhp: 0 })
+    const p2HpRef = useRef<{ hp: number; maxhp: number }>({ hp: 0, maxhp: 0 })
+
     // Audio hook
     const { playAttackSFX } = useAudio()
 
     const battleRef = useRef<Battle | null>(null)
     const streamRef = useRef<BattleStreams.BattleStream | null>(null)
     const p1Ref = useRef<any>(null)
-    const messageQueueRef = useRef<string[]>([])
+
+    interface QueuedMessage {
+        text: string
+        playerHp?: number
+        enemyHp?: number
+        playerShake?: boolean
+        enemyShake?: boolean
+        onDisplay?: () => void
+    }
+
+    const messageQueueRef = useRef<QueuedMessage[]>([])
     const processingRef = useRef(false)
     const lastRequestRef = useRef<Protocol.Request | null>(null)
+
+    /**
+     * Parse HP from protocol messages like "|switch|p1a: Player|Species|20/20" or "15/100"
+     * Returns { hp, maxhp } or null if not parseable
+     */
+    const parseHpFromProtocol = useCallback((hpString: string): { hp: number; maxhp: number } | null => {
+        const match = hpString.match(/(\d+)\/(\d+)/)
+        if (!match) return null
+
+        const hp = parseInt(match[1])
+        const maxhp = parseInt(match[2])
+
+        // For percentages (maxhp = 100), we need to calculate actual HP based on baseMaxhp
+        // But we'll handle this in the caller
+        return { hp, maxhp }
+    }, [])
+
+    /**
+     * Translates standard status messages into PubMon-themed messages
+     */
+    const translateStatusMessage = useCallback((line: string): string | null => {
+        const parts = line.split("|")
+
+        // Extract Pokemon name (remove player prefix like "p1a: " or "p2a: ")
+        const getPokemonName = (fullName: string): string => {
+            return fullName.substring(4) // Remove "p1a:" or "p2a:"
+        }
+
+        // Category A: "Hung Over" (par, slp, psn, tox)
+        // |-status|[POKEMON]|[STATUS]
+        if (line.startsWith("|-status|")) {
+            const pokemon = getPokemonName(parts[2])
+            const status = parts[3]
+
+            if (status === 'par' || status === 'slp' || status === 'psn' || status === 'tox') {
+                return `${pokemon} is hung over!`
+            } else if (status === 'brn' || status === 'frz') {
+                return `${pokemon} is completely hammered!`
+            }
+        }
+
+        // |cant|[POKEMON]|[REASON]
+        if (line.startsWith("|cant|")) {
+            const pokemon = getPokemonName(parts[2])
+            const reason = parts[3]
+
+            if (reason === 'par') {
+                return `${pokemon} is too hung over to move!`
+            } else if (reason === 'slp') {
+                return `${pokemon} is sleeping off the hangover!`
+            } else if (reason === 'frz') {
+                return `${pokemon} is hammered and frozen to the bar!`
+            }
+        }
+
+        // |-damage|[POKEMON]|[HP]|[from] [SOURCE]
+        if (line.startsWith("|-damage|") && parts.length >= 4) {
+            const pokemon = getPokemonName(parts[2])
+            // Check if there's a [from] clause
+            const fromClause = parts.find(p => p.startsWith('[from]'))
+
+            if (fromClause) {
+                if (fromClause.includes('psn') || fromClause.includes('tox')) {
+                    return `${pokemon} is suffering from the hangover!`
+                } else if (fromClause.includes('brn')) {
+                    return `${pokemon} is hammered and burning up!`
+                } else if (fromClause.includes('confusion')) {
+                    return `${pokemon} is hammered and tripped over themselves!`
+                }
+            }
+        }
+
+        // |-curestatus|[POKEMON]|[STATUS]
+        if (line.startsWith("|-curestatus|")) {
+            const pokemon = getPokemonName(parts[2])
+            const status = parts[3]
+
+            if (status === 'par' || status === 'slp' || status === 'psn' || status === 'tox') {
+                return `${pokemon} recovered from the hangover!`
+            } else if (status === 'brn' || status === 'frz') {
+                return `${pokemon} sobered up!`
+            }
+        }
+
+        // |-start|[POKEMON]|confusion
+        if (line.startsWith("|-start|") && line.includes('confusion')) {
+            const pokemon = getPokemonName(parts[2])
+            return `${pokemon} is completely hammered!`
+        }
+
+        // |-end|[POKEMON]|confusion
+        if (line.startsWith("|-end|") && line.includes('confusion')) {
+            const pokemon = getPokemonName(parts[2])
+            return `${pokemon} sobered up!`
+        }
+
+        return null
+    }, [])
 
     const processMessageQueue = useCallback(() => {
         if (processingRef.current) {
@@ -83,14 +196,36 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         setMenu("message")
 
         const nextMsg = messageQueueRef.current.shift()!
-        setMessage(nextMsg)
+        setMessage(nextMsg.text)
 
-        setTimeout(() => {
-            processingRef.current = false
-            processMessageQueue()
-        }, 1200)
+        // Apply HP changes when message is displayed
+        if (nextMsg.playerHp !== undefined) {
+            setPlayerHp(nextMsg.playerHp)
+        }
+        if (nextMsg.enemyHp !== undefined) {
+            setEnemyHp(nextMsg.enemyHp)
+        }
+        if (nextMsg.playerShake) {
+            setPlayerShake(true)
+            setTimeout(() => setPlayerShake(false), 400)
+        }
+        if (nextMsg.enemyShake) {
+            setEnemyShake(true)
+            setTimeout(() => setEnemyShake(false), 400)
+        }
 
+        // Execute callback when message is displayed
+        if (nextMsg.onDisplay) {
+            nextMsg.onDisplay()
+        }
+
+        // Don't auto-advance - wait for user to click
     }, [])
+
+    const continueMessage = useCallback(() => {
+        processingRef.current = false
+        processMessageQueue()
+    }, [processMessageQueue])
 
     const extractPokemonState = useCallback((pokemon: any, playerIndex: 'p1' | 'p2', sourceMoves?: string[]): ActivePokemon | null => {
         if (!pokemon) return null
@@ -98,47 +233,19 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         try {
             console.log(`Extracting ${playerIndex} state:`, {
                 pokemon,
-                'pokemon.hp': pokemon.hp,
-                'pokemon.baseMaxhp': pokemon.baseMaxhp,
-                'pokemon.maxhp': pokemon.maxhp,
-                'typeof pokemon.hp': typeof pokemon.hp,
                 'pokemon.moveSlots': pokemon.moveSlots,
                 sourceMoves,
                 'movePPUsage': Array.from(movePPUsage.current.entries())
             })
 
-            // Extract HP from @pkmn/client
-            // p1 (player): pokemon.hp is the actual HP value
-            // p2 (opponent): pokemon.hp is a percentage (0-100)
-            let hp: number;
-            let maxhp: number;
+            // Use HP from refs (parsed from protocol messages)
+            const hpRef = playerIndex === 'p1' ? p1HpRef.current : p2HpRef.current
+            const hp = hpRef.hp
+            const maxhp = hpRef.maxhp
 
-            if (typeof pokemon.hp === 'string') {
-                // Format: "45/45"
-                const parts = pokemon.hp.split('/');
-                hp = parseInt(parts[0]);
-                maxhp = parseInt(parts[1]);
-            } else if (pokemon.baseMaxhp && pokemon.baseMaxhp > 0) {
-                maxhp = pokemon.baseMaxhp;
-                if (playerIndex === 'p1') {
-                    // Player gets actual HP value
-                    hp = pokemon.hp;
-                } else {
-                    // Opponent gets percentage (0-100)
-                    hp = Math.round((pokemon.hp / 100) * maxhp);
-                }
-            } else {
-                // Fallback
-                maxhp = pokemon.maxhp || 100;
-                hp = typeof pokemon.hp === 'number' ? pokemon.hp : 100;
-            }
-
-            console.log(`${playerIndex} HP calculation:`, {
-                'raw pokemon.hp': pokemon.hp,
-                'pokemon.baseMaxhp': pokemon.baseMaxhp,
-                'pokemon.maxhp': pokemon.maxhp,
-                'calculated hp': hp,
-                'calculated maxhp': maxhp
+            console.log(`${playerIndex} HP from protocol:`, {
+                'hp': hp,
+                'maxhp': maxhp
             })
 
             // Extract status
@@ -248,20 +355,114 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
                 }
             }
 
+            // Parse HP from protocol messages
+            if (line.startsWith("|switch|")) {
+                // Format: |switch|p1a: Player|Species|20/20
+                const parts = line.split("|")
+                const playerPart = parts[2]
+                const hpPart = parts[4]
+
+                if (hpPart) {
+                    const parsed = parseHpFromProtocol(hpPart)
+                    if (parsed) {
+                        if (playerPart.startsWith("p1a")) {
+                            // Player HP is actual values
+                            p1HpRef.current = parsed
+                            setPlayerHp(parsed.hp) // Initialize HP on switch
+                            console.log('Updated p1 HP from switch:', parsed)
+                        } else if (playerPart.startsWith("p2a")) {
+                            // Enemy HP is percentage - convert to actual using baseMaxhp
+                            if (parsed.maxhp === 100) {
+                                // This is a percentage, convert it
+                                const pokemon = battleRef.current?.p2.active[0]
+                                const baseMaxhp = pokemon?.baseMaxhp || 100
+                                p2HpRef.current = {
+                                    hp: Math.round((parsed.hp / 100) * baseMaxhp),
+                                    maxhp: baseMaxhp
+                                }
+                            } else {
+                                // Already actual values
+                                p2HpRef.current = parsed
+                            }
+                            setEnemyHp(p2HpRef.current.hp) // Initialize HP on switch
+                            console.log('Updated p2 HP from switch:', p2HpRef.current)
+                        }
+                    }
+                }
+            }
+
+            if (line.startsWith("|-damage|")) {
+                // Format: |-damage|p1a: Player|15/20
+                const parts = line.split("|")
+                const playerPart = parts[2]
+                const hpPart = parts[3]
+
+                if (hpPart) {
+                    const parsed = parseHpFromProtocol(hpPart)
+                    if (parsed) {
+                        if (playerPart.startsWith("p1a")) {
+                            p1HpRef.current = parsed
+                            console.log('Updated p1 HP from damage:', parsed)
+                        } else if (playerPart.startsWith("p2a")) {
+                            // Enemy HP is percentage - convert to actual using baseMaxhp
+                            if (parsed.maxhp === 100) {
+                                const pokemon = battleRef.current?.p2.active[0]
+                                const baseMaxhp = pokemon?.baseMaxhp || 100
+                                p2HpRef.current = {
+                                    hp: Math.round((parsed.hp / 100) * baseMaxhp),
+                                    maxhp: baseMaxhp
+                                }
+                            } else {
+                                p2HpRef.current = parsed
+                            }
+                            console.log('Updated p2 HP from damage:', p2HpRef.current)
+                        }
+                    }
+                }
+            }
+
+            if (line.startsWith("|-heal|")) {
+                // Format: |-heal|p1a: Player|20/20
+                const parts = line.split("|")
+                const playerPart = parts[2]
+                const hpPart = parts[3]
+
+                if (hpPart) {
+                    const parsed = parseHpFromProtocol(hpPart)
+                    if (parsed) {
+                        if (playerPart.startsWith("p1a")) {
+                            p1HpRef.current = parsed
+                            console.log('Updated p1 HP from heal:', parsed)
+                        } else if (playerPart.startsWith("p2a")) {
+                            if (parsed.maxhp === 100) {
+                                const pokemon = battleRef.current?.p2.active[0]
+                                const baseMaxhp = pokemon?.baseMaxhp || 100
+                                p2HpRef.current = {
+                                    hp: Math.round((parsed.hp / 100) * baseMaxhp),
+                                    maxhp: baseMaxhp
+                                }
+                            } else {
+                                p2HpRef.current = parsed
+                            }
+                            console.log('Updated p2 HP from heal:', p2HpRef.current)
+                        }
+                    }
+                }
+            }
+
             // Extract full Pokemon state for both players
             if (battleRef.current.p1.active[0]) {
                 const p1Pokemon = battleRef.current.p1.active[0]
                 // Only extract if species is properly loaded
-                if (p1Pokemon.baseSpeciesForme) {
+                if (p1Pokemon.baseSpeciesForme && p1HpRef.current.maxhp > 0) {
                     const p1State = extractPokemonState(
                         p1Pokemon,
                         'p1',
                         playerPokemon?.moves
                     )
-                    if (p1State && p1State.maxhp > 0) {
-                        console.log('Setting p1 HP:', p1State.hp, '/', p1State.maxhp)
+                    if (p1State) {
+                        console.log('Setting p1 state:', p1State)
                         setPlayerActivePokemon(p1State)
-                        setPlayerHp(p1State.hp)
                     }
                 }
             }
@@ -269,34 +470,41 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
             if (battleRef.current.p2.active[0]) {
                 const p2Pokemon = battleRef.current.p2.active[0]
                 // Only extract if species is properly loaded
-                if (p2Pokemon.baseSpeciesForme) {
+                if (p2Pokemon.baseSpeciesForme && p2HpRef.current.maxhp > 0) {
                     const p2State = extractPokemonState(
                         p2Pokemon,
                         'p2',
                         wildPokemon.moves
                     )
-                    if (p2State && p2State.maxhp > 0) {
+                    if (p2State) {
+                        console.log('Setting p2 state:', p2State)
                         setEnemyActivePokemon(p2State)
-                        setEnemyHp(p2State.hp)
                     }
                 }
             }
 
-            if (line.startsWith("|-damage|")) {
+            // First, check if this line should be translated to a themed status message
+            const translatedMessage = translateStatusMessage(line)
+            if (translatedMessage) {
+                messageQueueRef.current.push({ text: translatedMessage })
+            } else if (line.startsWith("|-damage|")) {
                 const parts = line.split("|")
                 const pkmn = parts[2].substring(4)
-                messageQueueRef.current.push(`${pkmn} took damage!`)
-                if (parts[2].startsWith("p1a")) setPlayerShake(true)
-                if (parts[2].startsWith("p2a")) setEnemyShake(true)
-                setTimeout(() => {
-                    setEnemyShake(false)
-                    setPlayerShake(false)
-                }, 400)
+                const isPlayer = parts[2].startsWith("p1a")
+                const isEnemy = parts[2].startsWith("p2a")
+
+                messageQueueRef.current.push({
+                    text: `${pkmn} took damage!`,
+                    playerHp: isPlayer ? p1HpRef.current.hp : undefined,
+                    enemyHp: isEnemy ? p2HpRef.current.hp : undefined,
+                    playerShake: isPlayer,
+                    enemyShake: isEnemy
+                })
             } else if (line.startsWith("|move|")) {
                 const parts = line.split("|")
                 const pkmn = parts[2].substring(4)
                 const move = parts[3]
-                messageQueueRef.current.push(`${pkmn} used ${move}!`)
+                messageQueueRef.current.push({ text: `${pkmn} used ${move}!` })
 
                 // Trigger attack sound effect
                 // Convert move name to ID format and lookup base Gen 1 move
@@ -310,39 +518,43 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
                     playAttackSFX('tackle')
                 }
             } else if (line.startsWith("|-supereffective|")) {
-                messageQueueRef.current.push("It's super effective!")
+                messageQueueRef.current.push({ text: "It's super effective!" })
             } else if (line.startsWith("|-resisted|")) {
-                messageQueueRef.current.push("It's not very effective...")
+                messageQueueRef.current.push({ text: "It's not very effective..." })
             } else if (line.startsWith("|faint|")) {
                 const pkmn = line.split("|")[2].substring(4)
-                messageQueueRef.current.push(`${pkmn} fainted!`)
+                messageQueueRef.current.push({ text: `${pkmn} fainted!` })
             } else if (line.startsWith("|win|")) {
                 const winner = line.split("|")[2]
-                setBattleEnded(true)
                 if (winner === "Player") {
-                    setBattleResult('win')
-                    messageQueueRef.current.push("VICTORY!")
+                    messageQueueRef.current.push({
+                        text: "VICTORY!",
+                        onDisplay: () => {
+                            setBattleEnded(true)
+                            setBattleResult('win')
+                        }
+                    })
                 } else {
-                    setBattleResult('loss')
-                    messageQueueRef.current.push("DEFEATED...")
+                    messageQueueRef.current.push({
+                        text: "DEFEATED...",
+                        onDisplay: () => {
+                            setBattleEnded(true)
+                            setBattleResult('loss')
+                        }
+                    })
                 }
-            } else if (line.startsWith("|-status|")) {
-                const parts = line.split("|")
-                const pkmn = parts[2].substring(4)
-                const status = parts[3]
-                messageQueueRef.current.push(`${pkmn} was ${status}!`)
             } else if (line.startsWith("|-boost|") || line.startsWith("|-unboost|")) {
                 const parts = line.split("|")
                 const pkmn = parts[2].substring(4)
                 const stat = parts[3]
                 const amount = parts[4]
                 const direction = line.startsWith("|-boost|") ? "rose" : "fell"
-                messageQueueRef.current.push(`${pkmn}'s ${stat.toUpperCase()} ${direction}!`)
+                messageQueueRef.current.push({ text: `${pkmn}'s ${stat.toUpperCase()} ${direction}!` })
             }
         }
 
         processMessageQueue()
-    }, [processMessageQueue, extractPokemonState, playerPokemon, wildPokemon])
+    }, [processMessageQueue, extractPokemonState, playerPokemon, wildPokemon, translateStatusMessage, playAttackSFX, parseHpFromProtocol])
 
     useEffect(() => {
         if (!playerPokemon) return
@@ -373,12 +585,43 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
             }
         })();
 
-        // ALSO listen to p1 stream for player-specific messages (including |request|)
+        // Listen to p1 stream ONLY for request data (to update available moves)
+        // We don't process other messages here to avoid duplicates with omniscient
         void (async () => {
             try {
                 for await (const chunk of streams.p1) {
-                    console.debug('P1 stream chunk received:', chunk)
-                    handleEngineChunk(chunk)
+                    console.debug('P1 stream chunk:', chunk)
+                    // Only process request lines to update move availability
+                    for (const line of chunk.split("\n")) {
+                        if (line.startsWith("|request|")) {
+                            const jsonStr = line.split("|").slice(2).join("|");
+                            try {
+                                const requestObj = JSON.parse(jsonStr);
+                                if (battleRef.current && requestObj) {
+                                    battleRef.current.update(requestObj);
+                                    lastRequestRef.current = requestObj;
+                                    console.log('Updated battle with p1 request:', requestObj)
+
+                                    // Force update player state from request
+                                    if (requestObj.active && requestObj.active[0]) {
+                                        const p1Pokemon = battleRef.current.p1.active[0]
+                                        if (p1Pokemon && p1Pokemon.baseSpeciesForme && p1HpRef.current.maxhp > 0) {
+                                            const p1State = extractPokemonState(
+                                                p1Pokemon,
+                                                'p1',
+                                                playerPokemon?.moves
+                                            )
+                                            if (p1State) {
+                                                setPlayerActivePokemon(p1State)
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Failed to parse p1 request:', e)
+                            }
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error in p1 stream:', error)
@@ -450,6 +693,7 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         playerActivePokemon,
         enemyActivePokemon,
         battleEnded,
-        battleResult
+        battleResult,
+        continueMessage
     }
 }

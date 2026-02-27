@@ -40,7 +40,7 @@ export const MOVE_MAPPINGS: Record<string, string> = {
   'grainslam': 'tackle',
   'barrelroll': 'strength',
   'ambercharge': 'takedown',
-  'foamburst': 'bubble',
+  'headyfoam': 'bubble',  // Renamed from "foamburst" to avoid conflict with G-Max move
   'yeastpunch': 'megapunch',
   'hornsmash': 'horndrill',
   'coldsnap': 'icebeam',
@@ -79,6 +79,7 @@ export const MOVE_MAPPINGS: Record<string, string> = {
   'darkroar': 'roar',
   'heavyporter': 'bodyslam',
   'roastroll': 'dig',
+  'heavyhops': 'stunspore',
 
   // ==========================================
   // SHOT (Fire / Poison / Fast)
@@ -95,6 +96,7 @@ export const MOVE_MAPPINGS: Record<string, string> = {
   'limeslash': 'razorleaf',
   'sunriseburst': 'fireblast',
   'recklessdash': 'doubleedge',
+  'blackout': 'hypnosis',
   'embershot': 'ember',
   'firering': 'firespin',
   'clearflame': 'flamethrower',
@@ -148,6 +150,7 @@ export const MOVE_MAPPINGS: Record<string, string> = {
   'crispbreeze': 'gust',
   'grapewhip': 'vinewhip',
   'sommelierstouch': 'amnesia',
+  'tannintwist': 'confuseray',
   'grassknot': 'bind',
   'rubybeam': 'psybeam',
   'tanninshield': 'reflect',
@@ -201,6 +204,7 @@ export const MOVE_MAPPINGS: Record<string, string> = {
   'refresh': 'recover',
   'aquawall': 'barrier',
   'cleansewave': 'surf',
+  'brainfreeze': 'glare',
   'greenwave': 'surf',
   'bubbleburst': 'bubble',
   'fizzattack': 'bubblebeam',
@@ -242,6 +246,7 @@ export const MOVE_MAPPINGS: Record<string, string> = {
   'coconutbomb': 'eggbomb',
   'vermouthvine': 'vinewhip',
   'garnishguard': 'reflect',
+  'dirtyolive': 'toxic',
   'pineapplepeck': 'peck',
   'spritzshower': 'bubblebeam',
   'bitterbloom': 'megadrain',
@@ -285,7 +290,7 @@ export const ALL_PUBMON: PubMon[] = [
   {
     id: 1, name: "Hoppsin", type: "beer", hp: 45, maxHp: 45, level: 5, xp: 0,
     attack: 12, defense: 10,
-    moves: ["Grain Slam", "Foam Burst", "Barrel Roll", "Yeast Punch"],
+    moves: ["Grain Slam", "Heady Foam", "Barrel Roll", "Heavy Hops"],
     sprite: "hoppsin",
     description: "A hoppy creature born from the finest barley fields. Its foam mane bristles when angered.",
     visuals: "a fakemon, a quadrupedal beast formed from dense bundles of green barley and hops. Its coarse, vegetative anatomy is crowned by a thick, bubbling mane of white foam. Warm earthy greens and stark white highlights on the froth imply a rugged, organic volume that is constantly overflowing.",
@@ -397,7 +402,7 @@ export const ALL_PUBMON: PubMon[] = [
   {
     id: 11, name: "Tequilar", type: "shot", hp: 40, maxHp: 40, level: 5, xp: 0,
     attack: 15, defense: 8,
-    moves: ["Agave Blaze", "Salt Sting", "Lime Slash", "Sunrise Burst"],
+    moves: ["Agave Blaze", "Salt Sting", "Lime Slash", "Blackout"],
     sprite: "tequilar",
     description: "A fiery desert dweller with crystalline salt armor. Attacks with citrus precision.",
     cry: 41,
@@ -518,7 +523,7 @@ export const ALL_PUBMON: PubMon[] = [
   {
     id: 20, name: "Charderan", type: "wine", hp: 44, maxHp: 44, level: 5, xp: 0,
     attack: 11, defense: 12,
-    moves: ["Oak Charm", "Vintage Heal", "Grape Whip", "Sommelier's Touch"],
+    moves: ["Oak Charm", "Vintage Heal", "Grape Whip", "Tannin Twist"],
     sprite: "charderan",
     description: "An elegant fairy-type aged to perfection. Its aroma calms even the fiercest foes.",
     cry: 68,
@@ -630,7 +635,7 @@ export const ALL_PUBMON: PubMon[] = [
   {
     id: 30, name: "Stillbar", type: "water", hp: 46, maxHp: 46, level: 5, xp: 0,
     attack: 9, defense: 15,
-    moves: ["Still Calm", "Deep Current", "Aqua Wall", "Cleanse Wave"],
+    moves: ["Still Calm", "Deep Current", "Aqua Wall", "Brain Freeze"],
     sprite: "stillbar",
     description: "A tranquil water guardian. Its still surface hides incredible defensive power.",
     cry: 77,
@@ -724,7 +729,7 @@ export const ALL_PUBMON: PubMon[] = [
   {
     id: 37, name: "Martini", type: "cocktail", hp: 40, maxHp: 40, level: 5, xp: 0,
     attack: 14, defense: 10,
-    moves: ["Olive Toss", "Shaken Strike", "Vermouth Vine", "Garnish Guard"],
+    moves: ["Olive Toss", "Shaken Strike", "Vermouth Vine", "Dirty Olive"],
     sprite: "martini",
     description: "A suave grass-type with a crystal-clear body and a single olive antenna.",
     cry: 17,
