@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getRandomPubMon, type PubMon, type PubType } from "@/lib/pokemon-data";
+import { useAudio } from "./audio-manager";
 import { BattleScreen } from "./battle-screen";
 import { CollapsibleGymPath } from "./CollapsibleGymPath";
 import { DrinkSelect } from "./drink-select";
@@ -15,7 +16,6 @@ import { Pokedex } from "./pokedex";
 import { StarterSelect } from "./starter-select";
 import { TrainerCard } from "./TrainerCard";
 import { TeamManagement } from "./team-management";
-import { useAudio } from "./audio-manager";
 
 function generateUUID(): string {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -48,10 +48,10 @@ interface GameShellProps {
 	initialGymId?: number;
 }
 
-export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) {
-	console.log("GameShell initialPlayerState:", initialPlayerState);
-	console.log("Initial currentGymId:", initialGymId);
-
+export function GameShell({
+	initialPlayerState,
+	initialGymId,
+}: GameShellProps) {
 	const [phase, setPhase] = useState<GamePhase>(
 		initialPlayerState
 			? initialPlayerState.party.length > 0
@@ -240,7 +240,7 @@ export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) 
 				const msg = JSON.parse(event.data);
 				if (msg.type === "encounter_result") {
 					setWildPokemon(msg.wildPubmon);
-					setDrinksCollected((prev) => prev + 1);
+					setDrinksCollected((prev: number) => prev + 1);
 					setSeenIds((prev) => new Set(prev).add(msg.wildPubmon.id));
 					setShowBattleTransition(true);
 					socket.removeEventListener("message", handleMessage);
@@ -321,6 +321,18 @@ export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) 
 	const handleRun = useCallback(() => {
 		setWildPokemon(null);
 		setPhase("crawl");
+	}, []);
+
+	const handleBattleEnd = useCallback((result: "win" | "loss") => {
+		// Close battle screen, nullify encounter, return to crawl
+		setWildPokemon(null);
+		setPhase("crawl");
+
+		// Could add additional logic here based on result:
+		// - Update stats for win/loss tracking
+		// - Show different messages
+		// - Award items/badges
+		console.log(`Battle ended with result: ${result}`);
 	}, []);
 
 	// Debug: Log when currentGymId changes
@@ -426,6 +438,7 @@ export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) 
 				{phase === "crawl" && (
 					<DrinkSelect
 						onSelect={handleDrinkSelect}
+						onSelectGym={setCurrentGymId}
 						drinksCollected={drinksCollected}
 						badges={badges}
 						currentGymId={currentGymId}
@@ -439,6 +452,7 @@ export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) 
 						onFight={handleFight}
 						onCatch={handleCatch}
 						onRun={handleRun}
+						onBattleEnd={handleBattleEnd}
 					/>
 				)}
 

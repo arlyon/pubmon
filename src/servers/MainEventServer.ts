@@ -14,6 +14,7 @@ import {
   serializePlayerState,
 } from "../types/game-state";
 import type { ClientMessage, ServerMessage } from "../types/messages";
+import { DurableObjectState } from "@cloudflare/workers-types";
 
 /**
  * MainEventServer - The Global Event Room

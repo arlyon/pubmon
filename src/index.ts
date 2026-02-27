@@ -1,6 +1,8 @@
-import { getServerByName, type PartyKitServer } from "partyserver";
+import { getServerByName } from "partyserver";
 import { MainEventServer } from "./servers/MainEventServer";
 import { BattleServer } from "./servers/BattleServer";
+import { DurableObjectNamespace,
+ExportedHandler } from "@cloudflare/workers-types";
 
 /**
  * Router Entry Point for PubMon Server

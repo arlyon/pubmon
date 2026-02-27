@@ -19,7 +19,7 @@ export function CollapsibleGymPath({
 }: CollapsibleGymPathProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 
-	const currentGym = GYMS.find((g) => g.id === currentGymId);
+	const currentGym = GYMS.find((g) => g.id === currentGymId) || GYMS[0]!;
 	const pubGymData = createPubGymFromGyms(GYMS, badges);
 
 	return (

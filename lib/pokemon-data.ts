@@ -1,3 +1,5 @@
+import type { ModData } from '@pkmn/dex-types';
+
 export type PubType = "beer" | "shot" | "wine" | "water" | "cocktail"
 
 export interface PubMon {
@@ -110,23 +112,23 @@ export const ALL_PUBMON: PubMon[] = [
     visuals: "a fakemon, a small, spherical, subterranean creature radiating a soft peach-orange hue. Its entire body is covered in a thick, velvety fuzz that softens lighting into a warm, matte glow, concealing its dense, nectar-infused core."
   },
   {
-      id: 57, name: "Saiswan", type: "beer", hp: 41, maxHp: 41, level: 5, xp: 0,
-      attack: 16, defense: 9,
-      moves: ["Rustic Wing", "Peppercorn Gust", "Funky Feather", "Harvest Dive"],
-      sprite: "saiswan",
-      description: "An elegant but wildly unpredictable bird found near farmhouse breweries. It attacks with a rustic, spicy flair that catches foes off guard.",
-      cry: 128,
-      visuals: "a fakemon, an elegant but erratic swan with rustic, wheat-colored plumage dotted with dark peppercorn specks. Its broad wings have a textured, papery quality, and warm golden-hour lighting highlights the untamed, spicy flair of its farmhouse origins."
-    },
-    {
-        id: 54, name: "Portoise", type: "beer", hp: 58, maxHp: 58, level: 5, xp: 0,
-        attack: 11, defense: 17,
-        moves: ["Iron Shell", "Dark Roar", "Heavy Porter", "Roast Roll"],
-        sprite: "portoise",
-        description: "A plodding, deeply dependable reptile. The massive, iron-bound keg it uses as a shell makes it an absolute tank in battle.",
-        visuals: "a fakemon, a plodding, tank-like tortoise whose shell is an actual, massive iron-bound wooden keg. The deeply scored oak and oxidized metal rings feature rigid, unyielding textures, emphasizing an incredibly heavy, immovable, defensive silhouette.",
-        cry: 81
-      },
+    id: 57, name: "Saiswan", type: "beer", hp: 41, maxHp: 41, level: 5, xp: 0,
+    attack: 16, defense: 9,
+    moves: ["Rustic Wing", "Peppercorn Gust", "Funky Feather", "Harvest Dive"],
+    sprite: "saiswan",
+    description: "An elegant but wildly unpredictable bird found near farmhouse breweries. It attacks with a rustic, spicy flair that catches foes off guard.",
+    cry: 128,
+    visuals: "a fakemon, an elegant but erratic swan with rustic, wheat-colored plumage dotted with dark peppercorn specks. Its broad wings have a textured, papery quality, and warm golden-hour lighting highlights the untamed, spicy flair of its farmhouse origins."
+  },
+  {
+    id: 54, name: "Portoise", type: "beer", hp: 58, maxHp: 58, level: 5, xp: 0,
+    attack: 11, defense: 17,
+    moves: ["Iron Shell", "Dark Roar", "Heavy Porter", "Roast Roll"],
+    sprite: "portoise",
+    description: "A plodding, deeply dependable reptile. The massive, iron-bound keg it uses as a shell makes it an absolute tank in battle.",
+    visuals: "a fakemon, a plodding, tank-like tortoise whose shell is an actual, massive iron-bound wooden keg. The deeply scored oak and oxidized metal rings feature rigid, unyielding textures, emphasizing an incredibly heavy, immovable, defensive silhouette.",
+    cry: 81
+  },
 
   // ==========================================
   // SHOT (Fire)
@@ -183,7 +185,7 @@ export const ALL_PUBMON: PubMon[] = [
     sprite: "gingeist",
     description: "A translucent poltergeist that smells heavily of pine. Hard to hit, harder to track.",
     cry: 9,
-     visuals: "a fakemon, a translucent, ghostly poltergeist with a distinct, pine-needle-like jagged silhouette. The clear, glass-like body bends light through refraction, making its icy-blue core almost invisible save for crisp, freezing edge highlights."
+    visuals: "a fakemon, a translucent, ghostly poltergeist with a distinct, pine-needle-like jagged silhouette. The clear, glass-like body bends light through refraction, making its icy-blue core almost invisible save for crisp, freezing edge highlights."
   },
   {
     id: 16, name: "Samburst", type: "shot", hp: 35, maxHp: 35, level: 5, xp: 0,
@@ -210,7 +212,7 @@ export const ALL_PUBMON: PubMon[] = [
     sprite: "frostov",
     description: "Despite being a Fire-type, its flames burn cold and clear. It thrives in freezing climates.",
     cry: 144,
-    visuals:"a fakemon, a stout, bipedal elemental whose flames burn a completely clear, icy white-blue. Its crystalline structure mimics solid ice but radiates intense, paradoxical heat, featuring sharp, glass-like facets and freezing vapor trails."
+    visuals: "a fakemon, a stout, bipedal elemental whose flames burn a completely clear, icy white-blue. Its crystalline structure mimics solid ice but radiates intense, paradoxical heat, featuring sharp, glass-like facets and freezing vapor trails."
   },
   {
     id: 19, name: "Limonchilla", type: "shot", hp: 39, maxHp: 39, level: 5, xp: 0,
@@ -222,41 +224,41 @@ export const ALL_PUBMON: PubMon[] = [
     visuals: "a fakemon, an energetic, rodent-like creature with a coat of intensely vibrant, zesty yellow fire. Its tail trails a thick, syrupy, glowing residue. Sharp, citrus-bright highlights give its form an electric, sugary pop."
   },
   {
-      id: 49, name: "Whiscream", type: "shot", hp: 60, maxHp: 60, level: 5, xp: 0,
-      attack: 11, defense: 17,
-      moves: ["Sticky Sludge", "Sugar Coma", "Whiskey Burn", "Velvet Trap"],
-      sprite: "whiscream",
-      description: "An amorphous, slow-moving ooze of sweet cream and spirits. Physical attacks simply sink into its thick, velvety body.",
-      cry: 33,
-      visuals: "a fakemon, an amorphous, slow-moving ooze of rich, velvety cream marbled with warm amber spirits. Its utterly fluid, non-Newtonian anatomy features soft, heavy folds and smooth, sweeping specular highlights that emphasize a thick, suffocating sweetness."
-    },
-    {
-        id: 47, name: "Krakenum", type: "shot", hp: 50, maxHp: 50, level: 5, xp: 0,
-        attack: 17, defense: 11,
-        moves: ["Molasses Sludge", "Tentacle Lash", "Spiced Ink", "Pirate's Curse"],
-        sprite: "krakenum",
-        description: "A dark, spiced cephalopod that dwells in oak barrels. It strikes with heavy, molasses-coated tentacles.",
-        cry: 144,
-        visuals: "a fakemon, a dark, menacing cephalopod emerging from a shattered oak barrel. Its massive, heavy tentacles are coated in a thick, black molasses sludge, capturing light with oily, iridescent reflections over a deep spiced-rum-colored body."
-      },
-      {
-        id: 48, name: "Cognacat", type: "shot", hp: 42, maxHp: 42, level: 5, xp: 0,
-        attack: 14, defense: 12,
-        moves: ["Velvet Paw", "Oak Rest", "Snifter Swirl", "V.S.O.P. Pounce"],
-        sprite: "cognacat",
-        description: "An aristocratic feline that demands to be warmed by the fire before battling. Highly sophisticated and aloof.",
-        cry: 67,
-        visuals: "a fakemon, an aristocratic, aloof feline with a coat that resembles rich, polished mahogany and velvet. Warm, fireside lighting graces its smooth, snifter-shaped silhouette, emphasizing a highly sophisticated, plush, and warming materiality."
-      },
-      {
-        id: 49, name: "Bovileys", type: "shot", hp: 55, maxHp: 55, level: 5, xp: 0,
-        attack: 10, defense: 16,
-        moves: ["Cream Tackle", "Cocoa Dust", "Soothing Moo", "Thick Coat"],
-        sprite: "bovileys",
-        description: "A gentle, sluggish bovine with a rich, creamy coat. It often puts aggressive opponents to sleep with its sweet aroma.",
-        cry: 22,
-        visuals: "a fakemon, a gentle, sluggish bovine covered in a thick, heavy coat of off-white cream and cocoa dusting. Its sluggish anatomy is incredibly soft and pillowy, with muted, warm lighting that implies a soothing, aromatic, and heavy physical presence."
-      },
+    id: 49, name: "Whiscream", type: "shot", hp: 60, maxHp: 60, level: 5, xp: 0,
+    attack: 11, defense: 17,
+    moves: ["Sticky Sludge", "Sugar Coma", "Whiskey Burn", "Velvet Trap"],
+    sprite: "whiscream",
+    description: "An amorphous, slow-moving ooze of sweet cream and spirits. Physical attacks simply sink into its thick, velvety body.",
+    cry: 33,
+    visuals: "a fakemon, an amorphous, slow-moving ooze of rich, velvety cream marbled with warm amber spirits. Its utterly fluid, non-Newtonian anatomy features soft, heavy folds and smooth, sweeping specular highlights that emphasize a thick, suffocating sweetness."
+  },
+  {
+    id: 47, name: "Krakenum", type: "shot", hp: 50, maxHp: 50, level: 5, xp: 0,
+    attack: 17, defense: 11,
+    moves: ["Molasses Sludge", "Tentacle Lash", "Spiced Ink", "Pirate's Curse"],
+    sprite: "krakenum",
+    description: "A dark, spiced cephalopod that dwells in oak barrels. It strikes with heavy, molasses-coated tentacles.",
+    cry: 144,
+    visuals: "a fakemon, a dark, menacing cephalopod emerging from a shattered oak barrel. Its massive, heavy tentacles are coated in a thick, black molasses sludge, capturing light with oily, iridescent reflections over a deep spiced-rum-colored body."
+  },
+  {
+    id: 48, name: "Cognacat", type: "shot", hp: 42, maxHp: 42, level: 5, xp: 0,
+    attack: 14, defense: 12,
+    moves: ["Velvet Paw", "Oak Rest", "Snifter Swirl", "V.S.O.P. Pounce"],
+    sprite: "cognacat",
+    description: "An aristocratic feline that demands to be warmed by the fire before battling. Highly sophisticated and aloof.",
+    cry: 67,
+    visuals: "a fakemon, an aristocratic, aloof feline with a coat that resembles rich, polished mahogany and velvet. Warm, fireside lighting graces its smooth, snifter-shaped silhouette, emphasizing a highly sophisticated, plush, and warming materiality."
+  },
+  {
+    id: 49, name: "Bovileys", type: "shot", hp: 55, maxHp: 55, level: 5, xp: 0,
+    attack: 10, defense: 16,
+    moves: ["Cream Tackle", "Cocoa Dust", "Soothing Moo", "Thick Coat"],
+    sprite: "bovileys",
+    description: "A gentle, sluggish bovine with a rich, creamy coat. It often puts aggressive opponents to sleep with its sweet aroma.",
+    cry: 22,
+    visuals: "a fakemon, a gentle, sluggish bovine covered in a thick, heavy coat of off-white cream and cocoa dusting. Its sluggish anatomy is incredibly soft and pillowy, with muted, warm lighting that implies a soothing, aromatic, and heavy physical presence."
+  },
 
   // ==========================================
   // WINE (Fairy)
@@ -343,23 +345,23 @@ export const ALL_PUBMON: PubMon[] = [
     visuals: "a fakemon, a vigorous, heavily-built moth with thick, iron-forged metallic wings and a fuzzy, dark-brown root-like torso. A clashing palette of medicinal herbs and Jamaican rum colors grounds its surprisingly heavy, dense, and relentless fairy-type anatomy."
   },
   {
-      id: 50, name: "Kitsake", type: "wine", hp: 43, maxHp: 43, level: 5, xp: 0,
-      attack: 15, defense: 10,
-      moves: ["Koji Charm", "Ceramic Smash", "Steam Veil", "Rice Fire"],
-      sprite: "kitsake",
-      description: "A mystical fox spirit born from polished rice. It can fight either pipingly hot or chillingly cold, confusing foes.",
-      cry: 115,
-      visuals: "a fakemon, a mystical, multi-tailed fox spirit composed of polished, pearlescent white rice grains. Its fluid anatomy shifts between emitting pipingly hot steam and chilling frost, featuring a clean, milky-white translucency with soft, ceramic-like highlights."
-    },
-    {
-      id: 51, name: "Meadhorn", type: "wine", hp: 52, maxHp: 52, level: 5, xp: 0,
-      attack: 16, defense: 13,
-      moves: ["Sticky Honey", "Bear Hug", "Ferment Sting", "Golden Buzz"],
-      sprite: "meadhorn",
-      description: "An ancient, buzzing warrior favored by Vikings. Its golden armor is incredibly sticky, trapping physical attackers.",
-      cry: 133,
-      visuals: "a fakemon, an ancient, armored bee-like warrior dripping in incredibly thick, golden, fermented honey. The rich, amber armor catches light with a dense, sticky, and syrupy high-gloss finish, contrasting with its fuzzy, buzzing, Viking-inspired undercoat."
-    },
+    id: 50, name: "Kitsake", type: "wine", hp: 43, maxHp: 43, level: 5, xp: 0,
+    attack: 15, defense: 10,
+    moves: ["Koji Charm", "Ceramic Smash", "Steam Veil", "Rice Fire"],
+    sprite: "kitsake",
+    description: "A mystical fox spirit born from polished rice. It can fight either pipingly hot or chillingly cold, confusing foes.",
+    cry: 115,
+    visuals: "a fakemon, a mystical, multi-tailed fox spirit composed of polished, pearlescent white rice grains. Its fluid anatomy shifts between emitting pipingly hot steam and chilling frost, featuring a clean, milky-white translucency with soft, ceramic-like highlights."
+  },
+  {
+    id: 51, name: "Meadhorn", type: "wine", hp: 52, maxHp: 52, level: 5, xp: 0,
+    attack: 16, defense: 13,
+    moves: ["Sticky Honey", "Bear Hug", "Ferment Sting", "Golden Buzz"],
+    sprite: "meadhorn",
+    description: "An ancient, buzzing warrior favored by Vikings. Its golden armor is incredibly sticky, trapping physical attackers.",
+    cry: 133,
+    visuals: "a fakemon, an ancient, armored bee-like warrior dripping in incredibly thick, golden, fermented honey. The rich, amber armor catches light with a dense, sticky, and syrupy high-gloss finish, contrasting with its fuzzy, buzzing, Viking-inspired undercoat."
+  },
 
   // ==========================================
   // WATER (Water)
@@ -437,32 +439,32 @@ export const ALL_PUBMON: PubMon[] = [
     visuals: "a fakemon, a remarkably cool, elongated sea serpent with skin resembling the taut, rigid green rind of a cucumber. Crisp, pale-green aquatic fins slice cleanly through the water, highlighted by slick, wet reflections over a hard, vegetative surface."
   },
   {
-      id: 44, name: "Crocacola", type: "water", hp: 52, maxHp: 52, level: 5, xp: 0,
-      attack: 16, defense: 14,
-      moves: ["Syrup Snap", "Fizzy Death Roll", "Acidic Spit", "Dark Caramel"],
-      sprite: "crocacola",
-      description: "A dark, heavily armored reptile that lurks in sticky soda fountains. Bubbles constantly hiss from between its scales.",
-      cry: 42,
-      visuals: "a fakemon, a dark, heavy-set crocodilian heavily armored in thick, sticky, caramel-colored scales. Its massive jaws constantly hiss with effervescent carbonation. Deep, syrupy browns and stark, wet specular highlights imply a dense, sugary, and caustic mass."
-    },
-    {
-        id: 45, name: "Fantiger", type: "water", hp: 45, maxHp: 45, level: 5, xp: 0,
-        attack: 16, defense: 9,
-        moves: ["Orange Pounce", "Zest Swipe", "Sticky Paws", "Citrus Roar"],
-        sprite: "fantiger",
-        description: "A brightly colored feline bursting with artificial energy. Its vibrant orange stripes warn foes of its sticky attacks.",
-        cry: 89,
-        visuals: "a fakemon, a brightly colored, feline predator bursting with neon orange and vivid artificial hues. Its sleek, wet fur is matted with a sugary, sticky residue. The hyper-saturated, zesty colors scream of high-fructose, energetic aquatic power."
-      },
-      {
-        id: 46, name: "Spritely", type: "water", hp: 38, maxHp: 38, level: 5, xp: 0,
-        attack: 15, defense: 10,
-        moves: ["Lemon-Lime Flash", "Crisp Cut", "Clear Glide", "Refreshing Wind"],
-        sprite: "spritely",
-        description: "A translucent, darting sprite that mimics the fairies of the Wine class. Its attacks are exceptionally crisp and clean.",
-        cry: 18,
-        visuals: "a fakemon, a darting, translucent aquatic sprite with a brilliantly crisp lemon-lime color palette. Its aerodynamic, teardrop-shaped anatomy is almost invisible in the water, save for sharp, clean flashes of green and yellow specular light."
-      },
+    id: 44, name: "Crocacola", type: "water", hp: 52, maxHp: 52, level: 5, xp: 0,
+    attack: 16, defense: 14,
+    moves: ["Syrup Snap", "Fizzy Death Roll", "Acidic Spit", "Dark Caramel"],
+    sprite: "crocacola",
+    description: "A dark, heavily armored reptile that lurks in sticky soda fountains. Bubbles constantly hiss from between its scales.",
+    cry: 42,
+    visuals: "a fakemon, a dark, heavy-set crocodilian heavily armored in thick, sticky, caramel-colored scales. Its massive jaws constantly hiss with effervescent carbonation. Deep, syrupy browns and stark, wet specular highlights imply a dense, sugary, and caustic mass."
+  },
+  {
+    id: 45, name: "Fantiger", type: "water", hp: 45, maxHp: 45, level: 5, xp: 0,
+    attack: 16, defense: 9,
+    moves: ["Orange Pounce", "Zest Swipe", "Sticky Paws", "Citrus Roar"],
+    sprite: "fantiger",
+    description: "A brightly colored feline bursting with artificial energy. Its vibrant orange stripes warn foes of its sticky attacks.",
+    cry: 89,
+    visuals: "a fakemon, a brightly colored, feline predator bursting with neon orange and vivid artificial hues. Its sleek, wet fur is matted with a sugary, sticky residue. The hyper-saturated, zesty colors scream of high-fructose, energetic aquatic power."
+  },
+  {
+    id: 46, name: "Spritely", type: "water", hp: 38, maxHp: 38, level: 5, xp: 0,
+    attack: 15, defense: 10,
+    moves: ["Lemon-Lime Flash", "Crisp Cut", "Clear Glide", "Refreshing Wind"],
+    sprite: "spritely",
+    description: "A translucent, darting sprite that mimics the fairies of the Wine class. Its attacks are exceptionally crisp and clean.",
+    cry: 18,
+    visuals: "a fakemon, a darting, translucent aquatic sprite with a brilliantly crisp lemon-lime color palette. Its aerodynamic, teardrop-shaped anatomy is almost invisible in the water, save for sharp, clean flashes of green and yellow specular light."
+  },
 
   // ==========================================
   // COCKTAIL (Grass)
@@ -531,18 +533,100 @@ export const ALL_PUBMON: PubMon[] = [
     visuals: "a fakemon, a rugged, traditionalist biped whose thick, woody skin is steeped in dark amber bitters and topped with a curling, whip-like orange peel. The dense, barrel-aged texture of its torso implies heavy, immovable, physical striking power."
   },
   {
-      id: 52, name: "Margaray", type: "cocktail", hp: 45, maxHp: 45, level: 5, xp: 0,
-      attack: 16, defense: 11,
-      moves: ["Salt Rim Strike", "Agave Whip", "Lime Flutter", "Sunbathe"],
-      sprite: "margaray",
-      description: "A flat, gliding ray that skims the top of bar counters. Its jagged tail is coated in coarse, stinging salt.",
-      cry: 76,
-      visuals: "a fakemon, a flat, gliding aquatic-grass hybrid shaped like an elegant manta ray. Its smooth, lime-green back features a wet, tart sheen, while its jagged, sweeping edges are thickly encrusted with coarse, stinging, crystalline salt catching harsh light."
-    }
+    id: 52, name: "Margaray", type: "cocktail", hp: 45, maxHp: 45, level: 5, xp: 0,
+    attack: 16, defense: 11,
+    moves: ["Salt Rim Strike", "Agave Whip", "Lime Flutter", "Sunbathe"],
+    sprite: "margaray",
+    description: "A flat, gliding ray that skims the top of bar counters. Its jagged tail is coated in coarse, stinging salt.",
+    cry: 76,
+    visuals: "a fakemon, a flat, gliding aquatic-grass hybrid shaped like an elegant manta ray. Its smooth, lime-green back features a wet, tart sheen, while its jagged, sweeping edges are thickly encrusted with coarse, stinging, crystalline salt catching harsh light."
+  }
 ]
 
 export function getRandomPubMon(type: PubType): PubMon {
   const pool = ALL_PUBMON.filter(p => p.type === type)
   const selected = pool[Math.floor(Math.random() * pool.length)]
   return { ...selected, hp: selected.maxHp }
+}
+
+// 1. Map custom PubTypes to valid Gen 1 Pokémon types
+export const PUBMON_TYPE_MAP: Record<PubType, string> = {
+  beer: 'Ground',
+  shot: 'Fire',
+  wine: 'Poison', // Fairy doesn't exist in Gen 1
+  water: 'Water',
+  cocktail: 'Grass',
+};
+
+// 2. Generate the ModData required by @pkmn/dex and @pkmn/sim
+export function generatePubMonModData(): ModData {
+  const Species: Record<string, any> = {};
+  const Moves: Record<string, any> = {};
+  let moveCounter = 1000; // Start custom moves at a high ID to avoid collisions
+
+  ALL_PUBMON.forEach(mon => {
+    // Convert name to an ID (lowercase, alphanumeric only)
+    const speciesId = mon.name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+    // Build learnset from the mon's moves
+    const learnset: Record<string, string[]> = {};
+    mon.moves.forEach(moveName => {
+      const moveId = moveName.toLowerCase().replace(/[^a-z0-9]+/g, '');
+      learnset[moveId] = ['8L1']; // Learn at level 1 in generation 8
+    });
+
+    // Create the Species entry
+    Species[speciesId] = {
+      inherit: false,
+      num: mon.id,
+      name: mon.name,
+      types: [PUBMON_TYPE_MAP[mon.type]],
+      baseStats: {
+        hp: mon.maxHp,
+        atk: mon.attack,
+        def: mon.defense,
+        spa: mon.attack, // Mirrored for Gen 1 'Special' calc
+        spd: mon.defense, // Mirrored for Gen 1 'Special' calc
+        spe: 50, // Arbitrary default speed so they can take turns
+      },
+      weightkg: 10, // Arbitrary weight
+      abilities: { 0: 'No Ability' }, // Gen 1 didn't have abilities
+      learnset,
+    };
+
+    // Create stub entries for their custom moves
+    mon.moves.forEach(moveName => {
+      const moveId = moveName.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+      if (!Moves[moveId]) {
+        Moves[moveId] = {
+          inherit: false,
+          num: moveCounter++,
+          name: moveName,
+          basePower: 50, // Default base power for custom moves
+          type: PUBMON_TYPE_MAP[mon.type], // Moves match the PubMon's type
+          category: 'Physical',
+          accuracy: 100,
+          pp: 15,
+          target: 'normal',
+        };
+      }
+    });
+  });
+
+  return {
+    Scripts: { inherit: 'gen1' },
+    Species,
+    Moves,
+    Formats: [
+      {
+        id: 'gen1pubmon',
+        inherit: false,
+        effectType: 'Format',
+        name: 'Gen 1 PubMon',
+        mod: 'pubmon',
+        ruleset: ['Standard']
+      }
+    ]
+  } as ModData;
 }

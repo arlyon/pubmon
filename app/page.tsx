@@ -60,9 +60,6 @@ export default async function Page() {
 		getCurrentGym(),
 	]);
 
-	console.log("initialPlayerState", initialPlayerState);
-	console.log("initialGymId", initialGymId);
-
 	return (
 		<PixelScreen>
 			<GameShell

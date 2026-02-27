@@ -2,6 +2,7 @@ import { Server, type Connection } from "partyserver";
 import type { PubMon } from "../../lib/pokemon-data";
 import type { BattleState, BattlePlayer } from "../types/game-state";
 import type { BattleClientMessage, BattleServerMessage } from "../types/messages";
+import { DurableObjectState } from "@cloudflare/workers-types";
 
 /**
  * BattleServer - Isolated Battle Sub-Room
