@@ -251,7 +251,7 @@ export const ALL_PUBMON: PubMon[] = [
     visuals: "a fakemon, an aristocratic, aloof feline with a coat that resembles rich, polished mahogany and velvet. Warm, fireside lighting graces its smooth, snifter-shaped silhouette, emphasizing a highly sophisticated, plush, and warming materiality."
   },
   {
-    id: 49, name: "Bovileys", type: "shot", hp: 55, maxHp: 55, level: 5, xp: 0,
+    id: 53, name: "Bovileys", type: "shot", hp: 55, maxHp: 55, level: 5, xp: 0,
     attack: 10, defense: 16,
     moves: ["Cream Tackle", "Cocoa Dust", "Soothing Moo", "Thick Coat"],
     sprite: "bovileys",

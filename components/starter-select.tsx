@@ -104,7 +104,7 @@ export function StarterSelect({ onSelect }: StarterSelectProps) {
 	const [textVisible, setTextVisible] = useState(true);
 	const [audioStarted, setAudioStarted] = useState(false);
 
-	const { playBGM } = useAudio();
+	const { playBGM, playCry } = useAudio();
 
 	const introDialogs = [
 		"Welcome to the world of PUBMON!",
@@ -149,14 +149,16 @@ export function StarterSelect({ onSelect }: StarterSelectProps) {
 			setSelectedType(type);
 			setSelectedPokemon({ ...pokemon, hp: pokemon.maxHp });
 			setPhase("confirm");
+			playCry(pokemon.cry);
 		}
-	}, []);
+	}, [playCry]);
 
 	const handleConfirm = useCallback(() => {
 		if (selectedPokemon) {
 			setPhase("receive");
+			playCry(selectedPokemon.cry);
 		}
-	}, [selectedPokemon]);
+	}, [selectedPokemon, playCry]);
 
 	const handleFinalSelect = useCallback(() => {
 		if (selectedPokemon) {

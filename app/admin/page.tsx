@@ -53,7 +53,7 @@ export default function AdminPage() {
 
 	useEffect(() => {
 		const ws = new PartySocket({
-			host: "http://localhost:8787",
+			host: process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787",
 			party: "main",
 			room: "pubmon",
 		});

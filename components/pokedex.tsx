@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
 import PixelHeader from "./pixel/PixelHeader";
@@ -459,13 +459,6 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 					</PixelBox>
 				</div>
 			)}
-
-			{/* Back Button */}
-			<div className="flex justify-end mt-auto">
-				<div style={{ width: 60 }}>
-					<PixelMenu items={["BACK"]} onSelect={onBack} />
-				</div>
-			</div>
 		</div>
 	);
 }

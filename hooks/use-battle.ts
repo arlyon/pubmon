@@ -42,8 +42,8 @@ interface UseBattleProps {
 export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
     const [menu, setMenu] = useState<BattleMenu>("main")
     const [message, setMessage] = useState<string | null>(null)
-    const [enemyHp, setEnemyHp] = useState(wildPokemon.hp)
-    const [playerHp, setPlayerHp] = useState(playerPokemon?.hp ?? 0)
+    const [enemyHp, setEnemyHp] = useState(0)
+    const [playerHp, setPlayerHp] = useState(0)
     const [isAnimating, setIsAnimating] = useState(false)
     const [playerShake, setPlayerShake] = useState(false)
     const [enemyShake, setEnemyShake] = useState(false)
@@ -63,12 +63,14 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
     const lastRequestRef = useRef<Protocol.Request | null>(null)
 
     const processMessageQueue = useCallback(() => {
-        if (processingRef.current || messageQueueRef.current.length === 0) {
-            if (messageQueueRef.current.length === 0 && !isAnimating) {
-                setIsAnimating(false)
-                setMenu("main")
-                setMessage(null)
-            }
+        if (processingRef.current) {
+            return
+        }
+
+        if (messageQueueRef.current.length === 0) {
+            setIsAnimating(false)
+            setMenu("main")
+            setMessage(null)
             return
         }
 
@@ -84,7 +86,7 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
             processMessageQueue()
         }, 1200)
 
-    }, [isAnimating])
+    }, [])
 
     const extractPokemonState = useCallback((pokemon: any, playerIndex: 'p1' | 'p2', sourceMoves?: string[]): ActivePokemon | null => {
         if (!pokemon) return null
@@ -92,18 +94,48 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         try {
             console.log(`Extracting ${playerIndex} state:`, {
                 pokemon,
+                'pokemon.hp': pokemon.hp,
+                'pokemon.baseMaxhp': pokemon.baseMaxhp,
+                'pokemon.maxhp': pokemon.maxhp,
+                'typeof pokemon.hp': typeof pokemon.hp,
                 'pokemon.moveSlots': pokemon.moveSlots,
                 sourceMoves,
                 'movePPUsage': Array.from(movePPUsage.current.entries())
             })
 
-            // Extract HP
-            const hp = typeof pokemon.hp === 'string'
-                ? parseInt(pokemon.hp.split('/')[0])
-                : pokemon.hp
-            const maxhp = typeof pokemon.hp === 'string'
-                ? parseInt(pokemon.hp.split('/')[1])
-                : pokemon.maxhp || 100
+            // Extract HP from @pkmn/client
+            // p1 (player): pokemon.hp is the actual HP value
+            // p2 (opponent): pokemon.hp is a percentage (0-100)
+            let hp: number;
+            let maxhp: number;
+
+            if (typeof pokemon.hp === 'string') {
+                // Format: "45/45"
+                const parts = pokemon.hp.split('/');
+                hp = parseInt(parts[0]);
+                maxhp = parseInt(parts[1]);
+            } else if (pokemon.baseMaxhp && pokemon.baseMaxhp > 0) {
+                maxhp = pokemon.baseMaxhp;
+                if (playerIndex === 'p1') {
+                    // Player gets actual HP value
+                    hp = pokemon.hp;
+                } else {
+                    // Opponent gets percentage (0-100)
+                    hp = Math.round((pokemon.hp / 100) * maxhp);
+                }
+            } else {
+                // Fallback
+                maxhp = pokemon.maxhp || 100;
+                hp = typeof pokemon.hp === 'number' ? pokemon.hp : 100;
+            }
+
+            console.log(`${playerIndex} HP calculation:`, {
+                'raw pokemon.hp': pokemon.hp,
+                'pokemon.baseMaxhp': pokemon.baseMaxhp,
+                'pokemon.maxhp': pokemon.maxhp,
+                'calculated hp': hp,
+                'calculated maxhp': maxhp
+            })
 
             // Extract status
             const status = pokemon.status || null
@@ -141,8 +173,6 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
                 }
             }
 
-            console.log('Final extracted moves:', moves)
-
             // Extract boosts
             const boosts = {
                 atk: pokemon.boosts?.atk || 0,
@@ -169,11 +199,11 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
     const handleEngineChunk = useCallback((chunk: string) => {
         if (!battleRef.current) return
 
-        console.log('Engine chunk received:', chunk)
+        console.debug('Engine chunk received:', chunk)
 
         for (const line of chunk.split("\n")) {
             if (!line) continue
-            console.log('Processing line:', line)
+            console.debug('Processing line:', line)
 
             let requestObj: Protocol.Request | undefined;
             if (line.startsWith("|request|")) {
@@ -185,7 +215,19 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
                 }
             }
 
-            battleRef.current.add(line)
+            try {
+                battleRef.current.add(line)
+            } catch (e) {
+                // @pkmn/client doesn't fully support custom mods and will throw an error
+                // when trying to clean up terastallization info on faint (searchid is undefined).
+                // This is harmless since tera is a Gen 9 feature not relevant to Gen 1 mods.
+                // We catch and ignore this specific error but rethrow others.
+                if (e instanceof TypeError && e.message?.includes('searchid')) {
+                    console.debug('Ignoring searchid error from @pkmn/client (custom species)')
+                } else {
+                    throw e
+                }
+            }
             const req = requestObj || battleRef.current.request;
             if (req) {
                 battleRef.current.update(req);
@@ -204,26 +246,35 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
 
             // Extract full Pokemon state for both players
             if (battleRef.current.p1.active[0]) {
-                const p1State = extractPokemonState(
-                    battleRef.current.p1.active[0],
-                    'p1',
-                    playerPokemon?.moves
-                )
-                if (p1State) {
-                    setPlayerActivePokemon(p1State)
-                    setPlayerHp(p1State.hp)
+                const p1Pokemon = battleRef.current.p1.active[0]
+                // Only extract if species is properly loaded
+                if (p1Pokemon.baseSpeciesForme) {
+                    const p1State = extractPokemonState(
+                        p1Pokemon,
+                        'p1',
+                        playerPokemon?.moves
+                    )
+                    if (p1State && p1State.maxhp > 0) {
+                        console.log('Setting p1 HP:', p1State.hp, '/', p1State.maxhp)
+                        setPlayerActivePokemon(p1State)
+                        setPlayerHp(p1State.hp)
+                    }
                 }
             }
 
             if (battleRef.current.p2.active[0]) {
-                const p2State = extractPokemonState(
-                    battleRef.current.p2.active[0],
-                    'p2',
-                    wildPokemon.moves
-                )
-                if (p2State) {
-                    setEnemyActivePokemon(p2State)
-                    setEnemyHp(p2State.hp)
+                const p2Pokemon = battleRef.current.p2.active[0]
+                // Only extract if species is properly loaded
+                if (p2Pokemon.baseSpeciesForme) {
+                    const p2State = extractPokemonState(
+                        p2Pokemon,
+                        'p2',
+                        wildPokemon.moves
+                    )
+                    if (p2State && p2State.maxhp > 0) {
+                        setEnemyActivePokemon(p2State)
+                        setEnemyHp(p2State.hp)
+                    }
                 }
             }
 
@@ -310,7 +361,7 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         void (async () => {
             try {
                 for await (const chunk of streams.p1) {
-                    console.log('P1 stream chunk received:', chunk)
+                    console.debug('P1 stream chunk received:', chunk)
                     handleEngineChunk(chunk)
                 }
             } catch (error) {
@@ -361,9 +412,8 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         }
 
         setIsAnimating(true)
-        setMenu("message")
 
-        const command = `>p1 move ${moveIdx + 1}`
+        const command = `move ${moveIdx + 1}`
         console.log('Writing command to battle stream:', command)
         console.log('p1 stream state:', {
             writable: p1Ref.current.writable,

@@ -1,28 +1,48 @@
-import React from "react";
+import type React from "react";
 
 interface PixelHPBarProps {
-    current: number;
-    max: number;
-    label?: string;
+	current: number;
+	max: number;
+	label?: string;
+	showNumbers?: boolean;
 }
 
-const PixelHPBar: React.FC<PixelHPBarProps> = ({ current, max, label }) => {
-    const pct = Math.max(0, Math.min(100, (current / max) * 100));
-    const color = pct > 50 ? "bg-pixel-hp-green" : pct > 20 ? "bg-pixel-hp-yellow" : "bg-pixel-hp-red";
+const PixelHPBar: React.FC<PixelHPBarProps> = ({
+	current,
+	max,
+	label,
+	showNumbers = true,
+}) => {
+	const pct = Math.max(0, Math.min(100, (current / max) * 100));
+	const color =
+		pct > 50
+			? "bg-pixel-hp-green"
+			: pct > 20
+				? "bg-pixel-hp-yellow"
+				: "bg-pixel-hp-red";
 
-    return (
-        <div className="flex items-center gap-[4px]">
-            {label && (
-                <span className="font-pixel text-pixel-xs text-pixel-black">{label}</span>
-            )}
-            <div className="flex-1 h-[4px] bg-pixel-gray-light border border-pixel-black">
-                <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
-            </div>
-            <span className="font-pixel text-pixel-xs text-pixel-black">
-                {current}/{max}
-            </span>
-        </div>
-    );
+	return (
+		<div className="flex flex-col gap-[2px]">
+			<div className="flex items-center gap-[4px]">
+				{label && (
+					<span className="font-pixel text-[4px] text-pixel-black">
+						{label}
+					</span>
+				)}
+				<div className="flex-1 h-[6px] bg-pixel-gray-light border border-pixel-black">
+					<div
+						className={`h-full ${color} transition-all duration-500 ease-out`}
+						style={{ width: `${pct}%` }}
+					/>
+				</div>
+			</div>
+			{showNumbers && (
+				<span className="font-pixel text-[6px] text-pixel-black/70 text-right">
+					{current}/{max}
+				</span>
+			)}
+		</div>
+	);
 };
 
 export default PixelHPBar;

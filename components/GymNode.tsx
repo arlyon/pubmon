@@ -3,18 +3,15 @@ import { PubGym } from "@/lib/pub-crawl-data"
 
 interface GymNodeProps {
   pub: PubGym
-  onClick: () => void
   isCurrent: boolean
 }
 
-const GymNode: React.FC<GymNodeProps> = ({ pub, onClick, isCurrent }) => {
+const GymNode: React.FC<GymNodeProps> = ({ pub, isCurrent }) => {
   const earned = pub.badge
 
   return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center gap-[2px] cursor-pointer border-none bg-transparent p-0"
-      style={{ outline: "none" }}
+    <div
+      className="flex flex-col items-center gap-[2px] border-none bg-transparent p-0"
     >
       {/* Badge circle */}
       <div
@@ -60,7 +57,7 @@ const GymNode: React.FC<GymNodeProps> = ({ pub, onClick, isCurrent }) => {
       >
         {pub.name}
       </div>
-    </button>
+    </div>
   )
 }
 

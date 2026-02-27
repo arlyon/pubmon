@@ -4,36 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useBattle } from "@/hooks/use-battle";
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
-import PixelHPBar from "./pixel/PixelHPBar";
+import PixelStatCard from "./pixel/PixelStatCard";
 import PixelTextBox from "./pixel/PixelTextBox";
-import { PixelSprite, TypeBadge } from "./pixel-sprite";
-
-const STATUS_COLORS: Record<
-	string,
-	{ bg: string; text: string; label: string }
-> = {
-	brn: { bg: "#e43b44", text: "#fff", label: "BRN" },
-	psn: { bg: "#a86dd9", text: "#fff", label: "PSN" },
-	tox: { bg: "#a86dd9", text: "#fff", label: "TOX" },
-	par: { bg: "#ffd500", text: "#1a1c2c", label: "PAR" },
-	slp: { bg: "#6e7a8a", text: "#fff", label: "SLP" },
-	frz: { bg: "#00c2ff", text: "#1a1c2c", label: "FRZ" },
-};
-
-function StatusBadge({ status }: { status: string | null }) {
-	if (!status) return null;
-	const statusInfo = STATUS_COLORS[status.toLowerCase()];
-	if (!statusInfo) return null;
-
-	return (
-		<span
-			className="font-pixel text-[4px] px-[2px] py-[1px] rounded-sm"
-			style={{ backgroundColor: statusInfo.bg, color: statusInfo.text }}
-		>
-			{statusInfo.label}
-		</span>
-	);
-}
+import { PixelSprite } from "./pixel-sprite";
 
 interface BattleScreenProps {
 	wildPokemon: PubMon;
@@ -44,8 +17,8 @@ interface BattleScreenProps {
 	onBattleEnd?: (result: "win" | "loss") => void;
 }
 
-const SLIDE_FRAMES = 16;
-const FRAME_MS = 30;
+const SLIDE_FRAMES = 100;
+const FRAME_MS = 16;
 
 export function BattleScreen({
 	wildPokemon,
@@ -95,6 +68,13 @@ export function BattleScreen({
 				lastTime = currentTime;
 
 				if (frame >= SLIDE_FRAMES) {
+					// Play enemy cry when animation completes
+					const cryPath = `/audio/cries/${String(wildPokemon.cry).padStart(3, "0")}.wav`;
+					const audio = new Audio(cryPath);
+					audio.play().catch(() => {
+						// Silently fail if audio can't play
+					});
+
 					setTimeout(() => setShowMenu(true), 200);
 					return;
 				}
@@ -110,7 +90,7 @@ export function BattleScreen({
 				cancelAnimationFrame(animationId);
 			}
 		};
-	}, []);
+	}, [wildPokemon.cry]);
 
 	const handleBag = useCallback(() => {
 		if (isAnimating) return;
@@ -172,6 +152,12 @@ export function BattleScreen({
 		setShowCatchAnim(true);
 		setMessage("You threw a PubBall!");
 
+		// Play ball toss sound effect
+		const ballTossAudio = new Audio("/audio/general/SFX_BALL_TOSS.wav");
+		ballTossAudio.play().catch(() => {
+			// Silently fail if audio can't play
+		});
+
 		setTimeout(() => {
 			// Calculate catch rate based on enemy's weakened HP and status
 			let catchRate = 0.3; // Base catch rate
@@ -198,6 +184,12 @@ export function BattleScreen({
 			const caught = Math.random() < catchRate;
 			setShowCatchAnim(false);
 			if (caught) {
+				// Play caught sound effect
+				const caughtAudio = new Audio("/audio/general/SFX_CAUGHT_MON.wav");
+				caughtAudio.play().catch(() => {
+					// Silently fail if audio can't play
+				});
+
 				setMessage(`Gotcha! ${wildPokemon.name} was caught!`);
 				setTimeout(() => onCatch(), 2000);
 			} else {
@@ -222,8 +214,8 @@ export function BattleScreen({
 	// Calculate pixel offsets (snap to grid of 2px)
 	const progress = Math.min(slideFrame / SLIDE_FRAMES, 1);
 	const eased = 1 - (1 - progress) ** 2;
-	const playerOffset = Math.round(((1 - eased) * 160) / 2) * 2;
-	const enemyOffset = Math.round(((1 - eased) * 160) / 2) * 2;
+	const playerOffset = Math.round(((1 - eased) * 320) / 2) * 2;
+	const enemyOffset = Math.round(((1 - eased) * 320) / 2) * 2;
 
 	return (
 		<div
@@ -274,26 +266,18 @@ export function BattleScreen({
 				<div
 					className="absolute top-2 left-2 flex flex-col items-end gap-2 z-10"
 					style={{
-						transform: `translateX(${enemyOffset}px)`,
+						transform: `translateX(-${enemyOffset}px)`,
 						transition: "none",
 					}}
 				>
 					{slideFrame >= SLIDE_FRAMES && (
-						<PixelBox className="bg-transparent">
-							<div className="flex items-center gap-1 mb-[2px]">
-								<span className="font-pixel text-[6px] text-pixel-black">
-									{wildPokemon.name.toUpperCase()}
-								</span>
-								<TypeBadge type={wildPokemon.type} />
-								{enemyActivePokemon?.status && (
-									<StatusBadge status={enemyActivePokemon.status} />
-								)}
-							</div>
-							<span className="font-pixel text-[5px] text-pixel-black block mb-[2px]">
-								Lv{wildPokemon.level}
-							</span>
-							<PixelHPBar current={enemyHp} max={wildPokemon.maxHp} />
-						</PixelBox>
+						<PixelStatCard
+							pokemon={wildPokemon}
+							currentHp={enemyHp}
+							maxHp={enemyActivePokemon?.maxhp}
+							status={enemyActivePokemon?.status}
+							showHpNumbers={false}
+						/>
 					)}
 				</div>
 
@@ -301,7 +285,7 @@ export function BattleScreen({
 				<div
 					className="absolute top-8 right-12 z-10"
 					style={{
-						transform: `translateX(${enemyOffset}px)`,
+						transform: `translateX(-${enemyOffset}px)`,
 						transition: "none",
 						animation: enemyShake ? "pixel-shake 0.3s ease-in-out" : undefined,
 					}}
@@ -361,32 +345,20 @@ export function BattleScreen({
 							}}
 						>
 							{slideFrame >= SLIDE_FRAMES && (
-								<PixelBox className="bg-transparent">
-									<div className="flex items-center gap-1 mb-[2px]">
-										<span className="font-pixel text-[6px] text-pixel-black">
-											{playerPokemon.name.toUpperCase()}
-										</span>
-										<TypeBadge type={playerPokemon.type} />
-										{playerActivePokemon?.status && (
-											<StatusBadge status={playerActivePokemon.status} />
-										)}
-									</div>
-									<span className="font-pixel text-[5px] text-pixel-black block mb-[2px]">
-										Lv{playerPokemon.level}
-									</span>
-									<PixelHPBar
-										current={playerHp}
-										max={playerPokemon.maxHp}
-										label="HP"
-									/>
-								</PixelBox>
+								<PixelStatCard
+									pokemon={playerPokemon}
+									currentHp={playerHp}
+									maxHp={playerActivePokemon?.maxhp}
+									status={playerActivePokemon?.status}
+									showHpLabel
+								/>
 							)}
 						</div>
 
 						<div
-							className="absolute bottom-8 left-12 z-10"
+							className="absolute -bottom-10 left-6 z-10"
 							style={{
-								transform: `translateX(-${playerOffset}px)`,
+								transform: `translateX(${playerOffset}px)`,
 								transition: "none",
 								animation: playerShake
 									? "pixel-shake 0.3s ease-in-out"
@@ -395,7 +367,7 @@ export function BattleScreen({
 						>
 							<PixelSprite
 								name={playerPokemon.sprite}
-								size={8}
+								size={14}
 								flipped
 								animated
 							/>
@@ -416,7 +388,7 @@ export function BattleScreen({
 			{/* Bottom UI panel */}
 			<div className="p-2">
 				{/* Message display */}
-				{(menu === "message" || message) && (
+				{message && (
 					<div className="mb-2">
 						<PixelTextBox text={message || ""} showContinue={false} rows={2} />
 					</div>
@@ -460,59 +432,35 @@ export function BattleScreen({
 					playerActivePokemon && (
 						<div>
 							<div className="grid grid-cols-2 gap-[2px] mb-[2px]">
-								{playerActivePokemon.moves.length > 0
-									? playerActivePokemon.moves.map((move, idx) => {
-											console.log(`Rendering move ${idx}:`, {
-												name: move.name,
-												pp: move.pp,
-												maxpp: move.maxpp,
-												disabled: move.disabled,
-												isDisabled: move.disabled || move.pp <= 0,
-											});
-											return (
-												<button
-													key={move.name}
-													onClick={() => {
-														if (!move.disabled && move.pp > 0) {
-															setSelectedMove(idx);
-															handleAttack(idx);
-														}
-													}}
-													disabled={move.disabled || move.pp <= 0}
-													className={`pixel-box cursor-pointer font-pixel text-[6px] text-center py-[4px] border-none ${
-														move.disabled || move.pp <= 0
-															? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
-															: idx === selectedMove
-																? "bg-pixel-gray-light"
-																: "bg-pixel-white hover:bg-pixel-gray-light"
-													}`}
-												>
-													<div className="flex flex-col items-center text-black">
-														<span>{move.name.toUpperCase()}</span>
-														<span className="text-[4px] text-pixel-black/70">
-															PP: {move.pp}/{move.maxpp}
-														</span>
-													</div>
-												</button>
-											);
-										})
-									: // Fallback to original moves if state not yet extracted
-										playerPokemon.moves.map((move, idx) => (
-											<button
-												key={move}
-												onClick={() => {
+								{playerActivePokemon.moves.map((move, idx) => {
+									return (
+										<button
+											type="button"
+											key={move.name}
+											onClick={() => {
+												if (!move.disabled && move.pp > 0) {
 													setSelectedMove(idx);
 													handleAttack(idx);
-												}}
-												className={`pixel-box cursor-pointer font-pixel text-[6px] text-center py-[6px] border-none ${
-													idx === selectedMove
+												}
+											}}
+											disabled={move.disabled || move.pp <= 0}
+											className={`pixel-box cursor-pointer font-pixel text-[6px] text-center py-[4px] border-none ${
+												move.disabled || move.pp <= 0
+													? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
+													: idx === selectedMove
 														? "bg-pixel-gray-light"
-														: "bg-pixel-white"
-												} hover:bg-pixel-gray-light`}
-											>
-												{move.toUpperCase()}
-											</button>
-										))}
+														: "bg-pixel-white hover:bg-pixel-gray-light"
+											}`}
+										>
+											<div className="flex flex-col items-center text-black">
+												<span>{move.name.toUpperCase()}</span>
+												<span className="text-[4px] text-pixel-black/70">
+													PP: {move.pp}/{move.maxpp}
+												</span>
+											</div>
+										</button>
+									);
+								})}
 							</div>
 							<button
 								onClick={() => setMenu("main")}
@@ -526,7 +474,7 @@ export function BattleScreen({
 				{/* No player pokemon message */}
 				{showMenu && !playerPokemon && menu === "main" && !message && (
 					<div>
-						<div className="mb-2">
+						<div>
 							<PixelTextBox
 								text={`You have no PubMon! Try to catch this wild ${wildPokemon.name.toUpperCase()}!`}
 								showContinue={false}

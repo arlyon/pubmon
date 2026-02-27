@@ -186,6 +186,11 @@ export function PlayerCreate({
 	];
 
 	useEffect(() => {
+		// Try to play audio immediately if user has already interacted
+		playBGM("world-of-pokemon");
+	}, [playBGM]);
+
+	useEffect(() => {
 		setTextVisible(false);
 		const t = setTimeout(() => setTextVisible(true), 50);
 		return () => clearTimeout(t);

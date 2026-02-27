@@ -13,7 +13,7 @@ async function getPlayerState() {
 	try {
 		// Fetch player state from Durable Object
 		const response = await fetch(
-			`http://localhost:8787/parties/main/rpc/player/${sessionId}`,
+			`${process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787"}/parties/main/rpc/player/${sessionId}`,
 			{
 				cache: "no-store",
 			},
@@ -37,7 +37,7 @@ async function getPlayerState() {
 
 async function getCurrentGym() {
 	try {
-		const response = await fetch("http://localhost:8787/parties/main/rpc/gym", {
+		const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787"}/parties/main/rpc/gym`, {
 			cache: "no-store",
 		});
 

@@ -29,7 +29,7 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_classes": ["MainEventServer", "BattleServer"]
+			"new_sqlite_classes": ["MainEventServer", "BattleServer"]
 		}
 	]
 }

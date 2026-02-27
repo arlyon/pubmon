@@ -38,7 +38,7 @@ type GamePhase =
 import { PartySocket } from "partysocket";
 
 const socket = new PartySocket({
-	host: "http://localhost:8787",
+	host: process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787",
 	party: "main",
 	room: "pubmon",
 });
@@ -361,7 +361,7 @@ export function GameShell({
 	const activePokemon = team.length > 0 ? team[activeIdx] : null;
 
 	return (
-		<div className="flex flex-col relative min-h-screen">
+		<div className="flex flex-col relative h-screen bg-pixel-gray-light">
 			{/* Battle transition overlay */}
 			<div
 				className="fixed inset-0 pointer-events-none"
@@ -377,52 +377,8 @@ export function GameShell({
 				/>
 			</div>
 
-			{/* Top bar */}
-			{/* <header className="border-b-4 border-foreground bg-card">
-        <div className="max-w-md mx-auto flex items-center justify-between p-3">
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 10 10" width={20} height={20} style={{ imageRendering: "pixelated" }}>
-              <circle cx={5} cy={5} r={4.5} fill="#e43b44" />
-              <rect x={0.5} y={4.5} width={9} height={1} fill="#1a1c2c" />
-              <circle cx={5} cy={5} r={4.5} fill="none" stroke="#1a1c2c" strokeWidth={0.5} />
-              <rect x={0.5} y={5} width={9} height={4.5} rx={4.5} fill="#f4f4f4" />
-              <circle cx={5} cy={5} r={1.2} fill="#f4f4f4" stroke="#1a1c2c" strokeWidth={0.4} />
-              <circle cx={5} cy={5} r={0.6} fill="#1a1c2c" />
-            </svg>
-            <h1 className="text-[12px] text-primary">PUBMON</h1>
-          </div>
-          {phase !== "starter" && phase !== "player-create" ? (
-            <div className="flex items-center gap-3">
-              {player && (
-                <span className="text-[7px] text-muted-foreground border border-foreground/20 px-1.5 py-0.5">
-                  {player.name}
-                </span>
-              )}
-              <button
-                onClick={() => setPhase("pokedex")}
-                className="text-[8px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer font-sans border-2 border-foreground/30 px-2 py-1"
-              >
-                DEX
-              </button>
-              <button
-                onClick={() => setPhase("team")}
-                className="text-[8px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer font-sans border-2 border-foreground/30 px-2 py-1"
-              >
-                TEAM
-              </button>
-              <button
-                onClick={() => setPhase("crawl")}
-                className="text-[8px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer font-sans border-2 border-foreground/30 px-2 py-1"
-              >
-                CRAWL
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </header> */}
-
 			{/* Main content */}
-			<main className="flex-1 px-2">
+			<main className="flex-1 flex overflow-y-scroll bg-pixel-gray-light">
 				{phase === "player-create" && sessionId && (
 					<PlayerCreate
 						onComplete={handlePlayerCreate}
@@ -590,39 +546,39 @@ export function GameShell({
 
 			{/* Bottom nav */}
 			<nav
-				className={`border-t-4 border-foreground bg-card ${phase === "starter" || phase === "player-create" ? "hidden" : ""}`}
+				className={`border-t-4 border-pixel-black bg-pixel-white ${phase === "starter" || phase === "player-create" ? "hidden" : ""}`}
 			>
 				<div className="max-w-md mx-auto flex items-stretch">
 					<button
 						onClick={() => setPhase("crawl")}
-						className={`flex-1 flex flex-col items-center gap-1 py-3 cursor-pointer font-sans transition-colors
-              ${phase === "crawl" ? "bg-secondary text-primary" : "text-muted-foreground hover:text-foreground"}
+						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
+              ${phase === "crawl" ? "bg-pixel-blue text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
             `}
 					>
 						<svg
 							viewBox="0 0 8 8"
 							width={16}
 							height={16}
-							style={{ imageRendering: "pixelated" }}
+							className="pixel-perfect"
 						>
 							<rect x={2} y={0} width={4} height={1} fill="currentColor" />
 							<rect x={1} y={1} width={6} height={5} fill="currentColor" />
 							<rect x={3} y={6} width={2} height={2} fill="currentColor" />
 						</svg>
-						<span className="text-[7px]">CRAWL</span>
+						<span className="text-[5px]">CRAWL</span>
 					</button>
-					<div className="w-[2px] bg-foreground/20" />
+					<div className="w-[2px] bg-pixel-gray/30" />
 					<button
 						onClick={() => setPhase("pokedex")}
-						className={`flex-1 flex flex-col items-center gap-1 py-3 cursor-pointer font-sans transition-colors
-              ${phase === "pokedex" ? "bg-secondary text-primary" : "text-muted-foreground hover:text-foreground"}
+						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
+              ${phase === "pokedex" ? "bg-pixel-red text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
             `}
 					>
 						<svg
 							viewBox="0 0 12 12"
 							width={16}
 							height={16}
-							style={{ imageRendering: "pixelated" }}
+							className="pixel-perfect"
 						>
 							<rect
 								x={0}
@@ -632,7 +588,7 @@ export function GameShell({
 								rx={1}
 								fill="currentColor"
 							/>
-							<rect x={1} y={1} width={10} height={10} rx={1} fill="#1a1c2c" />
+							<rect x={1} y={1} width={10} height={10} rx={1} fill="rgb(var(--pixel-white))" />
 							<rect
 								x={2}
 								y={2}
@@ -650,20 +606,20 @@ export function GameShell({
 								opacity={0.3}
 							/>
 						</svg>
-						<span className="text-[7px]">PUBDEX</span>
+						<span className="text-[5px]">PUBDEX</span>
 					</button>
-					<div className="w-[2px] bg-foreground/20" />
+					<div className="w-[2px] bg-pixel-gray/30" />
 					<button
 						onClick={() => setPhase("team")}
-						className={`flex-1 flex flex-col items-center gap-1 py-3 cursor-pointer font-sans transition-colors
-              ${phase === "team" ? "bg-secondary text-primary" : "text-muted-foreground hover:text-foreground"}
+						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
+              ${phase === "team" ? "bg-pixel-blue text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
             `}
 					>
 						<svg
 							viewBox="0 0 10 10"
 							width={16}
 							height={16}
-							style={{ imageRendering: "pixelated" }}
+							className="pixel-perfect"
 						>
 							<circle
 								cx={5}
@@ -676,7 +632,7 @@ export function GameShell({
 							<rect x={0.5} y={4.5} width={9} height={1} fill="currentColor" />
 							<circle cx={5} cy={5} r={1.5} fill="currentColor" />
 						</svg>
-						<span className="text-[7px]">PUBMON</span>
+						<span className="text-[5px]">PUBMON</span>
 					</button>
 				</div>
 			</nav>

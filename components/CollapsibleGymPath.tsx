@@ -3,17 +3,20 @@
 import React, { useState } from "react";
 import { GYMS } from "@/lib/gym-data";
 import { createPubGymFromGyms } from "@/lib/pub-crawl-data";
+import { cn } from "@/lib/utils";
 import PubCrawlPath from "./PubCrawlPath";
 import { PixelBox } from "./pixel-box";
 
 interface CollapsibleGymPathProps {
 	currentGymId: number;
 	badges: Set<number>;
+	className?: string;
 	onSelectGym: (gymId: number) => void;
 }
 
 export function CollapsibleGymPath({
 	currentGymId,
+	className,
 	badges = new Set(),
 	onSelectGym,
 }: CollapsibleGymPathProps) {
@@ -23,7 +26,7 @@ export function CollapsibleGymPath({
 	const pubGymData = createPubGymFromGyms(GYMS, badges);
 
 	return (
-		<div className="w-full">
+		<div className={cn("w-full", className)}>
 			{/* Collapsible banner */}
 			<button
 				onClick={() => setIsExpanded(!isExpanded)}
