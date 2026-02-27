@@ -12,6 +12,7 @@ import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
+import { useAudio } from "./audio-manager";
 
 const STARTERS: Record<PubType, string> = {
 	beer: "Hoppsin",
@@ -103,7 +104,7 @@ export function StarterSelect({ onSelect }: StarterSelectProps) {
 	const [textVisible, setTextVisible] = useState(true);
 	const [audioStarted, setAudioStarted] = useState(false);
 
-	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const { playBGM } = useAudio();
 
 	const introDialogs = [
 		"Welcome to the world of PUBMON!",
@@ -115,22 +116,16 @@ export function StarterSelect({ onSelect }: StarterSelectProps) {
 	];
 
 	const startAudio = useCallback(() => {
-		if (!audioStarted && audioRef.current) {
-			audioRef.current
-				.play()
-				.catch((e) => console.log("Audio play prevented:", e));
+		if (!audioStarted) {
+			playBGM("pokemon-lab");
 			setAudioStarted(true);
 		}
-	}, [audioStarted]);
+	}, [audioStarted, playBGM]);
 
 	useEffect(() => {
 		// Try to play audio immediately if user has already interacted
-		if (audioRef.current) {
-			audioRef.current.play().catch(() => {
-				// Autoplay prevented, will start on user interaction
-			});
-		}
-	}, []);
+		playBGM("pokemon-lab");
+	}, [playBGM]);
 
 	useEffect(() => {
 		setTextVisible(false);
@@ -171,8 +166,6 @@ export function StarterSelect({ onSelect }: StarterSelectProps) {
 
 	return (
 		<div className="p-[2px] w-full">
-			<audio ref={audioRef} src="/pokemon-lab.mp3" loop />
-
 			{/* Professor Scene (Shared for intro and pick phases) */}
 			{(phase === "intro" || phase === "pick") && (
 				<div className="mb-[4px]">

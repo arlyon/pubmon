@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
 import PixelHeader from "./pixel/PixelHeader";
@@ -74,6 +74,24 @@ function PubBallIcon({
 export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 	const [selectedId, setSelectedId] = useState<number | null>(null);
 	const [filterType, setFilterType] = useState<PubType | "all">("all");
+	const [isPlayingCry, setIsPlayingCry] = useState(false);
+
+	// Available cry audio files (001-151, excluding gaps 098-101)
+	const availableCries = [
+		...Array.from({ length: 97 }, (_, i) => i + 1),
+		...Array.from({ length: 50 }, (_, i) => i + 102),
+	];
+
+	// Randomly assign a cry to each pokemon (consistent across renders)
+	const pokemonCryMap = useMemo(() => {
+		const map = new Map<number, number>();
+		ALL_PUBMON.forEach((mon) => {
+			const randomCry =
+				availableCries[Math.floor(Math.random() * availableCries.length)];
+			map.set(mon.id, randomCry);
+		});
+		return map;
+	}, []);
 
 	const filteredPubMon =
 		filterType === "all"
@@ -88,6 +106,30 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 	const totalSeen = seenIds.size;
 	const totalCaught = caughtIds.size;
 	const totalPubMon = ALL_PUBMON.length;
+
+	const playPokemonCry = (pokemonId: number) => {
+		if (isPlayingCry) return;
+
+		const cryNumber = pokemonCryMap.get(pokemonId);
+		if (!cryNumber) return;
+
+		const cryPath = `/audio/cries/${String(cryNumber).padStart(3, "0")}.wav`;
+
+		const audio = new Audio(cryPath);
+		setIsPlayingCry(true);
+
+		audio.addEventListener("ended", () => {
+			setIsPlayingCry(false);
+		});
+
+		audio.addEventListener("error", () => {
+			setIsPlayingCry(false);
+		});
+
+		audio.play().catch(() => {
+			setIsPlayingCry(false);
+		});
+	};
 
 	return (
 		<div className="p-[2px] w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
@@ -288,6 +330,18 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 									<h3 className="font-pixel text-[8px] text-pixel-white m-0">
 										{selected.name.toUpperCase()}
 									</h3>
+									<button
+										onClick={() => playPokemonCry(selected.id)}
+										disabled={isPlayingCry}
+										className={`ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors ${
+											isPlayingCry
+												? "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
+												: "border-pixel-white bg-pixel-blue-dark text-pixel-white hover:bg-pixel-yellow hover:text-pixel-black hover:border-pixel-black"
+										}`}
+										title="Play cry"
+									>
+										🔊
+									</button>
 								</div>
 
 								<div className="flex items-center gap-[4px] mt-[2px]">

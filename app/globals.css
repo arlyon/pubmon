@@ -262,3 +262,11 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Pixelated rendering utility */
+.pixelated {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}

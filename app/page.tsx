@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { GameShell } from "@/components/game-shell";
 import PixelScreen from "@/components/pixel/PixelScreen";
-import type { MainEventServer } from "../src/servers/MainEventServer";
 
 async function getPlayerState() {
 	const cookieStore = await cookies();
@@ -38,12 +37,9 @@ async function getPlayerState() {
 
 async function getCurrentGym() {
 	try {
-		const response = await fetch(
-			"http://localhost:8787/parties/main/rpc/gym",
-			{
-				cache: "no-store",
-			},
-		);
+		const response = await fetch("http://localhost:8787/parties/main/rpc/gym", {
+			cache: "no-store",
+		});
 
 		if (!response.ok) {
 			console.error("Failed to fetch current gym:", response.statusText);

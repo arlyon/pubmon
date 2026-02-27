@@ -15,6 +15,7 @@ import { Pokedex } from "./pokedex";
 import { StarterSelect } from "./starter-select";
 import { TrainerCard } from "./TrainerCard";
 import { TeamManagement } from "./team-management";
+import { useAudio } from "./audio-manager";
 
 function generateUUID(): string {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -88,7 +89,7 @@ export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) 
 	const [badges, setBadges] = useState<Set<number>>(
 		initialPlayerState ? new Set(initialPlayerState.badges) : new Set(),
 	);
-	const battleMusicRef = useRef<HTMLAudioElement | null>(null);
+	const { playBGM, stopBGM } = useAudio();
 
 	// Initialize or retrieve sessionId from cookie
 	useEffect(() => {
@@ -164,19 +165,16 @@ export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) 
 		};
 	}, [sessionId, initialPlayerState]);
 
-	// Play battle music during transition and battle phase
+	// Play music based on game phase
 	useEffect(() => {
-		const shouldPlayMusic = showBattleTransition || phase === "battle";
-
-		if (shouldPlayMusic && battleMusicRef.current) {
-			battleMusicRef.current
-				.play()
-				.catch((e) => console.log("Audio play prevented:", e));
-		} else if (!shouldPlayMusic && battleMusicRef.current) {
-			battleMusicRef.current.pause();
-			battleMusicRef.current.currentTime = 0;
+		if (showBattleTransition || phase === "battle") {
+			playBGM("battle");
+		} else if (phase === "crawl" || phase === "pokedex" || phase === "team") {
+			playBGM("route-1");
+		} else {
+			stopBGM();
 		}
-	}, [showBattleTransition, phase]);
+	}, [showBattleTransition, phase, playBGM, stopBGM]);
 
 	const handlePlayerCreate = useCallback(
 		(info: PlayerInfo, existingState?: any) => {
@@ -352,9 +350,6 @@ export function GameShell({ initialPlayerState, initialGymId }: GameShellProps) 
 
 	return (
 		<div className="flex flex-col relative min-h-screen">
-			{/* Battle music (hidden audio element) */}
-			<audio ref={battleMusicRef} src="/battle.mp3" loop />
-
 			{/* Battle transition overlay */}
 			<div
 				className="fixed inset-0 pointer-events-none"

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
+import { useAudio } from "./audio-manager";
 
 export interface PlayerInfo {
 	name: string;
@@ -168,16 +169,14 @@ export function PlayerCreate({
 	const [textVisible, setTextVisible] = useState(true);
 	const [audioStarted, setAudioStarted] = useState(false);
 
-	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const { playBGM } = useAudio();
 
 	const startAudio = useCallback(() => {
-		if (!audioStarted && audioRef.current) {
-			audioRef.current
-				.play()
-				.catch((e) => console.log("Audio play prevented:", e));
+		if (!audioStarted) {
+			playBGM("world-of-pokemon");
 			setAudioStarted(true);
 		}
-	}, [audioStarted]);
+	}, [audioStarted, playBGM]);
 
 	const welcomeDialogs = [
 		"Hello there!\nWelcome to the world of PUBMON!",
@@ -311,8 +310,6 @@ export function PlayerCreate({
 
 	return (
 		<div className="p-[2px] w-full">
-			<audio ref={audioRef} src="/world-of-pokemon.mp3" loop />
-
 			{/* Professor Scene (Shared for multiple phases) */}
 			{(phase === "welcome" || phase === "gender" || phase === "confirm") && (
 				<div>
