@@ -17,8 +17,9 @@ type TrackId =
 interface AudioContextType {
 	playBGM: (trackId: TrackId) => void;
 	stopBGM: () => void;
-	playSFX: (trackId: TrackId) => void;
+	playSFX: (trackId: TrackId | string) => void;
 	playCry: (cryNumber: number) => void;
+	playAttackSFX: (moveId: string) => void;
 	preloadTrack: (trackId: TrackId) => void;
 	preloadCry: (cryNumber: number) => void;
 	setVolume: (volume: number) => void;
@@ -74,15 +75,23 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 			}
 		}
 
-		// Create and play new track
-		// If no music is currently playing OR it's a battle track, start at full volume
-		// Otherwise, start at 0 for fade in
+		// Use preloaded track if available, otherwise create new one
 		const shouldFadeIn = hasCurrentMusic && trackId !== "battle";
-		const sound = new Howl({
-			src: [AUDIO_PATHS[trackId]],
-			loop: true,
-			volume: shouldFadeIn ? 0 : volume,
-		});
+		let sound = preloadedTracksRef.current.get(trackId);
+
+		if (sound) {
+			// Remove from preloaded cache as we're now using it
+			preloadedTracksRef.current.delete(trackId);
+			// Set proper volume
+			sound.volume(shouldFadeIn ? 0 : volume);
+		} else {
+			// Fallback to creating new sound if not preloaded
+			sound = new Howl({
+				src: [AUDIO_PATHS[trackId]],
+				loop: true,
+				volume: shouldFadeIn ? 0 : volume,
+			});
+		}
 
 		sound.play();
 
@@ -104,9 +113,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	const playSFX = (trackId: TrackId) => {
+	const playSFX = (trackId: TrackId | string) => {
+		// Check if it's a predefined track ID
+		const path = (trackId as TrackId) in AUDIO_PATHS
+			? AUDIO_PATHS[trackId as TrackId]
+			: `/audio/attacks/${trackId}.wav`;
+
 		const sound = new Howl({
-			src: [AUDIO_PATHS[trackId]],
+			src: [path],
 			loop: false,
 			volume: volume,
 		});
@@ -114,15 +128,106 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		sound.play();
 	};
 
-	const playCry = (cryNumber: number) => {
-		const paddedNumber = cryNumber.toString().padStart(3, "0");
+	/**
+	 * Format a Gen 1 move ID to match audio file naming convention
+	 * Examples: 'hydropump' -> 'HydroPump', 'fireblast' -> 'FireBlast'
+	 */
+	const formatMoveNameForAudio = (moveId: string): string => {
+		// Special cases for multi-word moves
+		const specialCases: Record<string, string> = {
+			'hydropump': 'HydroPump',
+			'fireblast': 'FireBlast',
+			'solarbeam': 'SolarBeam',
+			'razorleaf': 'RazorLeaf',
+			'bodyslam': 'BodySlam',
+			'doubleedge': 'DoubleEdge',
+			'megapunch': 'MegaPunch',
+			'megadrain': 'MegaDrain',
+			'takedown': 'TakeDown',
+			'quickattack': 'QuickAttack',
+			'confuseray': 'ConfuseRay',
+			'leechseed': 'LeechSeed',
+			'wingattack': 'WingAttack',
+			'sandattack': 'SandAttack',
+			'skyattack': 'SkyAttack',
+			'hornattack': 'HornAttack',
+			'horndrill': 'HornDrill',
+			'focusenergy': 'FocusEnergy',
+			'stunspore': 'StunSpore',
+			'dizzypunch': 'DizzyPunch',
+			'razorwind': 'RazorWind',
+			'poisonpowder': 'PoisonPowder',
+			'poisonsting': 'PoisonSting',
+			'firespin': 'FireSpin',
+			'aurorabeam': 'AuroraBeam',
+			'defensecurl': 'DefenseCurl',
+			'thundershock': 'ThunderShock',
+			'doubleteam': 'DoubleTeam',
+			'sleeppowder': 'SleepPowder',
+			'swordsdance': 'SwordsDance',
+			'tailwhip': 'TailWhip',
+			'vinewhip': 'VineWhip',
+			'lightscreen': 'LightScreen',
+			'drillpeck': 'DrillPeck',
+			'dreameater': 'DreamEater',
+			'karatechop': 'KarateChop',
+			'bubblebeam': 'Bubblebeam',
+			'watergun': 'WaterGun',
+			'jumpkick': 'JumpKick',
+			'icepunch': 'IcePunch',
+			'nightshade': 'NightShade',
+		};
+
+		if (specialCases[moveId.toLowerCase()]) {
+			return specialCases[moveId.toLowerCase()];
+		}
+
+		// Default: capitalize first letter
+		return moveId.charAt(0).toUpperCase() + moveId.slice(1);
+	};
+
+	const playAttackSFX = (moveId: string) => {
+		const formattedName = formatMoveNameForAudio(moveId);
+		const path = `/audio/attacks/${formattedName}.wav`;
+
 		const sound = new Howl({
-			src: [`/audio/cries/${paddedNumber}.wav`],
+			src: [path],
 			loop: false,
 			volume: volume,
+			// Gracefully handle missing audio files
+			onloaderror: () => {
+				console.warn(`Attack SFX not found: ${path}, falling back to Tackle`);
+				// Fallback to a generic hit sound
+				const fallbackSound = new Howl({
+					src: ['/audio/attacks/Tackle.wav'],
+					loop: false,
+					volume: volume,
+				});
+				fallbackSound.play();
+			},
 		});
 
 		sound.play();
+	};
+
+	const playCry = (cryNumber: number) => {
+		// Use preloaded cry if available
+		let sound = preloadedCriesRef.current.get(cryNumber);
+
+		if (sound) {
+			// Keep in cache for potential replays during battle
+			sound.volume(volume);
+			sound.play();
+		} else {
+			// Fallback to creating new sound if not preloaded
+			const paddedNumber = cryNumber.toString().padStart(3, "0");
+			sound = new Howl({
+				src: [`/audio/cries/${paddedNumber}.wav`],
+				loop: false,
+				volume: volume,
+			});
+			sound.play();
+		}
 	};
 
 	const setVolume = (newVolume: number) => {
@@ -132,6 +237,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		}
 	};
 
+	// Pre-load battle music on mount
+	useEffect(() => {
+		preloadTrack("battle");
+	}, []);
+
 	// Cleanup on unmount
 	useEffect(() => {
 		return () => {
@@ -139,11 +249,54 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 				bgmRef.current.stop();
 				bgmRef.current.unload();
 			}
+			// Cleanup preloaded tracks
+			preloadedTracksRef.current.forEach((sound) => {
+				sound.unload();
+			});
+			preloadedTracksRef.current.clear();
+			// Cleanup preloaded cries
+			preloadedCriesRef.current.forEach((sound) => {
+				sound.unload();
+			});
+			preloadedCriesRef.current.clear();
 		};
 	}, []);
 
+	const preloadTrack = (trackId: TrackId) => {
+		// Skip if already preloaded
+		if (preloadedTracksRef.current.has(trackId)) {
+			return;
+		}
+
+		const sound = new Howl({
+			src: [AUDIO_PATHS[trackId]],
+			loop: true,
+			volume: 0,
+			preload: true,
+		});
+
+		preloadedTracksRef.current.set(trackId, sound);
+	};
+
+	const preloadCry = (cryNumber: number) => {
+		// Skip if already preloaded
+		if (preloadedCriesRef.current.has(cryNumber)) {
+			return;
+		}
+
+		const paddedNumber = cryNumber.toString().padStart(3, "0");
+		const sound = new Howl({
+			src: [`/audio/cries/${paddedNumber}.wav`],
+			loop: false,
+			volume: volume,
+			preload: true,
+		});
+
+		preloadedCriesRef.current.set(cryNumber, sound);
+	};
+
 	return (
-		<AudioContext.Provider value={{ playBGM, stopBGM, playSFX, playCry, setVolume }}>
+		<AudioContext.Provider value={{ playBGM, stopBGM, playSFX, playCry, playAttackSFX, preloadTrack, preloadCry, setVolume }}>
 			{children}
 		</AudioContext.Provider>
 	);

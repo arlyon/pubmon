@@ -1,4 +1,5 @@
 import type { ModData } from '@pkmn/dex-types';
+import { Dex } from '@pkmn/sim';
 
 export type PubType = "beer" | "shot" | "wine" | "water" | "cocktail"
 
@@ -25,6 +26,257 @@ export const TYPE_INFO: Record<PubType, { label: string; element: string; color:
   wine: { label: "Wine", element: "Fairy", color: "#f4a4c0", bgColor: "#3d1a2a" },
   water: { label: "Water", element: "Water", color: "#63c6e1", bgColor: "#142a3d" },
   cocktail: { label: "Cocktail", element: "Grass", color: "#63c74d", bgColor: "#1a3d14" },
+}
+
+/**
+ * MOVE_MAPPINGS: Central dictionary mapping custom PubMon move names to Gen 1 move IDs
+ * This ensures mechanical integrity by cloning all properties (damage, accuracy, effects)
+ * from existing Gen 1 moves while maintaining themed PubMon names in the UI.
+ */
+export const MOVE_MAPPINGS: Record<string, string> = {
+  // ==========================================
+  // BEER (Earth / Physical)
+  // ==========================================
+  'grainslam': 'tackle',
+  'barrelroll': 'strength',
+  'ambercharge': 'takedown',
+  'foamburst': 'bubble',
+  'yeastpunch': 'megapunch',
+  'hornsmash': 'horndrill',
+  'coldsnap': 'icebeam',
+  'darkroast': 'smog',
+  'copperpour': 'watergun',
+  'goldenpour': 'surf',
+  'horncharge': 'hornattack',
+  'earthquaff': 'earthquake',
+  'maltshield': 'withdraw',
+  'barleystomp': 'stomp',
+  'woodsplinter': 'rockthrow',
+  'thickfoam': 'barrier',
+  'paleglow': 'flash',
+  'rollout': 'doubleedge',
+  'crispstrike': 'slash',
+  'glassshatter': 'reflect',
+  'fermentingrest': 'rest',
+  'bitterbite': 'bite',
+  'citruspunch': 'dizzypunch',
+  'heavytap': 'bodyslam',
+  'hopswing': 'thrash',
+  'primalbrew': 'focusenergy',
+  'peachfuzz': 'stunspore',
+  'applebite': 'bite',
+  'orchardstrike': 'pound',
+  'amberdrop': 'watergun',
+  'fermentbreath': 'confuseray',
+  'sweetspray': 'watergun',
+  'lagerlunge': 'quickattack',
+  'sweetsap': 'leechseed',
+  'rusticwing': 'wingattack',
+  'peppercorngust': 'gust',
+  'funkyfeather': 'sandattack',
+  'harvestdive': 'skyattack',
+  'ironshell': 'withdraw',
+  'darkroar': 'roar',
+  'heavyporter': 'bodyslam',
+  'roastroll': 'dig',
+
+  // ==========================================
+  // SHOT (Fire / Poison / Fast)
+  // ==========================================
+  'greenflame': 'flamethrower',
+  'wormwoodhex': 'toxic',
+  'spicyspit': 'sludge',
+  'spiritburn': 'fireblast',
+  'loucheflash': 'flash',
+  'cinnamondust': 'poisonpowder',
+  'agaveblaze': 'flamethrower',
+  'saltsting': 'poisonsting',
+  'ignite': 'firespin',
+  'limeslash': 'razorleaf',
+  'sunriseburst': 'fireblast',
+  'recklessdash': 'doubleedge',
+  'embershot': 'ember',
+  'firering': 'firespin',
+  'clearflame': 'flamethrower',
+  'mezcalsmoke': 'smokescreen',
+  'pepperblast': 'smog',
+  'potatosmash': 'slam',
+  'barrelscratch': 'scratch',
+  'neatstrike': 'slash',
+  'winterchill': 'aurorabeam',
+  'peatsmoke': 'smog',
+  'felineproof': 'defensecurl',
+  'distilledbeam': 'icebeam',
+  'antlersmash': 'headbutt',
+  'herbalbrew': 'megadrain',
+  'zestbite': 'bite',
+  'licoricebite': 'bite',
+  'forestspirit': 'amnesia',
+  'syruptrap': 'stringshot',
+  'juniperphantom': 'confuseray',
+  'botanicalhex': 'leechseed',
+  'citrusspark': 'thundershock',
+  'clearstrike': 'slash',
+  'tonicillusion': 'doubleteam',
+  'yellowflash': 'quickattack',
+  'aniseflare': 'firespin',
+  'beantoss': 'eggbomb',
+  'stickysludge': 'sludge',
+  'flamingshot': 'ember',
+  'stickytrap': 'stringshot',
+  'sugarcoma': 'hypnosis',
+  'whiskeyburn': 'flamethrower',
+  'velvettrap': 'bind',
+  'molassessludge': 'sludge',
+  'tentaclelash': 'constrict',
+  'spicedink': 'smokescreen',
+  'piratescurse': 'nightshade',
+  'velvetpaw': 'scratch',
+  'oakrest': 'rest',
+  'snifterswirl': 'whirlwind',
+  'vsoppounce': 'quickattack',
+  'creamtackle': 'tackle',
+  'cocoadust': 'sleeppowder',
+  'soothingmoo': 'growl',
+  'thickcoat': 'harden',
+
+  // ==========================================
+  // WINE (Fairy / Psychic / Status)
+  // ==========================================
+  'oakcharm': 'tailwhip',
+  'vintageheal': 'recover',
+  'crispbreeze': 'gust',
+  'grapewhip': 'vinewhip',
+  'sommelierstouch': 'amnesia',
+  'grassknot': 'bind',
+  'rubybeam': 'psybeam',
+  'tanninshield': 'reflect',
+  'floralscent': 'stunspore',
+  'decantdance': 'swordsdance',
+  'corkpop': 'eggbomb',
+  'drycharm': 'tailwhip',
+  'bubblescratch': 'scratch',
+  'popcharm': 'confuseray',
+  'caffeineerush': 'agility',
+  'glerasparkle': 'flash',
+  'felinefizz': 'agility',
+  'sugarcrash': 'rest',
+  'earthyaroma': 'poisonpowder',
+  'velvetclaw': 'slash',
+  'cherrystrike': 'peck',
+  'noirveil': 'smokescreen',
+  'chaosbabble': 'confusion',
+  'citruscreech': 'screech',
+  'crispbite': 'bite',
+  'ironwing': 'drillpeck',
+  'nightharvest': 'dreameater',
+  'zestygust': 'gust',
+  'vigorousbuzz': 'supersonic',
+  'celebrationpop': 'swift',
+  'vintageblast': 'psychic',
+  'rootssmash': 'slam',
+  'bubblyshield': 'lightscreen',
+  'prestigestrike': 'psychic',
+  'tonicdance': 'swordsdance',
+  'kojicharm': 'confuseray',
+  'ceramicsmash': 'karatechop',
+  'steamveil': 'mist',
+  'ricefire': 'firespin',
+  'stickyhoney': 'stringshot',
+  'bearhug': 'bind',
+  'fermentsting': 'twineedle',
+  'goldenbuzz': 'supersonic',
+
+  // ==========================================
+  // WATER (Water / Ice)
+  // ==========================================
+  'springgush': 'hydropump',
+  'purityshield': 'lightscreen',
+  'coolslice': 'slash',
+  'aquajet': 'quickattack',
+  'mineralheal': 'recover',
+  'aquatail': 'surf',
+  'stillcalm': 'amnesia',
+  'deepcurrent': 'surf',
+  'refresh': 'recover',
+  'aquawall': 'barrier',
+  'cleansewave': 'surf',
+  'greenwave': 'surf',
+  'bubbleburst': 'bubble',
+  'fizzattack': 'bubblebeam',
+  'syrupsnap': 'bite',
+  'carbonation': 'bubble',
+  'sparkleshot': 'watergun',
+  'fizzydeathroll': 'thrash',
+  'quinineblast': 'bubblebeam',
+  'bitterspray': 'watergun',
+  'acidicspit': 'acid',
+  'tonicwave': 'surf',
+  'citrusguard': 'reflect',
+  'darkcaramel': 'sludge',
+  'fizzyfang': 'bite',
+  'co2coil': 'wrap',
+  'orangepounce': 'quickattack',
+  'clearstream': 'watergun',
+  'mineralstrike': 'slam',
+  'zestswipe': 'scratch',
+  'freezeover': 'blizzard',
+  'glaciercrash': 'icepunch',
+  'stickypaws': 'stringshot',
+  'meltingshield': 'barrier',
+  'citrusroar': 'roar',
+  'hydrationswoop': 'skyattack',
+  'purewing': 'wingattack',
+  'lemonlimeflash': 'flash',
+  'nightdroplet': 'waterfall',
+  'dewfeather': 'sandattack',
+  'crispcut': 'slash',
+  'clearglide': 'agility',
+  'refreshingwind': 'gust',
+
+  // ==========================================
+  // COCKTAIL (Grass / Flying)
+  // ==========================================
+  'olivetoss': 'rockthrow',
+  'shakenstrike': 'thrash',
+  'coconutbomb': 'eggbomb',
+  'vermouthvine': 'vinewhip',
+  'garnishguard': 'reflect',
+  'pineapplepeck': 'peck',
+  'spritzshower': 'bubblebeam',
+  'bitterbloom': 'megadrain',
+  'creamygust': 'gust',
+  'orangeslice': 'razorleaf',
+  'sunsetbeam': 'solarbeam',
+  'tropicalscreech': 'screech',
+  'limecrush': 'slam',
+  'sugarrush': 'agility',
+  'tomatotang': 'acid',
+  'muddlesmash': 'megapunch',
+  'tropicalgale': 'razorwind',
+  'celerywhip': 'vinewhip',
+  'mintytongue': 'lick',
+  'rumjump': 'jumpkick',
+  'tabascoburn': 'ember',
+  'icecrush': 'icepunch',
+  'muddlehop': 'stomp',
+  'hangovercure': 'recover',
+  'bittersstrike': 'karatechop',
+  'orangepeellash': 'vinewhip',
+  'bourbonbash': 'megapunch',
+  'muddledstomp': 'stomp',
+  'saltrimstrike': 'slash',
+  'agavewhip': 'vinewhip',
+  'limeflutter': 'gust',
+  'sunbathe': 'growth',
+};
+
+/**
+ * Reverse mapping for audio: custom move ID -> Gen 1 base move name
+ * Used to trigger the correct sound effect when a custom move is used
+ */
+export function getBaseMoveForAudio(customMoveId: string): string | null {
+  return MOVE_MAPPINGS[customMoveId.toLowerCase()] || null;
 }
 export const ALL_PUBMON: PubMon[] = [
   // ==========================================
@@ -564,6 +816,9 @@ export function generatePubMonModData(): ModData {
   const Moves: Record<string, any> = {};
   let moveCounter = 1000; // Start custom moves at a high ID to avoid collisions
 
+  // Get Gen 1 Dex for cloning move properties
+  const gen1Dex = Dex.forGen(1);
+
   ALL_PUBMON.forEach(mon => {
     // Convert name to an ID (lowercase, alphanumeric only)
     const speciesId = mon.name.toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -594,22 +849,56 @@ export function generatePubMonModData(): ModData {
       learnset,
     };
 
-    // Create stub entries for their custom moves
+    // Create custom move entries by cloning Gen 1 base moves
     mon.moves.forEach(moveName => {
       const moveId = moveName.toLowerCase().replace(/[^a-z0-9]+/g, '');
 
       if (!Moves[moveId]) {
-        Moves[moveId] = {
-          inherit: false,
-          num: moveCounter++,
-          name: moveName,
-          basePower: 50, // Default base power for custom moves
-          type: PUBMON_TYPE_MAP[mon.type], // Moves match the PubMon's type
-          category: 'Physical',
-          accuracy: 100,
-          pp: 15,
-          target: 'normal',
-        };
+        // Lookup the base Gen 1 move from the mapping
+        const baseMoveId = MOVE_MAPPINGS[moveId] || 'tackle'; // Default to Tackle if no mapping found
+        const baseMove = gen1Dex.moves.get(baseMoveId);
+
+        if (baseMove && baseMove.exists) {
+          // Clone all properties from the base Gen 1 move
+          Moves[moveId] = {
+            inherit: false,
+            num: moveCounter++,
+            name: moveName, // Override with custom name
+            // Clone core properties from Gen 1 base
+            basePower: baseMove.basePower,
+            accuracy: baseMove.accuracy,
+            pp: baseMove.pp,
+            type: baseMove.type,
+            category: baseMove.category,
+            priority: baseMove.priority,
+            target: baseMove.target,
+            // Clone flags and secondary effects if present
+            ...(baseMove.flags && { flags: { ...baseMove.flags } }),
+            ...(baseMove.secondary && { secondary: { ...baseMove.secondary } }),
+            ...(baseMove.secondaries && { secondaries: baseMove.secondaries.map((s: any) => ({ ...s })) }),
+            ...(baseMove.recoil && { recoil: baseMove.recoil }),
+            ...(baseMove.drain && { drain: baseMove.drain }),
+            ...(baseMove.multihit && { multihit: baseMove.multihit }),
+            ...(baseMove.volatileStatus && { volatileStatus: baseMove.volatileStatus }),
+            ...(baseMove.status && { status: baseMove.status }),
+            ...(baseMove.boosts && { boosts: { ...baseMove.boosts } }),
+            ...(baseMove.self && { self: { ...baseMove.self } }),
+          };
+        } else {
+          // Fallback to a basic stub if base move not found
+          console.warn(`Base move '${baseMoveId}' not found for custom move '${moveName}', using default stub`);
+          Moves[moveId] = {
+            inherit: false,
+            num: moveCounter++,
+            name: moveName,
+            basePower: 50,
+            type: PUBMON_TYPE_MAP[mon.type],
+            category: 'Physical',
+            accuracy: 100,
+            pp: 15,
+            target: 'normal',
+          };
+        }
       }
     });
   });

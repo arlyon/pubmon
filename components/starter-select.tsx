@@ -8,11 +8,11 @@ import {
 	type PubType,
 	TYPE_INFO,
 } from "@/lib/pokemon-data";
+import { useAudio } from "./audio-manager";
 import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
-import { useAudio } from "./audio-manager";
 
 const STARTERS: Record<PubType, string> = {
 	beer: "Hoppsin",
@@ -26,6 +26,7 @@ const TYPE_ORDER: PubType[] = ["beer", "shot", "wine", "water", "cocktail"];
 
 interface StarterSelectProps {
 	onSelect: (pokemon: PubMon) => void;
+	name: string;
 }
 
 function ProfessorSprite() {
@@ -94,7 +95,7 @@ function PokeballRow() {
 	);
 }
 
-export function StarterSelect({ onSelect }: StarterSelectProps) {
+export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 	const [phase, setPhase] = useState<"intro" | "pick" | "confirm" | "receive">(
 		"intro",
 	);
@@ -107,7 +108,7 @@ export function StarterSelect({ onSelect }: StarterSelectProps) {
 	const { playBGM, playCry } = useAudio();
 
 	const introDialogs = [
-		"Welcome to the world of PUBMON!",
+		`Welcome to the world of PUBMON, ${name}!`,
 		"My name is PROF. BARLEY. People call me the PubMon Professor!",
 		"This world is inhabited by creatures known as PUBMON!",
 		"People and PUBMON live together in pubs across the land.",
@@ -142,16 +143,19 @@ export function StarterSelect({ onSelect }: StarterSelectProps) {
 		}
 	}, [dialogIdx, introDialogs.length, startAudio]);
 
-	const handleTypeSelect = useCallback((type: PubType) => {
-		const starterName = STARTERS[type];
-		const pokemon = ALL_PUBMON.find((p) => p.name === starterName);
-		if (pokemon) {
-			setSelectedType(type);
-			setSelectedPokemon({ ...pokemon, hp: pokemon.maxHp });
-			setPhase("confirm");
-			playCry(pokemon.cry);
-		}
-	}, [playCry]);
+	const handleTypeSelect = useCallback(
+		(type: PubType) => {
+			const starterName = STARTERS[type];
+			const pokemon = ALL_PUBMON.find((p) => p.name === starterName);
+			if (pokemon) {
+				setSelectedType(type);
+				setSelectedPokemon({ ...pokemon, hp: pokemon.maxHp });
+				setPhase("confirm");
+				playCry(pokemon.cry);
+			}
+		},
+		[playCry],
+	);
 
 	const handleConfirm = useCallback(() => {
 		if (selectedPokemon) {

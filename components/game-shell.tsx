@@ -335,6 +335,31 @@ export function GameShell({
 		console.log(`Battle ended with result: ${result}`);
 	}, []);
 
+	const handleSetActiveMon = useCallback(
+		(idx: number) => {
+			// Send set_active_mon message to server
+			socket.send(
+				JSON.stringify({
+					type: "set_active_mon",
+					sessionId,
+					activeIndex: idx,
+				}),
+			);
+
+			// Listen for player_state response
+			const handleMessage = (event: MessageEvent) => {
+				const msg = JSON.parse(event.data);
+				if (msg.type === "player_state") {
+					setActiveIdx(msg.playerState.activeIndex);
+					socket.removeEventListener("message", handleMessage);
+				}
+			};
+
+			socket.addEventListener("message", handleMessage);
+		},
+		[sessionId],
+	);
+
 	// Debug: Log when currentGymId changes
 	useEffect(() => {
 		console.log("currentGymId changed to:", currentGymId);
@@ -388,7 +413,7 @@ export function GameShell({
 				)}
 
 				{phase === "starter" && (
-					<StarterSelect onSelect={handleStarterSelect} />
+					<StarterSelect onSelect={handleStarterSelect} name={player!.name} />
 				)}
 
 				{phase === "crawl" && (
@@ -416,7 +441,7 @@ export function GameShell({
 					<TeamManagement
 						team={team}
 						onBack={() => setPhase("crawl")}
-						onSetActive={(idx) => setActiveIdx(idx)}
+						onSetActive={handleSetActiveMon}
 						activeIndex={activeIdx}
 					/>
 				)}
@@ -588,7 +613,14 @@ export function GameShell({
 								rx={1}
 								fill="currentColor"
 							/>
-							<rect x={1} y={1} width={10} height={10} rx={1} fill="rgb(var(--pixel-white))" />
+							<rect
+								x={1}
+								y={1}
+								width={10}
+								height={10}
+								rx={1}
+								fill="rgb(var(--pixel-white))"
+							/>
 							<rect
 								x={2}
 								y={2}

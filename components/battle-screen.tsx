@@ -7,6 +7,7 @@ import PixelBox from "./pixel/PixelBox";
 import PixelStatCard from "./pixel/PixelStatCard";
 import PixelTextBox from "./pixel/PixelTextBox";
 import { PixelSprite } from "./pixel-sprite";
+import { useAudio } from "./audio-manager";
 
 interface BattleScreenProps {
 	wildPokemon: PubMon;
@@ -45,6 +46,7 @@ export function BattleScreen({
 		battleEnded,
 		battleResult,
 	} = useBattle({ wildPokemon, playerPokemon });
+	const { playBGM, playCry, preloadCry } = useAudio();
 
 	const [showCatchAnim, setShowCatchAnim] = useState(false);
 	const [slideFrame, setSlideFrame] = useState(0);
@@ -52,6 +54,21 @@ export function BattleScreen({
 	const [selectedMove, setSelectedMove] = useState(0);
 
 	const wildType = TYPE_INFO[wildPokemon.type];
+
+	// Pre-load Pokemon cries when battle starts
+	useEffect(() => {
+		preloadCry(wildPokemon.cry);
+		if (playerPokemon) {
+			preloadCry(playerPokemon.cry);
+		}
+	}, [wildPokemon.cry, playerPokemon, preloadCry]);
+
+	// Play victory music when battle is won
+	useEffect(() => {
+		if (battleEnded && battleResult === "win") {
+			playBGM("victory");
+		}
+	}, [battleEnded, battleResult, playBGM]);
 
 	// Frame-based slide-in animation for battle start
 	useEffect(() => {
@@ -69,11 +86,7 @@ export function BattleScreen({
 
 				if (frame >= SLIDE_FRAMES) {
 					// Play enemy cry when animation completes
-					const cryPath = `/audio/cries/${String(wildPokemon.cry).padStart(3, "0")}.wav`;
-					const audio = new Audio(cryPath);
-					audio.play().catch(() => {
-						// Silently fail if audio can't play
-					});
+					playCry(wildPokemon.cry);
 
 					setTimeout(() => setShowMenu(true), 200);
 					return;
@@ -515,7 +528,7 @@ export function BattleScreen({
 								</p>
 								<button
 									onClick={() => onBattleEnd?.(battleResult)}
-									className="pixel-box cursor-pointer font-pixel text-[8px] text-pixel-black text-center px-8 py-3 border-none bg-primary text-primary-foreground hover:brightness-110"
+									className="pixel-box cursor-pointer font-pixel text-[8px] text-pixel-black text-center px-8 py-3 border-none bg-primary hover:brightness-110"
 								>
 									CONTINUE
 								</button>

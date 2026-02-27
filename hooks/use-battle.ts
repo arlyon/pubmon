@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from "react"
-import { type PubMon } from "@/lib/pokemon-data"
+import { type PubMon, getBaseMoveForAudio } from "@/lib/pokemon-data"
 import { BattleStreams, RandomPlayerAI, Teams, Dex } from "@pkmn/sim"
 import { Battle } from "@pkmn/client"
 import { type ID } from "@pkmn/dex-types"
 import { Generations } from "@pkmn/data"
 import { type Protocol } from "@pkmn/protocol"
 import { generatePubMonModData } from "@/lib/pokemon-data"
+import { useAudio } from "@/components/audio-manager"
 
 const customDex = Dex.mod('pubmon' as ID, generatePubMonModData() as any);
 const gens = new Generations(customDex as any);
@@ -54,6 +55,9 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
 
     // Track PP usage for player's moves
     const movePPUsage = useRef<Map<string, number>>(new Map())
+
+    // Audio hook
+    const { playAttackSFX } = useAudio()
 
     const battleRef = useRef<Battle | null>(null)
     const streamRef = useRef<BattleStreams.BattleStream | null>(null)
@@ -293,6 +297,18 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
                 const pkmn = parts[2].substring(4)
                 const move = parts[3]
                 messageQueueRef.current.push(`${pkmn} used ${move}!`)
+
+                // Trigger attack sound effect
+                // Convert move name to ID format and lookup base Gen 1 move
+                const moveId = move.toLowerCase().replace(/[^a-z0-9]+/g, '')
+                const baseMoveId = getBaseMoveForAudio(moveId)
+                if (baseMoveId) {
+                    playAttackSFX(baseMoveId)
+                } else {
+                    // Fallback to Tackle if no mapping found
+                    console.warn(`No base move mapping found for '${move}', using Tackle`)
+                    playAttackSFX('tackle')
+                }
             } else if (line.startsWith("|-supereffective|")) {
                 messageQueueRef.current.push("It's super effective!")
             } else if (line.startsWith("|-resisted|")) {

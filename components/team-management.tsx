@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data";
+import PixelBox from "./pixel/PixelBox";
+import PixelHeader from "./pixel/PixelHeader";
 import { PixelButton } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
-import PixelHeader from "./pixel/PixelHeader";
-import PixelBox from "./pixel/PixelBox";
 
 interface TeamManagementProps {
 	team: PubMon[];
@@ -14,7 +15,6 @@ interface TeamManagementProps {
 	activeIndex: number;
 }
 
-
 export function TeamManagement({
 	team,
 	onBack,
@@ -22,49 +22,8 @@ export function TeamManagement({
 	activeIndex,
 }: TeamManagementProps) {
 	const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-	const [isPlayingCry, setIsPlayingCry] = useState(false);
 	const selected = selectedIdx !== null ? team[selectedIdx] : null;
-
-	// Available cry audio files (001-151, excluding gaps 098-101)
-	const availableCries = [
-		...Array.from({ length: 97 }, (_, i) => i + 1),
-		...Array.from({ length: 50 }, (_, i) => i + 102),
-	];
-
-	// Randomly assign a cry to each pokemon (consistent across renders)
-	const pokemonCryMap = useMemo(() => {
-		const map = new Map<number, number>();
-		team.forEach((mon) => {
-			const randomCry =
-				availableCries[Math.floor(Math.random() * availableCries.length)];
-			map.set(mon.id, randomCry);
-		});
-		return map;
-	}, [team]);
-
-	const playPokemonCry = (pokemonId: number) => {
-		if (isPlayingCry) return;
-
-		const cryNumber = pokemonCryMap.get(pokemonId);
-		if (!cryNumber) return;
-
-		const cryPath = `/audio/cries/${String(cryNumber).padStart(3, "0")}.wav`;
-
-		const audio = new Audio(cryPath);
-		setIsPlayingCry(true);
-
-		audio.addEventListener("ended", () => {
-			setIsPlayingCry(false);
-		});
-
-		audio.addEventListener("error", () => {
-			setIsPlayingCry(false);
-		});
-
-		audio.play().catch(() => {
-			setIsPlayingCry(false);
-		});
-	};
+	const { playPokemonCry } = usePokemonCry(team);
 
 	return (
 		<div className="p-[2px] w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
@@ -99,7 +58,13 @@ export function TeamManagement({
 								className="pixel-perfect opacity-30"
 							>
 								<circle cx={5} cy={5} r={4.5} fill="rgb(var(--pixel-red))" />
-								<rect x={0.5} y={4.5} width={9} height={1} fill="rgb(var(--pixel-black))" />
+								<rect
+									x={0.5}
+									y={4.5}
+									width={9}
+									height={1}
+									fill="rgb(var(--pixel-black))"
+								/>
 								<circle
 									cx={5}
 									cy={5}
@@ -254,13 +219,10 @@ export function TeamManagement({
 										{selected.name.toUpperCase()}
 									</h3>
 									<button
+										type="button"
 										onClick={() => playPokemonCry(selected.id)}
-										disabled={isPlayingCry}
 										className={`ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors ${
-											isPlayingCry
-												? "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
-												: "border-pixel-white bg-pixel-blue-dark text-pixel-white hover:bg-pixel-yellow hover:text-pixel-black hover:border-pixel-black"
-										}`}
+										className="ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors border-pixel-white bg-pixel-blue-dark text-pixel-white hover:bg-pixel-yellow hover:text-pixel-black hover:border-pixel-black"
 										title="Play cry"
 									>
 										🔊
