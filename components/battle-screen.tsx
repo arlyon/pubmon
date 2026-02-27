@@ -270,9 +270,9 @@ export function BattleScreen({
 					</svg>
 				</div>
 
-				{/* Enemy pokemon - top right with slide-in */}
+				{/* Enemy pokemon - top left with slide-in */}
 				<div
-					className="absolute top-4 right-4 flex flex-col items-end gap-2 z-10"
+					className="absolute top-2 left-2 flex flex-col items-end gap-2 z-10"
 					style={{
 						transform: `translateX(${enemyOffset}px)`,
 						transition: "none",
@@ -299,7 +299,7 @@ export function BattleScreen({
 
 				{/* Wild pokemon sprite */}
 				<div
-					className="absolute top-16 right-8 z-10"
+					className="absolute top-8 right-12 z-10"
 					style={{
 						transform: `translateX(${enemyOffset}px)`,
 						transition: "none",
@@ -354,7 +354,7 @@ export function BattleScreen({
 				{playerPokemon && (
 					<>
 						<div
-							className="absolute bottom-20 left-4 flex flex-col items-start gap-2 z-10"
+							className="absolute bottom-2 right-2 flex flex-col items-start gap-2 z-10"
 							style={{
 								transform: `translateX(-${playerOffset}px)`,
 								transition: "none",
@@ -384,7 +384,7 @@ export function BattleScreen({
 						</div>
 
 						<div
-							className="absolute bottom-24 left-16 z-10"
+							className="absolute bottom-8 left-12 z-10"
 							style={{
 								transform: `translateX(-${playerOffset}px)`,
 								transition: "none",
@@ -470,32 +470,32 @@ export function BattleScreen({
 												isDisabled: move.disabled || move.pp <= 0,
 											});
 											return (
-											<button
-												key={move.name}
-												onClick={() => {
-													if (!move.disabled && move.pp > 0) {
-														setSelectedMove(idx);
-														handleAttack(idx);
-													}
-												}}
-												disabled={move.disabled || move.pp <= 0}
-												className={`pixel-box cursor-pointer font-pixel text-[6px] text-center py-[4px] border-none ${
-													move.disabled || move.pp <= 0
-														? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
-														: idx === selectedMove
-															? "bg-pixel-gray-light"
-															: "bg-pixel-white hover:bg-pixel-gray-light"
-												}`}
-											>
-												<div className="flex flex-col items-center text-black">
-													<span>{move.name.toUpperCase()}</span>
-													<span className="text-[4px] text-pixel-black/70">
-														PP: {move.pp}/{move.maxpp}
-													</span>
-												</div>
-											</button>
-										);
-									})
+												<button
+													key={move.name}
+													onClick={() => {
+														if (!move.disabled && move.pp > 0) {
+															setSelectedMove(idx);
+															handleAttack(idx);
+														}
+													}}
+													disabled={move.disabled || move.pp <= 0}
+													className={`pixel-box cursor-pointer font-pixel text-[6px] text-center py-[4px] border-none ${
+														move.disabled || move.pp <= 0
+															? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
+															: idx === selectedMove
+																? "bg-pixel-gray-light"
+																: "bg-pixel-white hover:bg-pixel-gray-light"
+													}`}
+												>
+													<div className="flex flex-col items-center text-black">
+														<span>{move.name.toUpperCase()}</span>
+														<span className="text-[4px] text-pixel-black/70">
+															PP: {move.pp}/{move.maxpp}
+														</span>
+													</div>
+												</button>
+											);
+										})
 									: // Fallback to original moves if state not yet extracted
 										playerPokemon.moves.map((move, idx) => (
 											<button
