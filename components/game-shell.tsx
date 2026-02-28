@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getRandomPubMon, type PubMon, type PubType } from "@/lib/pokemon-data";
 import { useAudio } from "./audio-manager";
+import { Badge3D } from "./Badge3D";
 import { BattleScreen } from "./battle-screen";
 import { CollapsibleGymPath } from "./CollapsibleGymPath";
 import { DrinkSelect } from "./drink-select";
@@ -33,7 +34,8 @@ type GamePhase =
 	| "team"
 	| "pokedex"
 	| "caught"
-	| "xp";
+	| "xp"
+	| "badge-reward";
 
 import { PartySocket } from "partysocket";
 
@@ -73,16 +75,25 @@ export function GameShell({
 		initialPlayerState?.activeIndex || 0,
 	);
 	const [wildPokemon, setWildPokemon] = useState<PubMon | null>(null);
-	const [drinksCollected, setDrinksCollected] = useState(
-		initialPlayerState?.drinksLogged || 0,
-	);
+	const [battleLog, setBattleLog] = useState<
+		Array<{
+			pokemon: PubMon;
+			startTime: number;
+			endTime: number;
+			outcome: "win" | "caught" | "run" | "lose";
+		}>
+	>(initialPlayerState?.battleLog || []);
+	const [battleStartTime, setBattleStartTime] = useState<number | null>(null);
 	const [xpGained, setXpGained] = useState(0);
 	const [caughtPokemon, setCaughtPokemon] = useState<PubMon | null>(null);
-	const [seenIds, setSeenIds] = useState<Set<number>>(
-		initialPlayerState ? new Set(initialPlayerState.pokedex.seen) : new Set(),
-	);
-	const [caughtIds, setCaughtIds] = useState<Set<number>>(
-		initialPlayerState ? new Set(initialPlayerState.pokedex.caught) : new Set(),
+	const [awardedBadgeId, setAwardedBadgeId] = useState<number | null>(null);
+	const drinksCollected = battleLog.length;
+	// Derive seenIds and caughtIds from battle log
+	const seenIds = new Set(battleLog.map((entry) => entry.pokemon.id));
+	const caughtIds = new Set(
+		battleLog
+			.filter((entry) => entry.outcome === "caught")
+			.map((entry) => entry.pokemon.id),
 	);
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
 	const [currentGymId, setCurrentGymId] = useState(initialGymId || 1);
@@ -90,6 +101,8 @@ export function GameShell({
 		initialPlayerState ? new Set(initialPlayerState.badges) : new Set(),
 	);
 	const { playBGM, stopBGM } = useAudio();
+
+	console.log(battleLog);
 
 	// Initialize or retrieve sessionId from cookie
 	useEffect(() => {
@@ -139,9 +152,7 @@ export function GameShell({
 				});
 				setTeam(playerState.party);
 				setActiveIdx(playerState.activeIndex);
-				setDrinksCollected(playerState.drinksLogged);
-				setSeenIds(new Set(playerState.pokedex.seen));
-				setCaughtIds(new Set(playerState.pokedex.caught));
+				setBattleLog(playerState.battleLog || []);
 				setBadges(new Set(playerState.badges));
 
 				// Determine phase based on player state
@@ -184,9 +195,7 @@ export function GameShell({
 				// Restore full player state
 				setTeam(existingState.party);
 				setActiveIdx(existingState.activeIndex);
-				setDrinksCollected(existingState.drinksLogged);
-				setSeenIds(new Set(existingState.pokedex.seen));
-				setCaughtIds(new Set(existingState.pokedex.caught));
+				setBattleLog(existingState.battleLog || []);
 				setBadges(new Set(existingState.badges));
 
 				// Skip to crawl if they have a team, otherwise go to starter
@@ -216,9 +225,6 @@ export function GameShell({
 
 			setTeam([pokemon]);
 			setActiveIdx(0);
-			setDrinksCollected(1);
-			setSeenIds((prev) => new Set(prev).add(pokemon.id));
-			setCaughtIds((prev) => new Set(prev).add(pokemon.id));
 			setPhase("crawl");
 		},
 		[sessionId],
@@ -240,8 +246,6 @@ export function GameShell({
 				const msg = JSON.parse(event.data);
 				if (msg.type === "encounter_result") {
 					setWildPokemon(msg.wildPubmon);
-					setDrinksCollected((prev: number) => prev + 1);
-					setSeenIds((prev) => new Set(prev).add(msg.wildPubmon.id));
 					setShowBattleTransition(true);
 					socket.removeEventListener("message", handleMessage);
 				}
@@ -254,61 +258,41 @@ export function GameShell({
 
 	const handleBattleTransitionMidpoint = useCallback(() => {
 		setPhase("battle");
+		setBattleStartTime(Date.now());
 	}, []);
 
 	const handleBattleTransitionComplete = useCallback(() => {
 		setShowBattleTransition(false);
 	}, []);
 
-	const handleFight = useCallback(() => {
-		if (!wildPokemon) return;
-
-		// Send fight message to server
-		socket.send(
-			JSON.stringify({
-				type: "fight",
-				sessionId,
-				pubmonId: wildPokemon.id,
-			}),
-		);
-
-		// Listen for fight_result
-		const handleMessage = (event: MessageEvent) => {
-			const msg = JSON.parse(event.data);
-			if (msg.type === "fight_result") {
-				setXpGained(msg.xpGained);
-				setTeam(msg.updatedParty);
-				setPhase("xp");
-				socket.removeEventListener("message", handleMessage);
-			}
-		};
-
-		socket.addEventListener("message", handleMessage);
-	}, [wildPokemon, sessionId]);
-
 	const handleCatch = useCallback(() => {
-		if (!wildPokemon) return;
+		if (!wildPokemon || !battleStartTime) return;
 
-		// Send catch_attempt message to server
+		const battleEndTime = Date.now();
+
+		// Send catch_attempt message to server with timing
 		socket.send(
 			JSON.stringify({
 				type: "catch_attempt",
 				sessionId,
 				pubmonId: wildPokemon.id,
+				battleStartTime,
+				battleEndTime,
 			}),
 		);
 
-		// Listen for catch_result
+		// Listen for catch_result - stay on battle screen until response
 		const handleMessage = (event: MessageEvent) => {
 			const msg = JSON.parse(event.data);
 			if (msg.type === "catch_result") {
+				setWildPokemon(null);
 				if (msg.success && msg.pubmon) {
 					setCaughtPokemon(msg.pubmon);
 					setTeam((prev) => [...prev, msg.pubmon]);
-					setCaughtIds((prev) => new Set(prev).add(msg.pubmon.id));
+					// Battle log will be updated from server via player_state
 					setPhase("caught");
 				} else {
-					// Handle failed catch (could show error message)
+					// Handle failed catch - return to crawl
 					setPhase("crawl");
 				}
 				socket.removeEventListener("message", handleMessage);
@@ -316,24 +300,111 @@ export function GameShell({
 		};
 
 		socket.addEventListener("message", handleMessage);
-	}, [wildPokemon, sessionId]);
+		// Note: Battle screen stays visible until server responds
+	}, [wildPokemon, sessionId, battleStartTime]);
 
 	const handleRun = useCallback(() => {
-		setWildPokemon(null);
-		setPhase("crawl");
-	}, []);
+		if (!wildPokemon || !battleStartTime) return;
 
-	const handleBattleEnd = useCallback((result: "win" | "loss") => {
-		// Close battle screen, nullify encounter, return to crawl
-		setWildPokemon(null);
-		setPhase("crawl");
+		const battleEndTime = Date.now();
 
-		// Could add additional logic here based on result:
-		// - Update stats for win/loss tracking
-		// - Show different messages
-		// - Award items/badges
-		console.log(`Battle ended with result: ${result}`);
-	}, []);
+		// Send run message to server with timing
+		socket.send(
+			JSON.stringify({
+				type: "run",
+				sessionId,
+				pubmonId: wildPokemon.id,
+				battleStartTime,
+				battleEndTime,
+			}),
+		);
+
+		// Listen for player_state confirmation before transitioning
+		const handleMessage = (event: MessageEvent) => {
+			const msg = JSON.parse(event.data);
+			if (msg.type === "player_state") {
+				// Battle log updated, safe to transition
+				setWildPokemon(null);
+				setPhase("crawl");
+				socket.removeEventListener("message", handleMessage);
+			}
+		};
+
+		socket.addEventListener("message", handleMessage);
+		// Note: Battle screen stays visible until server confirms
+	}, [battleStartTime, wildPokemon, sessionId]);
+
+	const handleBattleEnd = useCallback(
+		(result: "win" | "loss") => {
+			if (!wildPokemon || !battleStartTime) return;
+
+			const battleEndTime = Date.now();
+
+			if (result === "win") {
+				// Notify server of win - stay on battle screen until response
+				socket.send(
+					JSON.stringify({
+						type: "fight",
+						sessionId,
+						pubmonId: wildPokemon.id,
+						outcome: "win",
+						battleStartTime,
+						battleEndTime,
+					}),
+				);
+
+				// Listen for fight_result - will transition when received
+				const handleMessage = (event: MessageEvent) => {
+					const msg = JSON.parse(event.data);
+					if (msg.type === "fight_result") {
+						setXpGained(msg.xpGained);
+						setTeam(msg.updatedParty);
+						setWildPokemon(null);
+
+						// Check if a badge was awarded
+						if (msg.awardedBadgeId) {
+							setAwardedBadgeId(msg.awardedBadgeId);
+							setBadges((prev) => new Set([...prev, msg.awardedBadgeId]));
+							setPhase("badge-reward");
+						} else {
+							setPhase("xp");
+						}
+
+						socket.removeEventListener("message", handleMessage);
+					}
+				};
+
+				socket.addEventListener("message", handleMessage);
+				// Note: Battle screen stays visible until server responds
+			} else {
+				// Loss - send to server and wait for confirmation
+				socket.send(
+					JSON.stringify({
+						type: "fight",
+						outcome: "lose",
+						sessionId,
+						pubmonId: wildPokemon.id,
+						battleStartTime,
+						battleEndTime,
+					}),
+				);
+
+				// Listen for player_state confirmation
+				const handleMessage = (event: MessageEvent) => {
+					const msg = JSON.parse(event.data);
+					if (msg.type === "player_state") {
+						setWildPokemon(null);
+						setPhase("crawl");
+						socket.removeEventListener("message", handleMessage);
+					}
+				};
+
+				socket.addEventListener("message", handleMessage);
+				// Note: Battle screen stays visible until server confirms
+			}
+		},
+		[battleStartTime, wildPokemon, sessionId],
+	);
 
 	const handleSetActiveMon = useCallback(
 		(idx: number) => {
@@ -365,14 +436,24 @@ export function GameShell({
 		console.log("currentGymId changed to:", currentGymId);
 	}, [currentGymId]);
 
-	// Listen for gym updates from server
+	// Listen for gym updates and player state updates from server
 	useEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
 			const msg = JSON.parse(event.data);
 			console.log("Received message:", msg.type, msg);
+
 			if (msg.type === "gym_update" && msg.currentGymId != null) {
 				console.log("Setting gym from gym_update:", msg.currentGymId);
 				setCurrentGymId(msg.currentGymId);
+			}
+
+			// Global listener for player_state updates
+			if (msg.type === "player_state" && msg.playerState) {
+				console.log("Updating player state:", msg.playerState);
+				setBattleLog(msg.playerState.battleLog || []);
+				setBadges(new Set(msg.playerState.badges));
+				setTeam(msg.playerState.party);
+				setActiveIdx(msg.playerState.activeIndex);
 			}
 		};
 
@@ -430,7 +511,7 @@ export function GameShell({
 					<BattleScreen
 						wildPokemon={wildPokemon}
 						playerPokemon={activePokemon}
-						onFight={handleFight}
+						onFight={() => {}}
 						onCatch={handleCatch}
 						onRun={handleRun}
 						onBattleEnd={handleBattleEnd}
@@ -525,16 +606,23 @@ export function GameShell({
 							</div>
 						</PixelBox>
 						<button
+							type="button"
 							onClick={() => setPhase("crawl")}
-							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-[10px] font-sans
-                shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer
-                active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)]
-                active:translate-x-[2px] active:translate-y-[2px]
-                hover:brightness-110 transition-all w-full max-w-xs"
+							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-[10px] font-sans shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
 						>
 							CONTINUE CRAWL
 						</button>
 					</div>
+				)}
+
+				{phase === "badge-reward" && awardedBadgeId && (
+					<Badge3D
+						badgeId={awardedBadgeId}
+						onContinue={() => {
+							setPhase("xp");
+							setAwardedBadgeId(null);
+						}}
+					/>
 				)}
 
 				{phase === "xp" && (
@@ -557,11 +645,8 @@ export function GameShell({
 						</PixelBox>
 						<button
 							onClick={() => setPhase("crawl")}
-							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-[10px] font-sans
-                shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer
-                active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)]
-                active:translate-x-[2px] active:translate-y-[2px]
-                hover:brightness-110 transition-all w-full max-w-xs"
+							type="button"
+							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-[10px] font-sans shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
 						>
 							CONTINUE CRAWL
 						</button>
@@ -571,10 +656,11 @@ export function GameShell({
 
 			{/* Bottom nav */}
 			<nav
-				className={`border-t-4 border-pixel-black bg-pixel-white ${phase === "starter" || phase === "player-create" ? "hidden" : ""}`}
+				className={`border-t-4 border-pixel-black bg-pixel-white ${phase === "starter" || phase === "player-create" || phase === "battle" ? "hidden" : ""}`}
 			>
 				<div className="max-w-md mx-auto flex items-stretch">
 					<button
+						type="button"
 						onClick={() => setPhase("crawl")}
 						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
               ${phase === "crawl" ? "bg-pixel-blue text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}

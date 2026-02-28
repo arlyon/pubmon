@@ -13,6 +13,7 @@ export type ClientMessage =
   | OrderDrinkMessage
   | CatchAttemptMessage
   | FightMessage
+  | RunMessage
   | SelectStarterMessage
   | UpdatePartyMessage
   | SetActiveMonMessage
@@ -54,12 +55,25 @@ export interface CatchAttemptMessage {
   type: "catch_attempt";
   sessionId: string;
   pubmonId: number;
+  battleStartTime: number;
+  battleEndTime: number;
 }
 
 export interface FightMessage {
   type: "fight";
   sessionId: string;
   pubmonId: number; // ID of wild PubMon being fought
+  battleStartTime: number;
+  battleEndTime: number;
+  outcome: "win" | "lose";
+}
+
+export interface RunMessage {
+  type: "run";
+  sessionId: string;
+  pubmonId: number;
+  battleStartTime: number;
+  battleEndTime: number;
 }
 
 export interface SelectStarterMessage {
@@ -152,6 +166,7 @@ export interface FightResultMessage {
   type: "fight_result";
   xpGained: number;
   updatedParty: PubMon[];
+  awardedBadgeId?: number;
 }
 
 export interface StarterSelectedMessage {

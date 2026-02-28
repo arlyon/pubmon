@@ -64,12 +64,6 @@ export class MainEventServer extends Server {
    */
   async onConnect(connection: Connection) {
     console.log(`[MainEventServer] Client connected: ${connection.id}`);
-    console.log("STATE", {
-      phase: this.gameState.phase,
-      currentGymId: this.gameState.currentGymId,
-      playerCount: this.gameState.players.size,
-      players: JSON.stringify(Array.from(this.gameState.players.entries())),
-    });
 
     // Send current gym state to new connection
     this.sendToConnection(connection, {
@@ -80,7 +74,7 @@ export class MainEventServer extends Server {
     // Send current leaderboard to new connection
     const leaderboard = Array.from(this.gameState.players.values()).map((p) => ({
       name: p.info.name,
-      drinksLogged: p.drinksLogged,
+      drinksLogged: p.battleLog.length,
       badges: Array.from(p.badges),
       partyCount: p.party.length,
     }));
@@ -144,6 +138,9 @@ export class MainEventServer extends Server {
           break;
         case "fight":
           await this.handleFight(msg, connection);
+          break;
+        case "run":
+          await this.handleRun(msg, connection);
           break;
         case "select_starter":
           await this.handleSelectStarter(msg, connection);
@@ -340,14 +337,10 @@ export class MainEventServer extends Server {
     const newPlayer: PlayerState = {
       sessionId: msg.sessionId,
       info: msg.playerInfo,
-      pokedex: {
-        seen: new Set(),
-        caught: new Set(),
-      },
       party: [],
       activeIndex: 0,
       badges: new Set(),
-      drinksLogged: 0,
+      battleLog: [],
       tournamentOptIn: false,
       createdAt: Date.now(),
       lastActivity: Date.now(),
@@ -375,8 +368,6 @@ export class MainEventServer extends Server {
     const wildPubmon = getRandomPubMon(msg.drinkType);
 
     // Update player stats
-    player.drinksLogged++;
-    player.pokedex.seen.add(wildPubmon.id);
     player.lastActivity = Date.now();
 
     await this.persistState();
@@ -419,7 +410,15 @@ export class MainEventServer extends Server {
       // Add to party and Pokedex
       const caughtMon = { ...pubmon, hp: pubmon.maxHp };
       player.party.push(caughtMon);
-      player.pokedex.caught.add(pubmon.id);
+
+      // Add to battle log
+      player.battleLog.push({
+        pokemon: pubmon,
+        startTime: msg.battleStartTime,
+        endTime: msg.battleEndTime,
+        outcome: "caught",
+      });
+
       player.lastActivity = Date.now();
 
       await this.persistState();
@@ -428,6 +427,12 @@ export class MainEventServer extends Server {
         type: "catch_result",
         success: true,
         pubmon: caughtMon,
+      });
+
+      // Send updated player state with new battleLog entry
+      this.sendToConnection(connection, {
+        type: "player_state",
+        playerState: serializePlayerState(player),
       });
 
       await this.broadcastLeaderboard();
@@ -451,6 +456,13 @@ export class MainEventServer extends Server {
       return;
     }
 
+    // Get the wild PubMon that was fought
+    const wildPubmon = ALL_PUBMON.find((p) => p.id === msg.pubmonId);
+    if (!wildPubmon) {
+      this.sendError(connection, "Invalid PubMon ID");
+      return;
+    }
+
     // Calculate XP gain (10-30 XP)
     const xpGained = Math.floor(Math.random() * 20) + 10;
 
@@ -460,6 +472,21 @@ export class MainEventServer extends Server {
       activeMon.xp += xpGained;
     }
 
+    // Add to battle log
+    player.battleLog.push({
+      pokemon: wildPubmon,
+      startTime: msg.battleStartTime,
+      endTime: msg.battleEndTime,
+      outcome: "win",
+    });
+
+    // Check if player should earn a badge
+    let awardedBadgeId: number | undefined;
+    if (!player.badges.has(this.gameState.currentGymId)) {
+      player.badges.add(this.gameState.currentGymId);
+      awardedBadgeId = this.gameState.currentGymId;
+    }
+
     player.lastActivity = Date.now();
     await this.persistState();
 
@@ -467,6 +494,51 @@ export class MainEventServer extends Server {
       type: "fight_result",
       xpGained,
       updatedParty: player.party,
+      awardedBadgeId,
+    });
+
+    console.log(xpGained, awardedBadgeId, player.battleLog.length);
+
+    // Send updated player state with new battleLog entry
+    this.sendToConnection(connection, {
+      type: "player_state",
+      playerState: serializePlayerState(player),
+    });
+
+    // Broadcast updated leaderboard if badge was awarded
+    if (awardedBadgeId) {
+      await this.broadcastLeaderboard();
+    }
+  }
+
+  private async handleRun(
+    msg: Extract<ClientMessage, { type: "run" }>,
+    connection: Connection
+  ) {
+    const player = this.gameState.players.get(msg.sessionId)!;
+
+    // Get the wild PubMon that was fled from
+    const wildPubmon = ALL_PUBMON.find((p) => p.id === msg.pubmonId);
+    if (!wildPubmon) {
+      this.sendError(connection, "Invalid PubMon ID");
+      return;
+    }
+
+    // Add to battle log
+    player.battleLog.push({
+      pokemon: wildPubmon,
+      startTime: msg.battleStartTime,
+      endTime: msg.battleEndTime,
+      outcome: "run",
+    });
+
+    player.lastActivity = Date.now();
+    await this.persistState();
+
+    // Send updated player state with new battleLog entry
+    this.sendToConnection(connection, {
+      type: "player_state",
+      playerState: serializePlayerState(player),
     });
   }
 
@@ -485,9 +557,15 @@ export class MainEventServer extends Server {
     const starterCopy = { ...starter, hp: starter.maxHp };
     player.party = [starterCopy];
     player.activeIndex = 0;
-    player.pokedex.seen.add(starter.id);
-    player.pokedex.caught.add(starter.id);
-    player.drinksLogged = 1;
+
+    // Add starter to battle log
+    const now = Date.now();
+    player.battleLog.push({
+      pokemon: starterCopy,
+      startTime: now,
+      endTime: now,
+      outcome: "caught",
+    });
     player.lastActivity = Date.now();
 
     await this.persistState();
@@ -495,6 +573,12 @@ export class MainEventServer extends Server {
     this.sendToConnection(connection, {
       type: "starter_selected",
       starter: starterCopy,
+    });
+
+    // Send updated player state with new battleLog entry
+    this.sendToConnection(connection, {
+      type: "player_state",
+      playerState: serializePlayerState(player),
     });
 
     await this.broadcastLeaderboard();
@@ -572,9 +656,9 @@ export class MainEventServer extends Server {
   }
 
   private async handleAdminStartTournament() {
-    // Get all opted-in players with at least 1 PubMon
+    // Get all opted-in players with all 10 badges
     const eligiblePlayers = Array.from(this.gameState.players.values()).filter(
-      (p) => p.tournamentOptIn && p.party.length > 0
+      (p) => p.tournamentOptIn && p.party.length > 0 && p.badges.size === 10
     );
 
     if (eligiblePlayers.length < 2) {
@@ -746,7 +830,7 @@ export class MainEventServer extends Server {
   private async broadcastLeaderboard() {
     const leaderboard = Array.from(this.gameState.players.values()).map((p) => ({
       name: p.info.name,
-      drinksLogged: p.drinksLogged,
+      drinksLogged: p.battleLog.length,
       badges: Array.from(p.badges),
       partyCount: p.party.length,
     }));

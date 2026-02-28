@@ -26,28 +26,33 @@ export function TeamManagement({
 	const { playPokemonCry } = usePokemonCry(team);
 
 	return (
-		<div className="p-[2px] w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
+		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			{/* Header */}
-			<div className="mb-[4px]">
-				<PixelHeader title="TEAM" variant="blue" />
-			</div>
-
-			{/* Stats bar */}
-			<div className="mb-[4px]">
-				<PixelBox variant="blue">
-					<div className="flex items-center justify-between">
-						<span className="font-pixel text-[6px] text-pixel-white">
-							PARTY SIZE
-						</span>
-						<span className="font-pixel text-[8px] text-pixel-white">
-							{team.length}/6
-						</span>
+			<div
+				style={{
+					background: "#384080",
+					padding: "6px 8px",
+					borderBottom: "1px solid #181010",
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					fontFamily: "'Press Start 2P', monospace",
+				}}
+			>
+				<div>
+					<div style={{ fontSize: 9, color: "#f8f8f8" }}>PUBMON</div>
+					<div style={{ fontSize: 6, color: "#a0b8f0", marginTop: 2 }}>
+						YOUR PARTY
 					</div>
-				</PixelBox>
+				</div>
+				<div style={{ textAlign: "right" }}>
+					<div style={{ fontSize: 6, color: "#a0b8f0" }}>SIZE</div>
+					<div style={{ fontSize: 10, color: "#f8b830" }}>{team.length}/6</div>
+				</div>
 			</div>
 
 			{/* Party list */}
-			<div className="mb-[4px] flex-1 overflow-y-auto pixel-scroll h-[250px]">
+			<div className="mt-1 flex-1 overflow-y-auto pixel-scroll h-[250px]">
 				<PixelBox>
 					{team.length === 0 ? (
 						<div className="flex flex-col items-center justify-center py-[16px]">

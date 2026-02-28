@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { PubType } from "@/lib/pokemon-data";
-import { CollapsibleGymPath } from "./CollapsibleGymPath";
+import { GymHeader } from "./GymHeader";
 import { PixelBox, PixelButton } from "./pixel-box";
 
 const DRINK_TYPES: {
@@ -150,14 +150,13 @@ export function DrinkSelect({
 
 	return (
 		<div className="flex flex-1 flex-col w-full max-w-md mx-auto">
-			{/* Gym Progress */}
-			<CollapsibleGymPath
-				className="px-2"
+			{/* Gym Header */}
+			<GymHeader
 				currentGymId={currentGymId}
 				badges={badges}
 				onSelectGym={onSelectGym}
 			/>
-			<div className="flex-1 overflow-y-scroll py-4 px-2">
+			<div className="flex-1 overflow-y-scroll py-4 px-2 mt-[110]">
 				{/* Header */}
 				<PixelBox variant="battle">
 					<div className="flex items-center justify-between">

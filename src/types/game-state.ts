@@ -9,17 +9,20 @@ export interface PlayerInfo {
   sprite: string;
 }
 
+export interface BattleLogEntry {
+  pokemon: PubMon;
+  startTime: number;
+  endTime: number;
+  outcome: "win" | "caught" | "run" | "lose";
+}
+
 export interface PlayerState {
   sessionId: string;
   info: PlayerInfo;
-  pokedex: {
-    seen: Set<number>;
-    caught: Set<number>;
-  };
   party: PubMon[];
   activeIndex: number;
   badges: Set<number>;
-  drinksLogged: number;
+  battleLog: BattleLogEntry[];
   tournamentOptIn: boolean;
   createdAt: number;
   lastActivity: number;
@@ -83,14 +86,10 @@ export interface BattlePlayer {
 export interface SerializablePlayerState {
   sessionId: string;
   info: PlayerInfo;
-  pokedex: {
-    seen: number[];
-    caught: number[];
-  };
   party: PubMon[];
   activeIndex: number;
   badges: number[];
-  drinksLogged: number;
+  battleLog: BattleLogEntry[];
   tournamentOptIn: boolean;
   createdAt: number;
   lastActivity: number;
@@ -110,22 +109,16 @@ export interface SerializableGameState {
 export function serializePlayerState(state: PlayerState): SerializablePlayerState {
   return {
     ...state,
-    pokedex: {
-      seen: Array.from(state.pokedex.seen),
-      caught: Array.from(state.pokedex.caught),
-    },
     badges: Array.from(state.badges),
+    battleLog: state.battleLog,
   };
 }
 
 export function deserializePlayerState(state: SerializablePlayerState): PlayerState {
   return {
     ...state,
-    pokedex: {
-      seen: new Set(state.pokedex.seen),
-      caught: new Set(state.pokedex.caught),
-    },
     badges: new Set(state.badges),
+    battleLog: state.battleLog || [], // Handle legacy players without battleLog
   };
 }
 

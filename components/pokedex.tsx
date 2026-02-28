@@ -92,61 +92,40 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 	const totalPubMon = ALL_PUBMON.length;
 
 	return (
-		<div className="p-[2px] w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
+		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			{/* Header */}
-			<div className="mb-[4px]">
-				<PixelHeader title="PUBDEX" variant="red" />
-			</div>
-
-			{/* Stats bar */}
-			<div className="mb-[4px]">
-				<PixelBox variant="blue">
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-[12px]">
-							<div className="flex items-center gap-[2px]">
-								<svg
-									viewBox="0 0 8 8"
-									width={8}
-									height={8}
-									className="pixel-perfect"
-								>
-									<circle
-										cx={4}
-										cy={4}
-										r={3}
-										fill="none"
-										stroke="rgb(var(--pixel-gray))"
-										strokeWidth={1}
-									/>
-									<circle cx={4} cy={4} r={1} fill="rgb(var(--pixel-gray))" />
-								</svg>
-								<span className="font-pixel text-[6px] text-pixel-white">
-									SEEN {totalSeen}
-								</span>
-							</div>
-							<div className="flex items-center gap-[2px]">
-								<PubBallIcon caught size={8} />
-								<span className="font-pixel text-[6px] text-pixel-white">
-									CAUGHT {totalCaught}
-								</span>
-							</div>
-						</div>
-						<span className="font-pixel text-[6px] text-pixel-white">
-							/{totalPubMon}
-						</span>
+			<div
+				style={{
+					background: "#f85858",
+					padding: "6px 8px",
+					borderBottom: "1px solid #181010",
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					fontFamily: "'Press Start 2P', monospace",
+				}}
+			>
+				<div>
+					<div style={{ fontSize: 9, color: "#f8f8f8" }}>PUBDEX</div>
+					<div style={{ fontSize: 6, color: "#f8d8d8", marginTop: 2 }}>
+						PUBMON DIRECTORY
 					</div>
-					{/* Completion bar */}
-					<div className="mt-[4px] w-full h-[4px] bg-pixel-black border-2 border-pixel-white/20">
-						<div
-							className="h-full bg-pixel-yellow transition-all duration-500"
-							style={{ width: `${(totalCaught / totalPubMon) * 100}%` }}
-						/>
-					</div>
-				</PixelBox>
+				</div>
+				<div
+					style={{
+						background: "#181010",
+						padding: "3px 6px",
+						fontSize: 7,
+						color: "#f8b830",
+						border: "1px solid #f8f8f8",
+					}}
+				>
+					{totalCaught}/{totalPubMon}
+				</div>
 			</div>
 
 			{/* Type filter tabs */}
-			<div className="flex gap-[2px] flex-wrap mb-[4px]">
+			<div className="flex gap-[2px] flex-wrap my-1">
 				<button
 					type="button"
 					onClick={() => setFilterType("all")}
@@ -187,10 +166,11 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 			</div>
 
 			{/* Pokemon grid */}
-			<div className="mb-[4px] flex-1 overflow-y-auto pixel-scroll h-[150px]">
-				<PixelBox>
-					<div className="grid grid-cols-4 gap-[2px] p-[2px]">
-						{filteredPubMon.map((mon) => {
+			<div className="mb-[4px] flex-1 h-[150px]">
+				<PixelBox className="h-full flex flex-col">
+					<div className="overflow-y-auto pixel-scroll flex-1">
+						<div className="grid grid-cols-4 gap-[2px] p-[2px]">
+							{filteredPubMon.map((mon) => {
 							const seen = seenIds.has(mon.id);
 							const caught = caughtIds.has(mon.id);
 							const isSelected = selectedId === mon.id;
@@ -263,6 +243,7 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 								</button>
 							);
 						})}
+						</div>
 					</div>
 				</PixelBox>
 			</div>

@@ -683,6 +683,25 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         console.log('Write result:', writeResult)
     }, [isAnimating])
 
+    const queueMessage = useCallback((msg: QueuedMessage) => {
+        messageQueueRef.current.push(msg)
+    }, [])
+
+    const forfeitTurn = useCallback(() => {
+        if (!p1Ref.current) {
+            console.error('p1Ref.current is null!')
+            return
+        }
+
+        // Use first available move to forfeit the turn
+        // This consumes the player's turn and allows enemy to attack
+        if (playerActivePokemon && playerActivePokemon.moves.length > 0) {
+            const command = `move 1`
+            console.log('Forfeiting turn with command:', command)
+            p1Ref.current.write(command)
+        }
+    }, [playerActivePokemon])
+
     return {
         menu, setMenu,
         message, setMessage,
@@ -694,6 +713,8 @@ export function useBattle({ wildPokemon, playerPokemon }: UseBattleProps) {
         enemyActivePokemon,
         battleEnded,
         battleResult,
-        continueMessage
+        continueMessage,
+        queueMessage,
+        forfeitTurn
     }
 }
