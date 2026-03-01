@@ -24,6 +24,7 @@ export interface PlayerState {
   badges: Set<number>;
   battleLog: BattleLogEntry[];
   tournamentOptIn: boolean;
+  ribbons: string[]; // Ribbon sprite paths earned by player
   createdAt: number;
   lastActivity: number;
 }
@@ -33,10 +34,11 @@ export interface PlayerState {
 // ============================================================================
 
 export interface GameState {
-  phase: "collection" | "tournament";
+  phase: "collection" | "tournament" | "hall-of-fame";
   currentGymId: number; // Admin-controlled global gym
   players: Map<string, PlayerState>; // sessionId -> PlayerState
   tournamentBracket?: TournamentBracket;
+  hallOfFame?: Record<string, string[]>; // sessionId -> ribbon paths
 }
 
 // ============================================================================
@@ -51,10 +53,11 @@ export interface TournamentBracket {
 export interface TournamentMatch {
   matchId: string;
   player1SessionId: string;
-  player2SessionId: string;
+  player2SessionId: string | null; // null for bye matches
   battleId?: string; // Generated when battle starts
   winnerId?: string; // Set when battle completes
-  status: "pending" | "in_progress" | "completed";
+  status: "pending" | "in_progress" | "completed" | "forfeited";
+  adminOverride?: boolean; // True if admin manually advanced a player
 }
 
 // ============================================================================
@@ -91,15 +94,17 @@ export interface SerializablePlayerState {
   badges: number[];
   battleLog: BattleLogEntry[];
   tournamentOptIn: boolean;
+  ribbons: string[];
   createdAt: number;
   lastActivity: number;
 }
 
 export interface SerializableGameState {
-  phase: "collection" | "tournament";
+  phase: "collection" | "tournament" | "hall-of-fame";
   currentGymId: number;
   players: Record<string, SerializablePlayerState>;
   tournamentBracket?: TournamentBracket;
+  hallOfFame?: Record<string, string[]>;
 }
 
 // ============================================================================
@@ -111,6 +116,7 @@ export function serializePlayerState(state: PlayerState): SerializablePlayerStat
     ...state,
     badges: Array.from(state.badges),
     battleLog: state.battleLog,
+    ribbons: state.ribbons || [],
   };
 }
 
@@ -119,6 +125,7 @@ export function deserializePlayerState(state: SerializablePlayerState): PlayerSt
     ...state,
     badges: new Set(state.badges),
     battleLog: state.battleLog || [], // Handle legacy players without battleLog
+    ribbons: state.ribbons || [], // Handle legacy players without ribbons
   };
 }
 
@@ -133,6 +140,7 @@ export function serializeGameState(state: GameState): SerializableGameState {
     currentGymId: state.currentGymId,
     players,
     tournamentBracket: state.tournamentBracket,
+    hallOfFame: state.hallOfFame,
   };
 }
 
@@ -147,5 +155,6 @@ export function deserializeGameState(state: SerializableGameState): GameState {
     currentGymId: state.currentGymId,
     players,
     tournamentBracket: state.tournamentBracket,
+    hallOfFame: state.hallOfFame,
   };
 }

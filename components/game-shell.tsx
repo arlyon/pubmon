@@ -17,6 +17,9 @@ import { Pokedex } from "./pokedex";
 import { StarterSelect } from "./starter-select";
 import { TrainerCard } from "./TrainerCard";
 import { TeamManagement } from "./team-management";
+import { LeaguePage } from "./league-page";
+import { TournamentBracketViewer } from "./tournament-bracket-viewer";
+import { HallOfFameViewer } from "./hall-of-fame-viewer";
 
 function generateUUID(): string {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -33,6 +36,9 @@ type GamePhase =
 	| "battle"
 	| "team"
 	| "pokedex"
+	| "league"
+	| "tournament"
+	| "hall-of-fame"
 	| "caught"
 	| "xp"
 	| "badge-reward";
@@ -100,6 +106,10 @@ export function GameShell({
 	const [badges, setBadges] = useState<Set<number>>(
 		initialPlayerState ? new Set(initialPlayerState.badges) : new Set(),
 	);
+	const [tournamentOptIn, setTournamentOptIn] = useState(
+		initialPlayerState?.tournamentOptIn || false,
+	);
+	const [tournamentBracket, setTournamentBracket] = useState<any>(null);
 	const { playBGM, stopBGM } = useAudio();
 
 	console.log(battleLog);
@@ -454,6 +464,24 @@ export function GameShell({
 				setBadges(new Set(msg.playerState.badges));
 				setTeam(msg.playerState.party);
 				setActiveIdx(msg.playerState.activeIndex);
+				setTournamentOptIn(msg.playerState.tournamentOptIn || false);
+			}
+
+			// Tournament messages
+			if (msg.type === "tournament_start") {
+				console.log("Tournament started:", msg.bracket);
+				setTournamentBracket(msg.bracket);
+				setPhase("tournament");
+			}
+
+			if (msg.type === "bracket_update") {
+				console.log("Bracket updated:", msg.bracket);
+				setTournamentBracket(msg.bracket);
+			}
+
+			if (msg.type === "hall_of_fame_ready") {
+				console.log("Hall of Fame ready");
+				setPhase("hall-of-fame");
 			}
 		};
 
@@ -533,6 +561,28 @@ export function GameShell({
 						caughtIds={caughtIds}
 						onBack={() => setPhase("crawl")}
 					/>
+				)}
+
+				{phase === "league" && player && (
+					<LeaguePage
+						socket={socket}
+						sessionId={sessionId}
+						playerName={player.name}
+						tournamentOptIn={tournamentOptIn}
+						onBack={() => setPhase("crawl")}
+					/>
+				)}
+
+				{phase === "tournament" && (
+					<TournamentBracketViewer
+						socket={socket}
+						sessionId={sessionId}
+						initialBracket={tournamentBracket}
+					/>
+				)}
+
+				{phase === "hall-of-fame" && (
+					<HallOfFameViewer socket={socket} sessionId={sessionId} />
 				)}
 
 				{phase === "caught" && caughtPokemon && (
@@ -681,6 +731,7 @@ export function GameShell({
 					<div className="w-[2px] bg-pixel-gray/30" />
 					<button
 						onClick={() => setPhase("pokedex")}
+						type="button"
 						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
               ${phase === "pokedex" ? "bg-pixel-red text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
             `}
@@ -729,6 +780,7 @@ export function GameShell({
 					<div className="w-[2px] bg-pixel-gray/30" />
 					<button
 						onClick={() => setPhase("team")}
+						type="button"
 						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
               ${phase === "team" ? "bg-pixel-blue text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
             `}
@@ -751,6 +803,27 @@ export function GameShell({
 							<circle cx={5} cy={5} r={1.5} fill="currentColor" />
 						</svg>
 						<span className="text-[5px]">PUBMON</span>
+					</button>
+					<div className="w-[2px] bg-pixel-gray/30" />
+					<button
+						onClick={() => setPhase("league")}
+						type="button"
+						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
+              ${phase === "league" ? "bg-pixel-yellow text-pixel-black" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
+            `}
+					>
+						<svg
+							viewBox="0 0 12 12"
+							width={16}
+							height={16}
+							className="pixel-perfect"
+						>
+							<polygon
+								points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9 3,11 3.5,7.5 1,5 4.5,4.5"
+								fill="currentColor"
+							/>
+						</svg>
+						<span className="text-[5px]">LEAGUE</span>
 					</button>
 				</div>
 			</nav>

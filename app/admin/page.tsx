@@ -29,12 +29,31 @@ interface PlayerStats {
 	partyCount: number;
 }
 
+interface TournamentMatch {
+	matchId: string;
+	player1SessionId: string;
+	player2SessionId: string | null;
+	battleId?: string;
+	winnerId?: string;
+	status: "pending" | "in_progress" | "completed" | "forfeited";
+	adminOverride?: boolean;
+}
+
+interface TournamentBracket {
+	round: number;
+	matches: TournamentMatch[];
+}
+
 export default function AdminPage() {
 	const [adminSecret, setAdminSecret] = useState("");
 	const [currentGym, setCurrentGym] = useState("1");
 	const [players, setPlayers] = useState<PlayerStats[]>([]);
 	const [socket, setSocket] = useState<PartySocket | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
+	const [tournamentBracket, setTournamentBracket] =
+		useState<TournamentBracket | null>(null);
+	const [selectedRibbon, setSelectedRibbon] = useState<string>("");
+	const [selectedPlayer, setSelectedPlayer] = useState<string>("");
 
 	// Load admin secret from localStorage on mount
 	useEffect(() => {
@@ -76,6 +95,8 @@ export default function AdminPage() {
 					setPlayers(msg.players);
 				} else if (msg.type === "gym_update") {
 					setCurrentGym(msg.currentGymId.toString());
+				} else if (msg.type === "tournament_start" || msg.type === "bracket_update") {
+					setTournamentBracket(msg.bracket);
 				} else if (msg.type === "error") {
 					alert(`Error: ${msg.message}`);
 				}
@@ -119,6 +140,88 @@ export default function AdminPage() {
 			}),
 		);
 	};
+
+	const handlePromotePlayer = (matchId: string, sessionId: string) => {
+		if (!socket || !adminSecret) return;
+
+		socket.send(
+			JSON.stringify({
+				type: "admin_promote_player",
+				adminSecret,
+				matchId,
+				sessionId,
+			}),
+		);
+	};
+
+	const handleKickPlayer = (matchId: string, sessionId: string) => {
+		if (!socket || !adminSecret) return;
+
+		socket.send(
+			JSON.stringify({
+				type: "admin_kick_player",
+				adminSecret,
+				matchId,
+				sessionId,
+			}),
+		);
+	};
+
+	const handleAssignRibbon = () => {
+		if (!socket || !adminSecret || !selectedPlayer || !selectedRibbon) {
+			alert("Please select a player and ribbon");
+			return;
+		}
+
+		socket.send(
+			JSON.stringify({
+				type: "admin_assign_ribbon",
+				adminSecret,
+				sessionId: selectedPlayer,
+				ribbonPath: selectedRibbon,
+			}),
+		);
+
+		alert(`Ribbon assigned to ${selectedPlayer}`);
+	};
+
+	const handleTriggerHallOfFame = () => {
+		if (!socket || !adminSecret) {
+			alert("Please enter admin secret");
+			return;
+		}
+
+		if (
+			!confirm(
+				"This will end the tournament and show the Hall of Fame. Continue?",
+			)
+		) {
+			return;
+		}
+
+		socket.send(
+			JSON.stringify({
+				type: "admin_trigger_hall_of_fame",
+				adminSecret,
+			}),
+		);
+	};
+
+	const ribbonOptions = [
+		{ value: "/sprites/ribbons/champion-ribbon.png", label: "Champion" },
+		{ value: "/sprites/ribbons/effort-ribbon.png", label: "Effort" },
+		{
+			value: "/sprites/ribbons/expert-battler-ribbon.png",
+			label: "Expert Battler",
+		},
+		{ value: "/sprites/ribbons/legend-ribbon.png", label: "Legend" },
+		{ value: "/sprites/ribbons/best-friends-ribbon.png", label: "Best Friends" },
+		{ value: "/sprites/ribbons/artist-ribbon.png", label: "Artist" },
+		{ value: "/sprites/ribbons/careless-ribbon.png", label: "Careless" },
+		{ value: "/sprites/ribbons/relax-ribbon.png", label: "Relax" },
+		{ value: "/sprites/ribbons/smile-ribbon.png", label: "Smile" },
+		{ value: "/sprites/ribbons/snooze-ribbon.png", label: "Snooze" },
+	];
 
 	return (
 		<div className="min-h-screen bg-background p-6">
@@ -197,7 +300,7 @@ export default function AdminPage() {
 							Start the master tournament with opted-in players
 						</CardDescription>
 					</CardHeader>
-					<CardContent>
+					<CardContent className="space-y-4">
 						<Button
 							onClick={handleStartTournament}
 							disabled={!adminSecret}
@@ -205,6 +308,178 @@ export default function AdminPage() {
 							size="lg"
 						>
 							Start Tournament
+						</Button>
+
+						{tournamentBracket && (
+							<div className="border rounded-lg p-4 mt-4">
+								<h3 className="font-bold mb-2">
+									Round {tournamentBracket.round} - Bracket Management
+								</h3>
+								<div className="space-y-2">
+									{tournamentBracket.matches.map((match) => (
+										<div
+											key={match.matchId}
+											className="border rounded p-3 bg-muted/50"
+										>
+											<div className="flex items-center justify-between mb-2">
+												<span className="text-sm font-mono">
+													{match.matchId}
+												</span>
+												<Badge
+													variant={
+														match.status === "completed"
+															? "default"
+															: match.status === "in_progress"
+																? "secondary"
+																: "outline"
+													}
+												>
+													{match.status}
+												</Badge>
+											</div>
+											<div className="grid grid-cols-2 gap-2 text-sm">
+												<div
+													className={`p-2 border rounded ${match.winnerId === match.player1SessionId ? "bg-green-100 font-bold" : ""}`}
+												>
+													P1: {match.player1SessionId.slice(0, 8)}...
+													{match.status !== "completed" && (
+														<div className="flex gap-1 mt-1">
+															<Button
+																size="sm"
+																variant="outline"
+																onClick={() =>
+																	handlePromotePlayer(
+																		match.matchId,
+																		match.player1SessionId,
+																	)
+																}
+															>
+																Promote
+															</Button>
+															<Button
+																size="sm"
+																variant="destructive"
+																onClick={() =>
+																	handleKickPlayer(
+																		match.matchId,
+																		match.player1SessionId,
+																	)
+																}
+															>
+																Kick
+															</Button>
+														</div>
+													)}
+												</div>
+												<div
+													className={`p-2 border rounded ${match.winnerId === match.player2SessionId ? "bg-green-100 font-bold" : ""}`}
+												>
+													{match.player2SessionId ? (
+														<>
+															P2: {match.player2SessionId.slice(0, 8)}...
+															{match.status !== "completed" && (
+																<div className="flex gap-1 mt-1">
+																	<Button
+																		size="sm"
+																		variant="outline"
+																		onClick={() =>
+																			handlePromotePlayer(
+																				match.matchId,
+																				match.player2SessionId!,
+																			)
+																		}
+																	>
+																		Promote
+																	</Button>
+																	<Button
+																		size="sm"
+																		variant="destructive"
+																		onClick={() =>
+																			handleKickPlayer(
+																				match.matchId,
+																				match.player2SessionId!,
+																			)
+																		}
+																	>
+																		Kick
+																	</Button>
+																</div>
+															)}
+														</>
+													) : (
+														<span className="text-muted-foreground">BYE</span>
+													)}
+												</div>
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						)}
+					</CardContent>
+				</Card>
+
+				{/* Hall of Fame Control */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Hall of Fame</CardTitle>
+						<CardDescription>
+							Assign ribbons and trigger the Hall of Fame ceremony
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="grid grid-cols-3 gap-4">
+							<div className="col-span-1">
+								<Label htmlFor="player-select">Player</Label>
+								<Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
+									<SelectTrigger id="player-select">
+										<SelectValue placeholder="Select player" />
+									</SelectTrigger>
+									<SelectContent>
+										{players.map((player) => (
+											<SelectItem key={player.name} value={player.name}>
+												{player.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+
+							<div className="col-span-1">
+								<Label htmlFor="ribbon-select">Ribbon</Label>
+								<Select value={selectedRibbon} onValueChange={setSelectedRibbon}>
+									<SelectTrigger id="ribbon-select">
+										<SelectValue placeholder="Select ribbon" />
+									</SelectTrigger>
+									<SelectContent>
+										{ribbonOptions.map((ribbon) => (
+											<SelectItem key={ribbon.value} value={ribbon.value}>
+												{ribbon.label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+
+							<div className="col-span-1 flex items-end">
+								<Button
+									onClick={handleAssignRibbon}
+									disabled={!adminSecret || !selectedPlayer || !selectedRibbon}
+									className="w-full"
+								>
+									Assign Ribbon
+								</Button>
+							</div>
+						</div>
+
+						<Button
+							onClick={handleTriggerHallOfFame}
+							disabled={!adminSecret}
+							variant="destructive"
+							size="lg"
+							className="w-full"
+						>
+							Trigger Hall of Fame
 						</Button>
 					</CardContent>
 				</Card>

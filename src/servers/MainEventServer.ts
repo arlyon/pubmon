@@ -163,6 +163,21 @@ export class MainEventServer extends Server {
         case "admin_forfeit_match":
           await this.handleAdminForfeitMatch(msg);
           break;
+        case "admin_promote_player":
+          await this.handleAdminPromotePlayer(msg);
+          break;
+        case "admin_kick_player":
+          await this.handleAdminKickPlayer(msg);
+          break;
+        case "admin_readd_player":
+          await this.handleAdminReaddPlayer(msg);
+          break;
+        case "admin_assign_ribbon":
+          await this.handleAdminAssignRibbon(msg);
+          break;
+        case "admin_trigger_hall_of_fame":
+          await this.handleAdminTriggerHallOfFame();
+          break;
         default:
           this.sendError(connection, "Unknown message type");
       }
@@ -342,6 +357,7 @@ export class MainEventServer extends Server {
       badges: new Set(),
       battleLog: [],
       tournamentOptIn: false,
+      ribbons: [],
       createdAt: Date.now(),
       lastActivity: Date.now(),
     };
@@ -658,11 +674,11 @@ export class MainEventServer extends Server {
   private async handleAdminStartTournament() {
     // Get all opted-in players with all 10 badges
     const eligiblePlayers = Array.from(this.gameState.players.values()).filter(
-      (p) => p.tournamentOptIn && p.party.length > 0 && p.badges.size === 10
+      (p) => p.tournamentOptIn && p.party.length > 0
     );
 
     if (eligiblePlayers.length < 2) {
-      console.log("[MainEventServer] Not enough players for tournament");
+      console.log("[MainEventServer] Not enough players for tournament: ", eligiblePlayers.length);
       return;
     }
 
@@ -692,7 +708,7 @@ export class MainEventServer extends Server {
       (m) => m.battleId === msg.battleId
     );
 
-    if (!match) return;
+    if (!match || !match.player2SessionId) return;
 
     // Determine winner (opposite of forfeiter)
     const winnerId =
@@ -703,20 +719,276 @@ export class MainEventServer extends Server {
     await this.completeBattleMatch(msg.battleId, winnerId);
   }
 
+  private async handleAdminPromotePlayer(
+    msg: Extract<ClientMessage, { type: "admin_promote_player" }>
+  ) {
+    if (!this.gameState.tournamentBracket) return;
+
+    const match = this.gameState.tournamentBracket.matches.find(
+      (m) => m.matchId === msg.matchId
+    );
+
+    if (!match) {
+      console.log(`[Admin] Match ${msg.matchId} not found`);
+      return;
+    }
+
+    // Force advance the specified player
+    match.winnerId = msg.sessionId;
+    match.status = "completed";
+    match.adminOverride = true;
+
+    await this.persistState();
+
+    // Broadcast bracket update
+    this.broadcastMessage({
+      type: "bracket_update",
+      bracket: this.gameState.tournamentBracket,
+    });
+
+    console.log(`[Admin] Promoted player ${msg.sessionId} in match ${msg.matchId}`);
+
+    // Check if round is complete
+    const roundComplete = this.gameState.tournamentBracket.matches.every(
+      (m) => m.status === "completed"
+    );
+
+    if (roundComplete) {
+      await this.advanceTournament();
+    }
+  }
+
+  private async handleAdminKickPlayer(
+    msg: Extract<ClientMessage, { type: "admin_kick_player" }>
+  ) {
+    if (!this.gameState.tournamentBracket) return;
+
+    const match = this.gameState.tournamentBracket.matches.find(
+      (m) => m.matchId === msg.matchId
+    );
+
+    if (!match) {
+      console.log(`[Admin] Match ${msg.matchId} not found`);
+      return;
+    }
+
+    // Determine opponent
+    const opponentId =
+      match.player1SessionId === msg.sessionId
+        ? match.player2SessionId
+        : match.player1SessionId;
+
+    if (!opponentId) {
+      console.log(`[Admin] Cannot kick player from bye match`);
+      return;
+    }
+
+    // Advance opponent
+    match.winnerId = opponentId;
+    match.status = "forfeited";
+    match.adminOverride = true;
+
+    await this.persistState();
+
+    // Broadcast bracket update
+    this.broadcastMessage({
+      type: "bracket_update",
+      bracket: this.gameState.tournamentBracket,
+    });
+
+    console.log(`[Admin] Kicked player ${msg.sessionId} from match ${msg.matchId}`);
+
+    // Check if round is complete
+    const roundComplete = this.gameState.tournamentBracket.matches.every(
+      (m) => m.status === "completed" || m.status === "forfeited"
+    );
+
+    if (roundComplete) {
+      await this.advanceTournament();
+    }
+  }
+
+  private async handleAdminReaddPlayer(
+    msg: Extract<ClientMessage, { type: "admin_readd_player" }>
+  ) {
+    if (!this.gameState.tournamentBracket) return;
+
+    const player = this.gameState.players.get(msg.sessionId);
+    if (!player) {
+      console.log(`[Admin] Player ${msg.sessionId} not found`);
+      return;
+    }
+
+    // Add player to current round as a new match with bye
+    const newMatch: TournamentMatch = {
+      matchId: `match_readd_${Date.now()}`,
+      player1SessionId: msg.sessionId,
+      player2SessionId: null,
+      winnerId: msg.sessionId,
+      status: "completed",
+      adminOverride: true,
+    };
+
+    this.gameState.tournamentBracket.matches.push(newMatch);
+
+    await this.persistState();
+
+    // Broadcast bracket update
+    this.broadcastMessage({
+      type: "bracket_update",
+      bracket: this.gameState.tournamentBracket,
+    });
+
+    console.log(`[Admin] Re-added player ${msg.sessionId} to tournament`);
+  }
+
+  private async handleAdminAssignRibbon(
+    msg: Extract<ClientMessage, { type: "admin_assign_ribbon" }>
+  ) {
+    const player = this.gameState.players.get(msg.sessionId);
+    if (!player) {
+      console.log(`[Admin] Player ${msg.sessionId} not found`);
+      return;
+    }
+
+    // Add ribbon if not already present
+    if (!player.ribbons.includes(msg.ribbonPath)) {
+      player.ribbons.push(msg.ribbonPath);
+      await this.persistState();
+
+      // Broadcast updated player state
+      this.broadcastMessage({
+        type: "player_state",
+        playerState: serializePlayerState(player),
+      });
+
+      console.log(`[Admin] Assigned ribbon ${msg.ribbonPath} to player ${msg.sessionId}`);
+    }
+  }
+
+  private async handleAdminTriggerHallOfFame() {
+    // Calculate auto-ribbons
+    await this.calculateHallOfFame();
+
+    // Transition to hall-of-fame phase
+    this.gameState.phase = "hall-of-fame";
+    await this.persistState();
+
+    // Broadcast hall of fame ready
+    this.broadcastMessage({
+      type: "hall_of_fame_ready",
+      hallOfFame: this.gameState.hallOfFame || {},
+    });
+
+    console.log("[Admin] Hall of Fame triggered");
+  }
+
+  private async calculateHallOfFame() {
+    if (!this.gameState.hallOfFame) {
+      this.gameState.hallOfFame = {};
+    }
+
+    // Find tournament champion
+    if (this.gameState.tournamentBracket) {
+      const finalMatch = this.gameState.tournamentBracket.matches.find(
+        (m) => m.status === "completed" && m.winnerId
+      );
+
+      if (finalMatch?.winnerId) {
+        const champion = this.gameState.players.get(finalMatch.winnerId);
+        if (champion && !champion.ribbons.includes("/sprites/ribbons/champion-ribbon.png")) {
+          champion.ribbons.push("/sprites/ribbons/champion-ribbon.png");
+          console.log(`[HallOfFame] Champion: ${champion.info.name}`);
+        }
+      }
+    }
+
+    // Calculate stat-based ribbons
+    let mostRuns = { sessionId: "", count: 0 };
+    let mostWins = { sessionId: "", count: 0 };
+    let mostCaught = { sessionId: "", count: 0 };
+
+    for (const [sessionId, player] of this.gameState.players.entries()) {
+      const runCount = player.battleLog.filter((entry) => entry.outcome === "run").length;
+      const winCount = player.battleLog.filter((entry) => entry.outcome === "win").length;
+      const caughtCount = player.battleLog.filter((entry) => entry.outcome === "caught").length;
+
+      if (runCount > mostRuns.count) {
+        mostRuns = { sessionId, count: runCount };
+      }
+      if (winCount > mostWins.count) {
+        mostWins = { sessionId, count: winCount };
+      }
+      if (caughtCount > mostCaught.count) {
+        mostCaught = { sessionId, count: caughtCount };
+      }
+    }
+
+    // Assign effort ribbon (most runs)
+    if (mostRuns.sessionId) {
+      const player = this.gameState.players.get(mostRuns.sessionId);
+      if (player && !player.ribbons.includes("/sprites/ribbons/effort-ribbon.png")) {
+        player.ribbons.push("/sprites/ribbons/effort-ribbon.png");
+        console.log(`[HallOfFame] Effort (most runs): ${player.info.name} (${mostRuns.count})`);
+      }
+    }
+
+    // Assign expert battler ribbon (most wins)
+    if (mostWins.sessionId) {
+      const player = this.gameState.players.get(mostWins.sessionId);
+      if (player && !player.ribbons.includes("/sprites/ribbons/expert-battler-ribbon.png")) {
+        player.ribbons.push("/sprites/ribbons/expert-battler-ribbon.png");
+        console.log(`[HallOfFame] Expert Battler (most wins): ${player.info.name} (${mostWins.count})`);
+      }
+    }
+
+    // Assign legend ribbon (most caught)
+    if (mostCaught.sessionId) {
+      const player = this.gameState.players.get(mostCaught.sessionId);
+      if (player && !player.ribbons.includes("/sprites/ribbons/legend-ribbon.png")) {
+        player.ribbons.push("/sprites/ribbons/legend-ribbon.png");
+        console.log(`[HallOfFame] Legend (most caught): ${player.info.name} (${mostCaught.count})`);
+      }
+    }
+
+    await this.persistState();
+  }
+
   // ============================================================================
   // Tournament Logic
   // ============================================================================
 
   private createBracket(players: PlayerState[]): TournamentBracket {
-    // Shuffle players
-    const shuffled = [...players].sort(() => Math.random() - 0.5);
+    // Sort players by drinksLogged (descending) to give top players byes
+    const sorted = [...players].sort((a, b) => b.battleLog.length - a.battleLog.length);
+
+    // Calculate next power of 2
+    const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(sorted.length)));
+    const byesNeeded = nextPowerOf2 - sorted.length;
+
+    console.log(`[Tournament] ${sorted.length} players, ${byesNeeded} byes needed (target: ${nextPowerOf2})`);
 
     const matches: TournamentMatch[] = [];
-    for (let i = 0; i < shuffled.length - 1; i += 2) {
+    let matchIndex = 0;
+
+    // Give byes to top players
+    for (let i = 0; i < byesNeeded; i++) {
       matches.push({
-        matchId: `match_${i / 2}`,
-        player1SessionId: shuffled[i].sessionId,
-        player2SessionId: shuffled[i + 1].sessionId,
+        matchId: `match_${matchIndex++}`,
+        player1SessionId: sorted[i].sessionId,
+        player2SessionId: null, // Bye match
+        winnerId: sorted[i].sessionId, // Auto-advance
+        status: "completed",
+      });
+    }
+
+    // Create matches for remaining players
+    const remainingPlayers = sorted.slice(byesNeeded);
+    for (let i = 0; i < remainingPlayers.length - 1; i += 2) {
+      matches.push({
+        matchId: `match_${matchIndex++}`,
+        player1SessionId: remainingPlayers[i].sessionId,
+        player2SessionId: remainingPlayers[i + 1].sessionId,
         status: "pending",
       });
     }

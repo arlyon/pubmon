@@ -21,7 +21,12 @@ export type ClientMessage =
   // Admin messages
   | AdminSetGymMessage
   | AdminStartTournamentMessage
-  | AdminForfeitMatchMessage;
+  | AdminForfeitMatchMessage
+  | AdminPromotePlayerMessage
+  | AdminKickPlayerMessage
+  | AdminReaddPlayerMessage
+  | AdminAssignRibbonMessage
+  | AdminTriggerHallOfFameMessage;
 
 export interface CreatePlayerMessage {
   type: "create_player";
@@ -119,6 +124,38 @@ export interface AdminForfeitMatchMessage {
   forfeitSessionId: string;
 }
 
+export interface AdminPromotePlayerMessage {
+  type: "admin_promote_player";
+  adminSecret: string;
+  matchId: string;
+  sessionId: string; // Player to promote
+}
+
+export interface AdminKickPlayerMessage {
+  type: "admin_kick_player";
+  adminSecret: string;
+  matchId: string;
+  sessionId: string; // Player to kick
+}
+
+export interface AdminReaddPlayerMessage {
+  type: "admin_readd_player";
+  adminSecret: string;
+  sessionId: string; // Player to re-add to bracket
+}
+
+export interface AdminAssignRibbonMessage {
+  type: "admin_assign_ribbon";
+  adminSecret: string;
+  sessionId: string;
+  ribbonPath: string; // Path to ribbon sprite
+}
+
+export interface AdminTriggerHallOfFameMessage {
+  type: "admin_trigger_hall_of_fame";
+  adminSecret: string;
+}
+
 // ============================================================================
 // Server -> Client Messages (Main Event Server)
 // ============================================================================
@@ -136,6 +173,8 @@ export type ServerMessage =
   | TournamentStartMessage
   | MatchStartMessage
   | MatchCompleteMessage
+  | BracketUpdateMessage
+  | HallOfFameReadyMessage
   | ErrorMessage;
 
 export interface PlayerCreatedMessage {
@@ -210,6 +249,16 @@ export interface MatchCompleteMessage {
   battleId: string;
   winnerId: string;
   winnerName: string;
+}
+
+export interface BracketUpdateMessage {
+  type: "bracket_update";
+  bracket: TournamentBracket;
+}
+
+export interface HallOfFameReadyMessage {
+  type: "hall_of_fame_ready";
+  hallOfFame: Record<string, string[]>; // sessionId -> ribbon paths
 }
 
 export interface ErrorMessage {
