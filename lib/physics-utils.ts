@@ -84,9 +84,9 @@ export async function getSpriteHitbox(
 				const hull = calculateConvexHull(points);
 
 				// Simplify to max 16 vertices
-				// const simplified = simplifyPolygon(hull, 16);
+				const simplified = simplifyPolygon(hull, 16);
 
-				resolve(hull);
+				resolve(simplified);
 			} catch (error) {
 				reject(error);
 			}

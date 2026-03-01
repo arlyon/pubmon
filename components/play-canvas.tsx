@@ -13,7 +13,8 @@ interface PlayCanvasProps {
 
 type PubMonState = "walking" | "grabbed" | "free";
 
-const SPRITE_SIZE = 96; // Display size of the PubMon
+const SPRITE_SIZE = 192; // Display size of the PubMon
+const POKEBALL_SIZE = 96;
 const POKEBALL_RADIUS = 48;
 const RECOVERY_TIME = 2000; // ms to wait before auto-recovery
 const VELOCITY_THRESHOLD = 0.5; // Velocity below which PubMon is considered "resting"
@@ -30,14 +31,21 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 			? new URLSearchParams(window.location.search).get("debug") === "true"
 			: false,
 	);
+	const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+	const isPokeballHoveredRef = useRef<boolean>(false);
 	const restingTimerRef = useRef<number>(0);
 	const walkDirectionRef = useRef<number>(1);
+	const previousDirectionRef = useRef<number>(1);
 	const lastPositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 	const frameRef = useRef<number>(0);
 	const spriteCentroidRef = useRef<{ x: number; y: number }>({
 		x: SPRITE_SIZE / 2,
 		y: SPRITE_SIZE / 2,
 	});
+	const hitboxVerticesRef = useRef<{
+		normal: Point[];
+		flipped: Point[];
+	}>({ normal: [], flipped: [] });
 	const { playPokemonCry } = usePokemonCry([pubmon]);
 
 	const updateState = (newState: PubMonState) => {
@@ -131,7 +139,19 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 					y: p.y - centerY,
 				}));
 
-				// Create PubMon body
+				// Create flipped version (mirror x-coordinates)
+				const flippedVertices = centeredVertices.map((p) => ({
+					x: -p.x,
+					y: p.y,
+				}));
+
+				// Store both versions for direction changes
+				hitboxVerticesRef.current = {
+					normal: centeredVertices,
+					flipped: flippedVertices,
+				};
+
+				// Create PubMon body (starting with normal facing left)
 				const pubmonBody = Matter.Bodies.fromVertices(
 					canvas.width / 2,
 					canvas.height / 2,
@@ -150,6 +170,17 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				// Set initial kinematic state (walking mode)
 				Matter.Body.setStatic(pubmonBody, false);
 				(pubmonBody as any).isKinematic = true;
+
+				// If starting direction is right, flip the vertices to match
+				if (walkDirectionRef.current > 0) {
+					Matter.Body.setVertices(
+						pubmonBody,
+						flippedVertices as Matter.Vector[],
+					);
+					previousDirectionRef.current = 1;
+				} else {
+					previousDirectionRef.current = -1;
+				}
 
 				lastPositionRef.current = {
 					x: pubmonBody.position.x,
@@ -193,6 +224,59 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 		mouseConstraintRef.current = mouseConstraint;
 		Matter.World.add(engine.world, mouseConstraint);
 
+		// Collision events for landing damping
+		Matter.Events.on(engine, "collisionStart", (event) => {
+			event.pairs.forEach((pair) => {
+				const { bodyA, bodyB } = pair;
+				const pubmonBody =
+					bodyA.label === "pubmon"
+						? bodyA
+						: bodyB.label === "pubmon"
+							? bodyB
+							: null;
+				const floor =
+					bodyA.label === "floor"
+						? bodyA
+						: bodyB.label === "floor"
+							? bodyB
+							: null;
+
+				if (pubmonBody && floor && pubmonBody === pubmonBodyRef.current) {
+					// Dampen angular velocity on floor contact
+					Matter.Body.setAngularVelocity(
+						pubmonBody,
+						pubmonBody.angularVelocity * 0.1,
+					);
+				}
+			});
+		});
+
+		// Matter.Events.on(engine, "collisionActive", (event) => {
+		// 	event.pairs.forEach((pair) => {
+		// 		const { bodyA, bodyB } = pair;
+		// 		const pubmonBody =
+		// 			bodyA.label === "pubmon"
+		// 				? bodyA
+		// 				: bodyB.label === "pubmon"
+		// 					? bodyB
+		// 					: null;
+		// 		const floor =
+		// 			bodyA.label === "floor"
+		// 				? bodyA
+		// 				: bodyB.label === "floor"
+		// 					? bodyB
+		// 					: null;
+
+		// 		if (pubmonBody && floor && pubmonBody === pubmonBodyRef.current) {
+		// 			// Continue dampening while in contact with floor
+		// 			Matter.Body.setAngularVelocity(
+		// 				pubmonBody,
+		// 				pubmonBody.angularVelocity * 0.7,
+		// 			);
+		// 		}
+		// 	});
+		// });
+
 		// Mouse events for interaction
 		Matter.Events.on(mouseConstraint, "startdrag", (event) => {
 			if (event.body?.label === "pubmon") {
@@ -208,9 +292,9 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				const velocity = body.velocity;
 				const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
 
-				// Check if near pokeball (exit zone)
-				const pokeballX = canvas.width / 2;
-				const pokeballY = canvas.height - POKEBALL_RADIUS - 20;
+				// Check if near pokeball (exit zone) - top right corner
+				const pokeballX = canvas.width - POKEBALL_SIZE / 2 - 20;
+				const pokeballY = POKEBALL_SIZE / 2 + 20;
 				const dx = body.position.x - pokeballX;
 				const dy = body.position.y - pokeballY;
 				const distance = Math.sqrt(dx ** 2 + dy ** 2);
@@ -309,6 +393,31 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 
 		const spriteImg = loadSprite();
 
+		// Load pokeball sprites
+		const pokeballImg = new Image();
+		pokeballImg.src = "/sprites/POKEBALL.png";
+		const pokeballOpenImg = new Image();
+		pokeballOpenImg.src = "/sprites/POKEBALL_OPEN.png";
+
+		// Mouse move tracking for pokeball hover
+		const handleMouseMove = (e: MouseEvent) => {
+			const rect = canvas.getBoundingClientRect();
+			const mouseX = e.clientX - rect.left;
+			const mouseY = e.clientY - rect.top;
+			mousePositionRef.current = { x: mouseX, y: mouseY };
+
+			// Check if hovering over pokeball (top right)
+			const pokeballX = canvas.width - POKEBALL_SIZE / 2 - 20;
+			const pokeballY = POKEBALL_SIZE / 2 + 20;
+			const dx = mouseX - pokeballX;
+			const dy = mouseY - pokeballY;
+			const distance = Math.sqrt(dx ** 2 + dy ** 2);
+
+			isPokeballHoveredRef.current = distance < POKEBALL_RADIUS;
+		};
+
+		canvas.addEventListener("mousemove", handleMouseMove);
+
 		const render = () => {
 			if (!canvasRef.current || !ctx) return;
 
@@ -324,15 +433,23 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 			// Draw PubMon
 			const body = pubmonBodyRef.current;
 			if (body && spriteImg.complete) {
-				ctx.save();
-				ctx.translate(body.position.x, body.position.y);
+				// Add bobbing animation when walking (square wave, 2 pixels up/down)
+				const bobOffset =
+					stateRef.current === "walking"
+						? Math.sign(Math.sin(frameRef.current * 0.02)) * 2 - 10
+						: 0;
 
-				// Flip sprite when walking right (before rotation so flip is world-relative)
-				if (stateRef.current === "walking" && walkDirectionRef.current > 0) {
+				ctx.save();
+				ctx.translate(body.position.x, body.position.y + bobOffset);
+
+				// Flip sprite based on direction (before rotation so flip is world-relative)
+				const isFlipped = walkDirectionRef.current > 0;
+				if (isFlipped) {
 					ctx.scale(-1, 1);
 				}
 
-				ctx.rotate(body.angle);
+				// When flipped, negate the rotation so it rotates in the same direction as hitbox
+				ctx.rotate(isFlipped ? -body.angle : body.angle);
 
 				// Draw sprite centered at the hitbox centroid, not image center
 				ctx.imageSmoothingEnabled = false;
@@ -375,6 +492,24 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				);
 			}
 
+			// Draw pokeball in top right
+			const pokeballX = canvas.width - POKEBALL_SIZE / 2 - 20;
+			const pokeballY = POKEBALL_SIZE / 2 + 20;
+			const currentPokeballImg = isPokeballHoveredRef.current
+				? pokeballOpenImg
+				: pokeballImg;
+
+			if (currentPokeballImg.complete) {
+				ctx.imageSmoothingEnabled = false;
+				ctx.drawImage(
+					currentPokeballImg,
+					pokeballX - POKEBALL_SIZE / 2,
+					pokeballY - POKEBALL_SIZE / 2,
+					POKEBALL_SIZE,
+					POKEBALL_SIZE,
+				);
+			}
+
 			// Update walking behavior
 			if (stateRef.current === "walking" && body) {
 				// Apply gentle rotational force towards upright
@@ -386,11 +521,36 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				if ((body as any).isKinematic) {
 					// Pace left and right
 					const speed = 0.2;
+
+					// Check if out of bounds and reverse direction
+					if (body.position.x < 100) {
+						walkDirectionRef.current = 1; // Force right
+						Matter.Body.setPosition(body, { x: 100, y: body.position.y });
+					} else if (body.position.x > canvas.width - 100) {
+						walkDirectionRef.current = -1; // Force left
+						Matter.Body.setPosition(body, {
+							x: canvas.width - 100,
+							y: body.position.y,
+						});
+					}
+
 					const newX = body.position.x + walkDirectionRef.current * speed;
 
 					// Change direction at boundaries
 					if (newX < 100 || newX > canvas.width - 100) {
 						walkDirectionRef.current *= -1;
+					}
+
+					// Flip hitbox vertices when direction changes
+					if (walkDirectionRef.current !== previousDirectionRef.current) {
+						const vertices =
+							walkDirectionRef.current > 0
+								? hitboxVerticesRef.current.flipped
+								: hitboxVerticesRef.current.normal;
+						if (vertices.length > 0) {
+							Matter.Body.setVertices(body, vertices as Matter.Vector[]);
+						}
+						previousDirectionRef.current = walkDirectionRef.current;
 					}
 
 					Matter.Body.setPosition(body, {
@@ -529,6 +689,7 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 			Matter.Runner.stop(runner);
 			Matter.World.clear(engine.world, false);
 			Matter.Engine.clear(engine);
+			canvas.removeEventListener("mousemove", handleMouseMove);
 			window.removeEventListener("deviceorientation", handleOrientation);
 			window.removeEventListener("devicemotion", handleMotion);
 			window.removeEventListener("resize", handleResize);
