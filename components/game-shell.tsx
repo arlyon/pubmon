@@ -110,6 +110,7 @@ export function GameShell({
 		initialPlayerState?.tournamentOptIn || false,
 	);
 	const [tournamentBracket, setTournamentBracket] = useState<any>(null);
+	const [leaderboard, setLeaderboard] = useState<any[]>([]);
 	const { playBGM, stopBGM } = useAudio();
 
 	console.log(battleLog);
@@ -483,6 +484,12 @@ export function GameShell({
 				console.log("Hall of Fame ready");
 				setPhase("hall-of-fame");
 			}
+
+			// Leaderboard sync
+			if (msg.type === "leaderboard_sync") {
+				console.log("Leaderboard updated:", msg.players);
+				setLeaderboard(msg.players);
+			}
 		};
 
 		socket.addEventListener("message", handleMessage);
@@ -569,6 +576,7 @@ export function GameShell({
 						sessionId={sessionId}
 						playerName={player.name}
 						tournamentOptIn={tournamentOptIn}
+						leaderboard={leaderboard}
 						onBack={() => setPhase("crawl")}
 					/>
 				)}

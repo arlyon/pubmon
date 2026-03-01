@@ -75,8 +75,11 @@ export class MainEventServer extends Server {
     const leaderboard = Array.from(this.gameState.players.values()).map((p) => ({
       name: p.info.name,
       drinksLogged: p.battleLog.length,
+      battlesWon: p.battleLog.filter(b => b.outcome === "win").length,
+      totalBattles: p.battleLog.length,
       badges: Array.from(p.badges),
       partyCount: p.party.length,
+      level: p.party.length > 0 ? Math.max(...p.party.map(mon => mon.level)) : 1,
     }));
 
     this.sendToConnection(connection, {
@@ -1103,8 +1106,11 @@ export class MainEventServer extends Server {
     const leaderboard = Array.from(this.gameState.players.values()).map((p) => ({
       name: p.info.name,
       drinksLogged: p.battleLog.length,
+      battlesWon: p.battleLog.filter(b => b.outcome === "win").length,
+      totalBattles: p.battleLog.length,
       badges: Array.from(p.badges),
       partyCount: p.party.length,
+      level: p.party.length > 0 ? Math.max(...p.party.map(mon => mon.level)) : 1,
     }));
 
     this.broadcastMessage({

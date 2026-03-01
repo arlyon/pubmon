@@ -4,9 +4,10 @@ interface PixelBoxProps {
   children: React.ReactNode
   className?: string
   variant?: "default" | "battle" | "menu" | "info"
+  style?: React.CSSProperties
 }
 
-export function PixelBox({ children, className = "", variant = "default" }: PixelBoxProps) {
+export function PixelBox({ children, className = "", variant = "default", style }: PixelBoxProps) {
   const borderColors = {
     default: "border-foreground",
     battle: "border-primary",
@@ -28,6 +29,7 @@ export function PixelBox({ children, className = "", variant = "default" }: Pixe
         shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]
         ${className}
       `}
+      style={style}
     >
       {/* Inner border for double-border pixel effect */}
       <div className="absolute inset-[2px] border-2 border-foreground/20 pointer-events-none" />
