@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
 import PixelHeader from "./pixel/PixelHeader";
 import { PixelButton } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
+import { PlayCanvas } from "./play-canvas";
 
 interface TeamManagementProps {
 	team: PubMon[];
@@ -22,8 +23,12 @@ export function TeamManagement({
 	activeIndex,
 }: TeamManagementProps) {
 	const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+	const [isPlaying, setIsPlaying] = useState(false);
 	const selected = selectedIdx !== null ? team[selectedIdx] : null;
 	const { playPokemonCry } = usePokemonCry(team);
+	const onExit = useCallback(() => {
+		setIsPlaying(false);
+	}, []);
 
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
@@ -317,17 +322,30 @@ export function TeamManagement({
 							</div>
 
 							{/* Actions */}
-							{selectedIdx !== activeIndex && (
+							<div className="flex flex-col gap-[2px]">
+								{selectedIdx !== activeIndex && (
+									<button
+										onClick={() => onSetActive(selectedIdx)}
+										className="mt-[4px] w-full px-[4px] py-[2px] font-pixel text-[6px] border-2 border-pixel-white bg-pixel-blue-dark text-pixel-white hover:bg-pixel-yellow hover:text-pixel-black hover:border-pixel-black cursor-pointer transition-colors"
+									>
+										SET AS LEAD
+									</button>
+								)}
 								<button
-									onClick={() => onSetActive(selectedIdx)}
-									className="mt-[4px] w-full px-[4px] py-[2px] font-pixel text-[6px] border-2 border-pixel-white bg-pixel-blue-dark text-pixel-white hover:bg-pixel-yellow hover:text-pixel-black hover:border-pixel-black cursor-pointer transition-colors"
+									onClick={() => setIsPlaying(true)}
+									className="mt-[4px] w-full px-[4px] py-[2px] font-pixel text-[6px] border-2 border-pixel-green bg-pixel-green-dark text-pixel-white hover:bg-pixel-green hover:text-pixel-black hover:border-pixel-black cursor-pointer transition-colors"
 								>
-									SET AS LEAD
+									PLAY!
 								</button>
-							)}
+							</div>
 						</div>
 					</PixelBox>
 				</div>
+			)}
+
+			{/* Play Mode Overlay */}
+			{isPlaying && selected && (
+				<PlayCanvas pubmon={selected} onExit={onExit} />
 			)}
 		</div>
 	);

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useAudio } from "@/components/audio-manager";
 import type { PubMon } from "@/lib/pokemon-data";
 
@@ -19,12 +19,12 @@ export function usePokemonCry(pokemon: PubMon[]) {
 		return map;
 	}, [pokemon]);
 
-	const playPokemonCry = (pokemonId: number) => {
+	const playPokemonCry = useCallback((pokemonId: number) => {
 		const cryNumber = pokemonCryMap.get(pokemonId);
 		if (!cryNumber) return;
 
 		playCry(cryNumber);
-	};
+	}, [pokemonCryMap]);
 
 	return { playPokemonCry };
 }
