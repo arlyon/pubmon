@@ -297,7 +297,7 @@ export function BattleScreen({
 
 				{/* Wild pokemon sprite */}
 				<div
-					className="absolute top-8 right-12 z-10"
+					className="absolute top-6 right-12 z-10"
 					style={{
 						transform: `translateX(-${enemyOffset}px)`,
 						transition: "none",
@@ -344,7 +344,12 @@ export function BattleScreen({
 							</svg>
 						</div>
 					) : (
-						<PixelSprite name={wildPokemon.sprite} size={8} animated />
+						<PixelSprite
+							name={wildPokemon.sprite}
+							size={80}
+							animated
+							variant={wildPokemon.spriteVariant}
+						/>
 					)}
 				</div>
 
@@ -370,7 +375,7 @@ export function BattleScreen({
 						</div>
 
 						<div
-							className="absolute -bottom-10 left-6 z-10"
+							className="absolute bottom-0 left-6 z-10"
 							style={{
 								transform: `translateX(${playerOffset}px)`,
 								transition: "none",
@@ -381,22 +386,14 @@ export function BattleScreen({
 						>
 							<PixelSprite
 								name={playerPokemon.sprite}
-								size={14}
+								size={128}
 								flipped
 								animated
+								variant={playerPokemon.spriteVariant}
 							/>
 						</div>
 					</>
 				)}
-
-				{/* Scanlines */}
-				<div
-					className="absolute inset-0 pointer-events-none z-20 opacity-5"
-					style={{
-						backgroundImage:
-							"repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 4px)",
-					}}
-				/>
 			</div>
 
 			{/* Bottom UI panel */}

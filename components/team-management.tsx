@@ -133,7 +133,11 @@ export function TeamManagement({
 												background: typeInfo.color,
 											}}
 										>
-											<PixelSprite name={mon.sprite} size={2} />
+											<PixelSprite
+												name={mon.sprite}
+												size={32}
+												variant={mon.spriteVariant}
+											/>
 										</div>
 
 										{/* Info */}
@@ -211,7 +215,12 @@ export function TeamManagement({
 									background: TYPE_INFO[selected.type].color,
 								}}
 							>
-								<PixelSprite name={selected.sprite} size={3} animated />
+								<PixelSprite
+									name={selected.sprite}
+									size={64}
+									animated
+									variant={selected.spriteVariant}
+								/>
 							</div>
 
 							{/* Info */}

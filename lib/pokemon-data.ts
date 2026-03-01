@@ -15,6 +15,7 @@ export interface PubMon {
   defense: number
   moves: string[]
   sprite: string // pixel art character represented as CSS
+  spriteVariant?: number // which variant of the sprite to use (defaults to 1)
   description: string
   cry: number // audio file number (001-151)
   visuals: string // pixel art character represented as CSS
@@ -283,6 +284,25 @@ export const MOVE_MAPPINGS: Record<string, string> = {
 export function getBaseMoveForAudio(customMoveId: string): string | null {
   return MOVE_MAPPINGS[customMoveId.toLowerCase()] || null;
 }
+
+/**
+ * Get the sprite path for a PubMon
+ * Converts sprite identifiers like "hoppsin" to actual file paths
+ * Falls back to Missingno.png if sprite not found
+ */
+export function getPubMonSprite(spriteId: string, variant: number = 1): string {
+  // Capitalize first letter for file name format
+  const capitalized = spriteId.charAt(0).toUpperCase() + spriteId.slice(1);
+  const paddedVariant = String(variant).padStart(5, '0');
+  return `/sprites/pubmon/${capitalized}_${paddedVariant}_.png`;
+}
+
+/**
+ * Fallback sprite when a PubMon sprite is missing
+ */
+export function getMissingnoSprite(): string {
+  return '/sprites/pubmon/Missingno.png';
+}
 export const ALL_PUBMON: PubMon[] = [
   // ==========================================
   // BEER (Earth)
@@ -292,6 +312,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 12, defense: 10,
     moves: ["Grain Slam", "Heady Foam", "Barrel Roll", "Heavy Hops"],
     sprite: "hoppsin",
+    spriteVariant: 2,
     description: "A hoppy creature born from the finest barley fields. Its foam mane bristles when angered.",
     visuals: "a fakemon, a quadrupedal beast formed from dense bundles of green barley and hops. Its coarse, vegetative anatomy is crowned by a thick, bubbling mane of white foam. Warm earthy greens and stark white highlights on the froth imply a rugged, organic volume that is constantly overflowing.",
     cry: 24,
@@ -542,7 +563,7 @@ export const ALL_PUBMON: PubMon[] = [
     id: 22, name: "Prossecat", type: "wine", hp: 40, maxHp: 40, level: 5, xp: 0,
     attack: 12, defense: 10,
     moves: ["Bubble Scratch", "Pop Charm", "Glera Sparkle", "Feline Fizz"],
-    sprite: "prosecat",
+    sprite: "prossecat",
     description: "A bubbly, hyperactive cat-like fairy. It bounces around wildly, disorienting opponents.",
     cry: 53,
     visuals: "a fakemon, a bouncy, feline fairy completely engulfed in a cloud of pale gold, effervescent bubbles. Its hyperactive, wiry anatomy is somewhat obscured by the crisp, sparkling spheres that pop and refract light in all directions."

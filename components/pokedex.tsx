@@ -171,17 +171,17 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 					<div className="overflow-y-auto pixel-scroll flex-1">
 						<div className="grid grid-cols-4 gap-[2px] p-[2px]">
 							{filteredPubMon.map((mon) => {
-							const seen = seenIds.has(mon.id);
-							const caught = caughtIds.has(mon.id);
-							const isSelected = selectedId === mon.id;
-							const typeInfo = TYPE_INFO[mon.type];
+								const seen = seenIds.has(mon.id);
+								const caught = caughtIds.has(mon.id);
+								const isSelected = selectedId === mon.id;
+								const typeInfo = TYPE_INFO[mon.type];
 
-							return (
-								<button
-									key={mon.id}
-									type="button"
-									onClick={() => setSelectedId(isSelected ? null : mon.id)}
-									className={`
+								return (
+									<button
+										key={mon.id}
+										type="button"
+										onClick={() => setSelectedId(isSelected ? null : mon.id)}
+										className={`
                     relative flex flex-col items-center gap-[1px] p-[2px] border-2 cursor-pointer transition-all font-pixel
                     ${
 											isSelected
@@ -191,58 +191,62 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 													: "border-pixel-gray-light bg-pixel-white"
 										}
                   `}
-								>
-									{/* Number */}
-									<span className="text-[5px] text-pixel-gray self-start">
-										#{String(mon.id).padStart(3, "0")}
-									</span>
+									>
+										{/* Number */}
+										<span className="text-[5px] text-pixel-gray self-start">
+											#{String(mon.id).padStart(3, "0")}
+										</span>
 
-									{/* Sprite or silhouette */}
-									<div className="w-[32px] h-[32px] flex items-center justify-center">
-										{seen ? (
-											<div
-												className="opacity-100"
-												style={{
-													filter: caught
-														? "none"
-														: "grayscale(100%) opacity(70%)",
-												}}
-											>
-												<PixelSprite name={mon.sprite} size={2} />
-											</div>
-										) : (
-											<div className="w-[24px] h-[24px] flex items-center justify-center">
-												<span className="text-[12px] text-pixel-gray font-sans">
-													?
-												</span>
+										{/* Sprite or silhouette */}
+										<div className="w-[32px] h-[32px] flex items-center justify-center">
+											{seen ? (
+												<div
+													className="opacity-100"
+													style={{
+														filter: caught
+															? "none"
+															: "grayscale(100%) opacity(70%)",
+													}}
+												>
+													<PixelSprite
+														name={mon.sprite}
+														size={32}
+														variant={mon.spriteVariant}
+													/>
+												</div>
+											) : (
+												<div className="w-[24px] h-[24px] flex items-center justify-center">
+													<span className="text-[12px] text-pixel-gray font-sans">
+														?
+													</span>
+												</div>
+											)}
+										</div>
+
+										{/* Name */}
+										<span
+											className={`text-[4px] truncate w-full text-center ${seen ? "text-pixel-black" : "text-pixel-gray"}`}
+										>
+											{seen ? mon.name.toUpperCase() : "???"}
+										</span>
+
+										{/* Caught indicator */}
+										{caught && (
+											<div className="absolute top-[1px] right-[1px]">
+												<PubBallIcon caught size={5} />
 											</div>
 										)}
-									</div>
 
-									{/* Name */}
-									<span
-										className={`text-[4px] truncate w-full text-center ${seen ? "text-pixel-black" : "text-pixel-gray"}`}
-									>
-										{seen ? mon.name.toUpperCase() : "???"}
-									</span>
-
-									{/* Caught indicator */}
-									{caught && (
-										<div className="absolute top-[1px] right-[1px]">
-											<PubBallIcon caught size={5} />
-										</div>
-									)}
-
-									{/* Type color bar at bottom */}
-									{seen && (
-										<div
-											className="absolute bottom-0 left-0 right-0 h-[2px]"
-											style={{ backgroundColor: typeInfo.color }}
-										/>
-									)}
-								</button>
-							);
-						})}
+										{/* Type color bar at bottom */}
+										{seen && (
+											<div
+												className="absolute bottom-0 left-0 right-0 h-[2px]"
+												style={{ backgroundColor: typeInfo.color }}
+											/>
+										)}
+									</button>
+								);
+							})}
 						</div>
 					</div>
 				</PixelBox>
@@ -261,7 +265,12 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 									background: TYPE_INFO[selected.type].color,
 								}}
 							>
-								<PixelSprite name={selected.sprite} size={3} animated />
+								<PixelSprite
+									name={selected.sprite}
+									size={64}
+									animated
+									variant={selected.spriteVariant}
+								/>
 							</div>
 
 							{/* Info */}

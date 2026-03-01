@@ -235,10 +235,14 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 											className="group flex flex-row items-center cursor-pointer border-none bg-transparent hover:bg-pixel-gray-light p-[2px] text-left"
 										>
 											<div
-												className="w-[32px] h-[32px] border-2 flex items-center justify-center bg-pixel-white mr-[4px]"
+												className="border-2 flex items-center justify-center bg-pixel-white mr-[4px]"
 												style={{ borderColor: info.color }}
 											>
-												<PixelSprite name={starter.sprite} size={2} />
+												<PixelSprite
+													name={starter.sprite}
+													size={32}
+													variant={starter.spriteVariant}
+												/>
 											</div>
 											<div className="flex-1 overflow-hidden">
 												<div className="flex items-center gap-[4px] mb-[2px]">
@@ -279,16 +283,12 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 					<div className="my-[4px]">
 						<PixelBox>
 							<div className="flex flex-col items-center py-[2px]">
-								<div
-									className="w-[80px] h-[80px] border-2 flex items-center justify-center bg-pixel-white mb-[4px]"
-									style={{
-										borderColor: TYPE_INFO[selectedType].color,
-									}}
-								>
+								<div className="flex items-center justify-center bg-pixel-white mb-[4px]">
 									<PixelSprite
 										name={selectedPokemon.sprite}
-										size={6}
+										size={64}
 										animated
+										variant={selectedPokemon.spriteVariant}
 									/>
 								</div>
 
@@ -357,8 +357,9 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 								>
 									<PixelSprite
 										name={selectedPokemon.sprite}
-										size={10}
+										size={64}
 										animated
+										variant={selectedPokemon.spriteVariant}
 									/>
 								</div>
 							</div>

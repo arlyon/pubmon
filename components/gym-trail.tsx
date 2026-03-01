@@ -7,11 +7,15 @@ function BadgeIcon({
 	sprite,
 	earned,
 	size = 3,
+	id,
 }: {
 	sprite: string;
 	earned: boolean;
 	size?: number;
+	id: number;
 }) {
+	const offset = 0.25 * (id % 7);
+
 	return (
 		<img
 			src={sprite}
@@ -19,7 +23,10 @@ function BadgeIcon({
 			width={size * 8}
 			height={size * 8}
 			className={earned ? "" : "opacity-30 grayscale"}
-			style={{ imageRendering: "pixelated" }}
+			style={{
+				imageRendering: "pixelated",
+				animation: `pixel-bounce 1.0s steps(1, end) ${offset}s infinite`,
+			}}
 		/>
 	);
 }
@@ -281,6 +288,7 @@ export function GymTrailInline({
 													sprite={gym.badgeSprite}
 													earned={true}
 													size={3}
+													id={index}
 												/>
 											) : (
 												/* Silhouette */
@@ -288,6 +296,7 @@ export function GymTrailInline({
 													sprite={gym.badgeSprite}
 													earned={false}
 													size={3}
+													id={index}
 												/>
 											)}
 										</div>
@@ -351,6 +360,7 @@ export function GymTrailInline({
 								sprite={gym.badgeSprite}
 								earned={badges.has(gym.id)}
 								size={2.5}
+								id={gym.id}
 							/>
 						</div>
 					))}
