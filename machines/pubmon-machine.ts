@@ -563,6 +563,21 @@ export const pubmonMachine = setup({
         // ====================================================================
         onboarding: {
           initial: 'welcome',
+          on: {
+            PLAYER_CREATED: [
+              {
+                guard: ({ event }) =>
+                  event.type === 'PLAYER_CREATED' &&
+                  event.existingState?.party?.length > 0,
+                target: 'mainLoop.crawl',
+                actions: 'restorePlayerState',
+              },
+              {
+                target: '.starterSelect',
+                actions: 'setPlayerInfo',
+              },
+            ],
+          },
           states: {
             welcome: {
               on: {

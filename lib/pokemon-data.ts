@@ -322,6 +322,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 10, defense: 14,
     moves: ["Cold Snap", "Golden Pour", "Barrel Roll", "Malt Shield"],
     sprite: "lagerite",
+    spriteVariant: 4,
     description: "A smooth, golden creature that thrives in cool cellars. Calm and collected in battle.",
     visuals: "a fakemon, a sleek, reptilian biped composed of smooth, golden-amber fluid encased in a thin, frosty membrane. Its cool, translucent anatomy features sharp, bright specular reflections. The crisp yellow palette and soft condensation droplets give it a calm, deeply chilled materiality.",
     cry: 88
@@ -349,6 +350,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 15, defense: 9,
     moves: ["Bitter Bite", "Hop Swing", "Citrus Punch", "Primal Brew"],
     sprite: "ipape",
+    spriteVariant: 5,
     description: "A primate that swings through trellises of hops. Its attacks have a famously bitter sting.",
     cry: 56,
     visuals: "a fakemon, a muscular primate with thick, rope-like vines of hops wrapping around its powerful arms. Its coarse, green-and-brown fur suggests a fibrous, bitter materiality. Deep shadows in the dense foliage of its mane imply a heavy, swinging, arboreal volume.",
@@ -367,6 +369,8 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 14, defense: 13,
     moves: ["Amber Charge", "Horn Smash", "Copper Pour", "Earth Quaff"],
     sprite: "alehorn",
+    spriteVariant: 1,
+    // spriteVariant: 5,
     description: "It charges foes with a heavy, foam-tipped horn. Highly territorial over pub tables.",
     cry: 112,
     visuals: "a fakemon, a stout, charging ungulate boasting a massive, foam-tipped horn resembling a heavy glass pint. Its dense, amber-colored coat features smooth, directional shading that implies a heavy, liquid-like fur texture, radiating territorial aggression."
@@ -376,6 +380,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 11, defense: 16,
     moves: ["Wood Splinter", "Rollout", "Fermenting Rest", "Heavy Tap"],
     sprite: "caskarok",
+    spriteVariant: 3,
     description: "A sturdy golem made of bound oak staves. It sleeps for years in dark cellars to build defense.",
     cry: 74,
     visuals: "a fakemon, a sturdy, bipedal golem constructed from curved, dark oak staves bound by thick iron hoops. The heavy wooden anatomy features deep, matte crevices and metallic highlights on the rusted bands, implying an ancient, heavy, cellar-aged volume. two eyes poke out of the dark gaps."
@@ -403,6 +408,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 11, defense: 17,
     moves: ["Iron Shell", "Dark Roar", "Heavy Porter", "Roast Roll"],
     sprite: "portoise",
+    spriteVariant: 4,
     description: "A plodding, deeply dependable reptile. The massive, iron-bound keg it uses as a shell makes it an absolute tank in battle.",
     visuals: "a fakemon, a plodding, tank-like tortoise whose shell is an actual, massive iron-bound wooden keg. The deeply scored oak and oxidized metal rings feature rigid, unyielding textures, emphasizing an incredibly heavy, immovable, defensive silhouette.",
     cry: 81
@@ -416,6 +422,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 16, defense: 7,
     moves: ["Green Flame", "Wormwood Hex", "Spirit Burn", "Louche Flash"],
     sprite: "absintile",
+    spriteVariant: 1,
     description: "A mysterious green spirit wreathed in ethereal flames. Its gaze induces hallucinations.",
     cry: 93,
     visuals: "a fakemon, a floating, ethereal spirit wreathed in intensely bright, ghostly green flames. Its translucent, fluid-like core shifts unpredictably, catching light with an unsettling, hallucinatory iridescence that defies solid volume."
@@ -430,13 +437,14 @@ export const ALL_PUBMON: PubMon[] = [
     visuals: "a fakemon, a fiery, desert-dwelling biped armored in sharp, crystalline salt formations. Vivid, hot orange internal flames shine through the semi-transparent salt crust, highlighting jagged, citrus-green appendages and an aggressive, sharp silhouette."
   },
   {
-    id: 12, name: "Cazcabella", type: "shot", hp: 42, maxHp: 42, level: 5, xp: 0,
-    attack: 14, defense: 9,
-    moves: ["Ember Shot", "Mezcal Smoke", "Fire Ring", "Pepper Blast"],
-    sprite: "cazcabella",
-    description: "A smoky, elegant fire-type with rings of flame orbiting its body.",
-    cry: 120,
-    visuals: "a fakemon, a sleek, elegant humanoid fire-type surrounded by orbiting rings of deep, smoky flame. Its dark, obsidian-like body features smooth, highly specular highlights, contrasting with the soft, volumetric grey smoke that drifts from its shoulders."
+      id: 12, name: "Cazcabuzz", type: "shot", hp: 42, maxHp: 42, level: 5, xp: 0,
+      attack: 14, defense: 9,
+      moves: ["Ember Shot", "Coffee Venom", "Fire Ring", "Caffeine Rattle"],
+    sprite: "cazcabuzz",
+    spriteVariant: 1,
+      description: "A hyperactive rattlesnake steeped in roasted coffee. Its tail shakes with lethal, jittery energy.",
+      cry: 120,
+      visuals: "a fakemon, a highly energized rattlesnake made of roasted coffee beans and glowing amber liquid. Its tail is a literal maraca of grinding coffee beans, and bright, jittery specular highlights emphasize a highly caffeinated, aggressive serpentine volume."
   },
   {
     id: 13, name: "Whisker", type: "shot", hp: 38, maxHp: 38, level: 5, xp: 0,
@@ -479,15 +487,16 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 17, defense: 6,
     moves: ["Spicy Spit", "Cinnamon Dust", "Ignite", "Reckless Dash"],
     sprite: "cinnaburn",
+    spriteVariant: 5,
     description: "A highly aggressive imp that smells of winter spices. It spits liquid fire when startled.",
     cry: 4,
     visuals: "a fakemon, a highly aggressive, impish creature dripping with viscous, glowing red liquid fire. The texture implies a thick, spicy syrup rather than pure flame, with rounded, glossy highlights that emphasize its sticky, volatile nature."
   },
   {
-    id: 18, name: "Frostov", type: "shot", hp: 43, maxHp: 43, level: 5, xp: 0,
+    id: 18, name: "Shivernoff", type: "shot", hp: 43, maxHp: 43, level: 5, xp: 0,
     attack: 13, defense: 12,
     moves: ["Clear Flame", "Potato Smash", "Winter Chill", "Distilled Beam"],
-    sprite: "frostov",
+    sprite: "shivernoff",
     description: "Despite being a Fire-type, its flames burn cold and clear. It thrives in freezing climates.",
     cry: 144,
     visuals: "a fakemon, a stout, bipedal elemental whose flames burn a completely clear, icy white-blue. Its crystalline structure mimics solid ice but radiates intense, paradoxical heat, featuring sharp, glass-like facets and freezing vapor trails."
@@ -497,6 +506,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 15, defense: 8,
     moves: ["Zest Bite", "Syrup Trap", "Citrus Spark", "Yellow Flash"],
     sprite: "limonchilla",
+    spriteVariant: 3,
     description: "A zesty, energetic rodent wreathed in sweet, yellow fire. Leaves a sticky trail behind it.",
     cry: 25,
     visuals: "a fakemon, an energetic, rodent-like creature with a coat of intensely vibrant, zesty yellow fire. Its tail trails a thick, syrupy, glowing residue. Sharp, citrus-bright highlights give its form an electric, sugary pop."
@@ -513,6 +523,7 @@ export const ALL_PUBMON: PubMon[] = [
   {
     id: 47, name: "Krakenum", type: "shot", hp: 50, maxHp: 50, level: 5, xp: 0,
     attack: 17, defense: 11,
+    spriteVariant: 4,
     moves: ["Molasses Sludge", "Tentacle Lash", "Spiced Ink", "Pirate's Curse"],
     sprite: "krakenum",
     description: "A dark, spiced cephalopod that dwells in oak barrels. It strikes with heavy, molasses-coated tentacles.",
@@ -533,6 +544,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 10, defense: 16,
     moves: ["Cream Tackle", "Cocoa Dust", "Soothing Moo", "Thick Coat"],
     sprite: "bovileys",
+    spriteVariant: 4,
     description: "A gentle, sluggish bovine with a rich, creamy coat. It often puts aggressive opponents to sleep with its sweet aroma.",
     cry: 22,
     visuals: "a fakemon, a gentle, sluggish bovine covered in a thick, heavy coat of off-white cream and cocoa dusting. Its sluggish anatomy is incredibly soft and pillowy, with muted, warm lighting that implies a soothing, aromatic, and heavy physical presence."
@@ -546,24 +558,27 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 11, defense: 12,
     moves: ["Oak Charm", "Vintage Heal", "Grape Whip", "Tannin Twist"],
     sprite: "charderan",
+    spriteVariant: 4,
     description: "An elegant fairy-type aged to perfection. Its aroma calms even the fiercest foes.",
     cry: 68,
     visuals: "a fakemon, an elegant, humanoid fairy draped in flowing, pale-gold, vine-like appendages resembling aged oak leaves. Soft, buttery yellow lighting and smooth, graceful curves imply a calming, perfectly balanced, and refined organic volume."
   },
   {
-    id: 21, name: "Merlot", type: "wine", hp: 48, maxHp: 48, level: 5, xp: 0,
-    attack: 13, defense: 11,
-    moves: ["Ruby Beam", "Tannin Shield", "Decant Dance", "Cork Pop"],
-    sprite: "merlot",
-    description: "A deep ruby creature with velvety fur. Its body sparkles with fairy dust.",
-    cry: 104,
-    visuals: "a fakemon, a plush, bipedal creature with deep ruby-red fur that absorbs light like crushed velvet. Tiny, sparkling motes of fairy dust cling to its dark, tannin-rich coat, providing subtle, magical specular highlights across a soft, rounded silhouette."
-  },
+      id: 21, name: "Bordeauxt", type: "wine", hp: 48, maxHp: 48, level: 5, xp: 0,
+      attack: 13, defense: 11,
+      moves: ["Ruby Beam", "Tannin Shield", "Decant Dance", "Cork Pop"],
+    sprite: "bordeauxt",
+    spriteVariant: 1,
+      description: "A majestic mountain goat with heavy, twisting horns made of tannin-rich grapevines.",
+      cry: 104,
+      visuals: "a fakemon, a majestic, brooding mountain goat with deep ruby-red fur that absorbs light like crushed velvet. Its heavy, twisting horns resemble thick, dark grapevines, projecting an aura of heavy, grounded elegance and deep, complex flavor."
+    },
   {
     id: 22, name: "Prossecat", type: "wine", hp: 40, maxHp: 40, level: 5, xp: 0,
     attack: 12, defense: 10,
     moves: ["Bubble Scratch", "Pop Charm", "Glera Sparkle", "Feline Fizz"],
     sprite: "prossecat",
+    spriteVariant: 1,
     description: "A bubbly, hyperactive cat-like fairy. It bounces around wildly, disorienting opponents.",
     cry: 53,
     visuals: "a fakemon, a bouncy, feline fairy completely engulfed in a cloud of pale gold, effervescent bubbles. Its hyperactive, wiry anatomy is somewhat obscured by the crisp, sparkling spheres that pop and refract light in all directions."
@@ -582,6 +597,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 15, defense: 9,
     moves: ["Citrus Screech", "Crisp Bite", "Night Harvest", "Zesty Gust"],
     sprite: "blancbat",
+    spriteVariant: 5,
     description: "A nocturnal fairy that swoops down with a dry, piercing screech that cuts through defenses.",
     cry: 41,
     visuals: "a fakemon, a nocturnal, bat-like fairy with crisp, pale-green, translucent wings that resemble thin grape skins. Sharp, zesty specular highlights along its aerodynamic body suggest a dry, biting, and swiftly moving airborne volume."
@@ -600,6 +616,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 12, defense: 10,
     moves: ["Crisp Breeze", "Grass Knot", "Floral Scent", "Dry Charm"],
     sprite: "sauviflora",
+    spriteVariant: 6,
     description: "A delicate fairy that hides among green vines. Its attacks have a sharp, grassy finish.",
     cry: 45,
     visuals: "a fakemon, a delicate, hiding fairy camouflaged entirely within crisp green vines and dry grassy leaves. Its thin, floral anatomy features matte, botanical textures with sharp, zesty green hues, implying a light, airy, and fragrant volume."
@@ -609,6 +626,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 16, defense: 7,
     moves: ["Caffeine Rush", "Sugar Crash", "Tonic Thrash", "Chaos Babble"],
     sprite: "buckfiend",
+    spriteVariant: 3,
     description: "A chaotic, hyperactive gremlin fueled by sugar and caffeine. Unpredictable and dangerous.",
     cry: 56,
     visuals: "a fakemon, a chaotic, hyperactive gremlin vibrating with erratic energy. Its jagged, asymmetrical anatomy pulses with clashing sugary pinks and caffeinated neon greens. Sharp, fractured highlights imply an unpredictable, dangerously unstable chemistry."
@@ -636,6 +654,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 16, defense: 13,
     moves: ["Sticky Honey", "Bear Hug", "Ferment Sting", "Golden Buzz"],
     sprite: "meadhorn",
+    spriteVariant: 3,
     description: "An ancient, buzzing warrior favored by Vikings. Its golden armor is incredibly sticky, trapping physical attackers.",
     cry: 133,
     visuals: "a fakemon, an ancient, armored bee-like warrior dripping in incredibly thick, golden, fermented honey. The rich, amber armor catches light with a dense, sticky, and syrupy high-gloss finish, contrasting with its fuzzy, buzzing, Viking-inspired undercoat."
@@ -658,6 +677,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 9, defense: 15,
     moves: ["Still Calm", "Deep Current", "Aqua Wall", "Brain Freeze"],
     sprite: "stillbar",
+    spriteVariant: 3,
     description: "A tranquil water guardian. Its still surface hides incredible defensive power.",
     cry: 77,
     visuals: "a fakemon, a tranquil, monolithic aquatic guardian with a perfectly smooth, mirror-like surface. The dark, deep-blue, glass-like exterior implies immense, unyielding pressure and defensive mass, absorbing all ripples into a heavy, still form."
@@ -667,6 +687,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 12, defense: 11,
     moves: ["Bubble Burst", "Fizz Attack", "Carbonation", "Sparkle Shot"],
     sprite: "sparklid",
+    spriteVariant: 7,
     description: "A bubbly, energetic creature covered in effervescent orbs.",
     cry: 32,
     visuals: "a fakemon, a bubbly, spherical aquatic creature covered entirely in tightly packed, effervescent orbs of carbonation. The sheer density of tiny, highly reflective bubbles gives its form a frantic, popping, and weightless visual texture."
@@ -676,6 +697,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 11, defense: 12,
     moves: ["Quinine Blast", "Bitter Spray", "Tonic Wave", "Citrus Guard"],
     sprite: "tonica",
+    spriteVariant: 3,
     description: "A bitter-sweet water creature with a distinctive glow under UV light.",
     cry: 99,
     visuals: "a fakemon, a sleek, hydrodynamic swimmer that emits a distinct, eerie blue-violet glow reminiscent of UV-reactive quinine. Its semi-translucent, bitter-tasting skin is slick and rubbery, cutting through the dark water with crisp, glowing lines."
@@ -685,6 +707,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 14, defense: 9,
     moves: ["Fizzy Fang", "CO2 Coil", "Clear Stream", "Mineral Strike"],
     sprite: "seltzerpent",
+    spriteVariant: 4,
     description: "A snake made of rapidly rising bubbles. It constricts foes before erupting in fizz.",
     cry: 118,
     visuals: "a fakemon, a long, coiling snake formed from a pressurized stream of rapidly rising, clear bubbles. Its fluid, glass-like anatomy lacks a solid core, defined entirely by the harsh, wet, white specular highlights of its fizzy, erupting edges."
@@ -694,6 +717,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 9, defense: 18,
     moves: ["Freeze Over", "Glacier Crash", "Melting Shield", "Cold Snap"],
     sprite: "cuberg",
+    spriteVariant: 4,
     description: "A slow-moving monolith of solid ice. It is often found cooling down fiery Shot types.",
     cry: 143,
     visuals: "a fakemon, a slow-moving, geometric monolith carved from a single, colossal block of solid, deep-blue glacier ice. Sharp, internal crystalline fractures and frosty, matte edges contrast with high-gloss melting faces, indicating immense frozen weight."
@@ -712,6 +736,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 11, defense: 14,
     moves: ["Cool Slice", "Aqua Tail", "Refresh", "Green Wave"],
     sprite: "cucumbrax",
+    spriteVariant: 5,
     description: "A remarkably cool-headed serpent. It glides through ice water, slicing foes with rigid fins.",
     cry: 10,
     visuals: "a fakemon, a remarkably cool, elongated sea serpent with skin resembling the taut, rigid green rind of a cucumber. Crisp, pale-green aquatic fins slice cleanly through the water, highlighted by slick, wet reflections over a hard, vegetative surface."
@@ -721,24 +746,27 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 16, defense: 14,
     moves: ["Syrup Snap", "Fizzy Death Roll", "Acidic Spit", "Dark Caramel"],
     sprite: "crocacola",
+    spriteVariant: 1,
     description: "A dark, heavily armored reptile that lurks in sticky soda fountains. Bubbles constantly hiss from between its scales.",
     cry: 42,
     visuals: "a fakemon, a dark, heavy-set crocodilian heavily armored in thick, sticky, caramel-colored scales. Its massive jaws constantly hiss with effervescent carbonation. Deep, syrupy browns and stark, wet specular highlights imply a dense, sugary, and caustic mass."
   },
   {
-    id: 45, name: "Fantiger", type: "water", hp: 45, maxHp: 45, level: 5, xp: 0,
+    id: 45, name: "Fantelope", type: "water", hp: 45, maxHp: 45, level: 5, xp: 0,
     attack: 16, defense: 9,
-    moves: ["Orange Pounce", "Zest Swipe", "Sticky Paws", "Citrus Roar"],
-    sprite: "fantiger",
-    description: "A brightly colored feline bursting with artificial energy. Its vibrant orange stripes warn foes of its sticky attacks.",
+    moves: ["Orange Pounce", "Zest Swipe", "Sticky Hooves", "Citrus Roar"],
+    sprite: "fantelope",
+    spriteVariant: 2,
+    description: "A brightly colored antelope bursting with artificial energy. Its neon horns sizzle with carbonation.",
     cry: 89,
-    visuals: "a fakemon, a brightly colored, feline predator bursting with neon orange and vivid artificial hues. Its sleek, wet fur is matted with a sugary, sticky residue. The hyper-saturated, zesty colors scream of high-fructose, energetic aquatic power."
+    visuals: "a fakemon, a wildly hyper antelope bursting with neon orange and vivid artificial hues. Its horns are made of carbonated, bright orange liquid that fizzes constantly. The hyper-saturated, zesty colors scream of high-fructose, energetic aquatic power."
   },
   {
     id: 46, name: "Spritely", type: "water", hp: 38, maxHp: 38, level: 5, xp: 0,
     attack: 15, defense: 10,
     moves: ["Lemon-Lime Flash", "Crisp Cut", "Clear Glide", "Refreshing Wind"],
     sprite: "spritely",
+    spriteVariant: 3,
     description: "A translucent, darting sprite that mimics the fairies of the Wine class. Its attacks are exceptionally crisp and clean.",
     cry: 18,
     visuals: "a fakemon, a darting, translucent aquatic sprite with a brilliantly crisp lemon-lime color palette. Its aerodynamic, teardrop-shaped anatomy is almost invisible in the water, save for sharp, clean flashes of green and yellow specular light."
@@ -752,6 +780,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 14, defense: 10,
     moves: ["Olive Toss", "Shaken Strike", "Vermouth Vine", "Dirty Olive"],
     sprite: "martini",
+    spriteVariant: 5,
     description: "A suave grass-type with a crystal-clear body and a single olive antenna.",
     cry: 17,
     visuals: "a fakemon, a suave, bipedal grass-type with a sharp, triangular, glass-like torso filled with completely clear fluid. A single, oversized olive on a thin, woody skewer acts as an antenna. Its sleek, minimalist design implies sophisticated, high-tension fluid volume."
@@ -761,6 +790,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 13, defense: 11,
     moves: ["Spritz Shower", "Bitter Bloom", "Orange Slice", "Sunset Beam"],
     sprite: "aperol",
+    spriteVariant: 2,
     description: "An orange-tinted grass creature that blooms at golden hour.",
     cry: 64,
     visuals: "a fakemon, a radiant, botanical creature blooming with broad, translucent orange petals that catch the light like a setting sun. The delicate, bitter-sweet floral anatomy features a vivid, golden-hour glow and soft, velvety textures across its sunset-colored body."
@@ -779,6 +809,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 12, defense: 14,
     moves: ["Minty Tongue", "Rum Jump", "Ice Crush", "Muddle Hop"],
     sprite: "mojitoad",
+    spriteVariant: 1,
     description: "An amphibious grass-type that hides in dense mint patches, waiting to spring.",
     cry: 29,
     visuals: "a fakemon, a squat, amphibious creature whose warty, wet skin seamlessly blends into a dense patch of jagged mint leaves. Crushed, translucent ice crystals cling to its back, providing sharp, wet specular highlights over its earthy, vibrant green body."
@@ -788,6 +819,7 @@ export const ALL_PUBMON: PubMon[] = [
     attack: 16, defense: 9,
     moves: ["Coconut Bomb", "Pineapple Peck", "Creamy Gust", "Tropical Screech"],
     sprite: "coladactyl",
+    spriteVariant: 2,
     description: "A prehistoric flyer caught in a perpetual vacation state. Drops coconuts from high altitudes.",
     cry: 138,
     visuals: "a fakemon, a prehistoric, avian grass-type with massive, fibrous palm-frond wings and a tough, hairy, coconut-like chest cavity. Its tropical, aerodynamic form features a creamy, off-white crest, blending heavy, woody textures with smooth, milky highlights."
@@ -813,12 +845,23 @@ export const ALL_PUBMON: PubMon[] = [
   {
     id: 52, name: "Margaray", type: "cocktail", hp: 45, maxHp: 45, level: 5, xp: 0,
     attack: 16, defense: 11,
+    spriteVariant: 3,
     moves: ["Salt Rim Strike", "Agave Whip", "Lime Flutter", "Sunbathe"],
     sprite: "margaray",
     description: "A flat, gliding ray that skims the top of bar counters. Its jagged tail is coated in coarse, stinging salt.",
     cry: 76,
     visuals: "a fakemon, a flat, gliding aquatic-grass hybrid shaped like an elegant manta ray. Its smooth, lime-green back features a wet, tart sheen, while its jagged, sweeping edges are thickly encrusted with coarse, stinging, crystalline salt catching harsh light."
-  }
+  },
+  {
+      id: 58, name: "Sagondroop", type: "cocktail", hp: 42, maxHp: 42, level: 5, xp: 0,
+      attack: 18, defense: 7,
+      moves: ["Neon Flare", "Caffeine Rush", "Taurine Tail", "Blue Rasp Burn"],
+    sprite: "sagondroop",
+    spriteVariant: 1,
+      description: "A wildly hyperactive eastern dragon fueled by guarana and taurine. It breathes a crackling, sticky, blue-raspberry flavored flame.",
+      cry: 188,
+      visuals: "a fakemon, a twitchy, serpentine eastern dragon bursting with blinding neon blue and bright red metallic scales. It vibrates constantly with chaotic, caffeinated energy, with electric-blue static popping around its jagged, metallic whiskers."
+    }
 ]
 
 export function getRandomPubMon(type: PubType): PubMon {

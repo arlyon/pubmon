@@ -9,6 +9,7 @@ import { getPubMonSprite, type PubMon } from "@/lib/pokemon-data";
 interface PlayCanvasProps {
 	pubmon: PubMon;
 	onExit: () => void;
+	overlay?: boolean; // When true, renders as transparent click-through overlay
 }
 
 type PubMonState = "walking" | "grabbed" | "free";
@@ -19,7 +20,7 @@ const POKEBALL_RADIUS = 48;
 const RECOVERY_TIME = 2000; // ms to wait before auto-recovery
 const VELOCITY_THRESHOLD = 0.5; // Velocity below which PubMon is considered "resting"
 
-export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
+export function PlayCanvas({ pubmon, onExit, overlay = false }: PlayCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const engineRef = useRef<Matter.Engine | null>(null);
 	const pubmonBodyRef = useRef<Matter.Body | null>(null);
@@ -68,47 +69,49 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 
 		// Create Matter.js engine
 		const engine = Matter.Engine.create();
-		engine.gravity.y = 1;
+		engine.gravity.y = overlay ? 0 : 1; // No gravity in overlay mode
 		engineRef.current = engine;
 
-		// Create boundaries (walls)
+		// Create boundaries (walls) - skip in overlay mode
 		const wallThickness = 50;
-		const walls = [
-			// Floor
-			Matter.Bodies.rectangle(
-				canvas.width / 2,
-				canvas.height + wallThickness / 2,
-				canvas.width,
-				wallThickness,
-				{ isStatic: true, label: "floor" },
-			),
-			// Ceiling
-			Matter.Bodies.rectangle(
-				canvas.width / 2,
-				-wallThickness / 2,
-				canvas.width,
-				wallThickness,
-				{ isStatic: true, label: "ceiling" },
-			),
-			// Left wall
-			Matter.Bodies.rectangle(
-				-wallThickness / 2,
-				canvas.height / 2,
-				wallThickness,
-				canvas.height,
-				{ isStatic: true, label: "wall-left" },
-			),
-			// Right wall
-			Matter.Bodies.rectangle(
-				canvas.width + wallThickness / 2,
-				canvas.height / 2,
-				wallThickness,
-				canvas.height,
-				{ isStatic: true, label: "wall-right" },
-			),
-		];
+		if (!overlay) {
+			const walls = [
+				// Floor
+				Matter.Bodies.rectangle(
+					canvas.width / 2,
+					canvas.height + wallThickness / 2,
+					canvas.width,
+					wallThickness,
+					{ isStatic: true, label: "floor" },
+				),
+				// Ceiling
+				Matter.Bodies.rectangle(
+					canvas.width / 2,
+					-wallThickness / 2,
+					canvas.width,
+					wallThickness,
+					{ isStatic: true, label: "ceiling" },
+				),
+				// Left wall
+				Matter.Bodies.rectangle(
+					-wallThickness / 2,
+					canvas.height / 2,
+					wallThickness,
+					canvas.height,
+					{ isStatic: true, label: "wall-left" },
+				),
+				// Right wall
+				Matter.Bodies.rectangle(
+					canvas.width + wallThickness / 2,
+					canvas.height / 2,
+					wallThickness,
+					canvas.height,
+					{ isStatic: true, label: "wall-right" },
+				),
+			];
 
-		Matter.World.add(engine.world, walls);
+			Matter.World.add(engine.world, walls);
+		}
 
 		// Load sprite and create PubMon body
 		const spritePath = getPubMonSprite(pubmon.sprite, pubmon.spriteVariant);
@@ -211,18 +214,20 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				};
 			});
 
-		// Create mouse constraint for dragging
-		const mouse = Matter.Mouse.create(canvas);
-		const mouseConstraint = Matter.MouseConstraint.create(engine, {
-			mouse: mouse,
-			constraint: {
-				stiffness: 0.8,
-				render: { visible: false },
-			} as any,
-		});
+		// Create mouse constraint for dragging (not in overlay mode)
+		if (!overlay) {
+			const mouse = Matter.Mouse.create(canvas);
+			const mouseConstraint = Matter.MouseConstraint.create(engine, {
+				mouse: mouse,
+				constraint: {
+					stiffness: 0.8,
+					render: { visible: false },
+				} as any,
+			});
 
-		mouseConstraintRef.current = mouseConstraint;
-		Matter.World.add(engine.world, mouseConstraint);
+			mouseConstraintRef.current = mouseConstraint;
+			Matter.World.add(engine.world, mouseConstraint);
+		}
 
 		// Collision events for landing damping
 		Matter.Events.on(engine, "collisionStart", (event) => {
@@ -277,49 +282,51 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 		// 	});
 		// });
 
-		// Mouse events for interaction
-		Matter.Events.on(mouseConstraint, "startdrag", (event) => {
-			if (event.body?.label === "pubmon") {
-				updateState("grabbed");
-				(pubmonBodyRef.current as any).isKinematic = false;
-				Matter.Body.setStatic(pubmonBodyRef.current!, false);
-			}
-		});
-
-		Matter.Events.on(mouseConstraint, "enddrag", (event) => {
-			if (event.body?.label === "pubmon" && pubmonBodyRef.current) {
-				const body = pubmonBodyRef.current;
-				const velocity = body.velocity;
-				const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
-
-				// Check if near pokeball (exit zone) - top right corner
-				const pokeballX = canvas.width - POKEBALL_SIZE / 2 - 20;
-				const pokeballY = POKEBALL_SIZE / 2 + 20;
-				const dx = body.position.x - pokeballX;
-				const dy = body.position.y - pokeballY;
-				const distance = Math.sqrt(dx ** 2 + dy ** 2);
-
-				if (distance < POKEBALL_RADIUS) {
-					onExit();
-					return;
+		// Mouse events for interaction (not in overlay mode)
+		if (!overlay && mouseConstraintRef.current) {
+			Matter.Events.on(mouseConstraintRef.current, "startdrag", (event) => {
+				if (event.body?.label === "pubmon") {
+					updateState("grabbed");
+					(pubmonBodyRef.current as any).isKinematic = false;
+					Matter.Body.setStatic(pubmonBodyRef.current!, false);
 				}
+			});
 
-				// If thrown (fast release), go into free mode
-				if (speed > 5) {
-					updateState("free");
-				} else {
-					// Slow release, return to walking
-					updateState("walking");
-					(body as any).isKinematic = true;
-					Matter.Body.setAngle(body, 0);
-					Matter.Body.setVelocity(body, { x: 0, y: 0 });
-					Matter.Body.setAngularVelocity(body, 0);
+			Matter.Events.on(mouseConstraintRef.current, "enddrag", (event) => {
+				if (event.body?.label === "pubmon" && pubmonBodyRef.current) {
+					const body = pubmonBodyRef.current;
+					const velocity = body.velocity;
+					const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+
+					// Check if near pokeball (exit zone) - top right corner
+					const pokeballX = canvas.width - POKEBALL_SIZE / 2 - 20;
+					const pokeballY = POKEBALL_SIZE / 2 + 20;
+					const dx = body.position.x - pokeballX;
+					const dy = body.position.y - pokeballY;
+					const distance = Math.sqrt(dx ** 2 + dy ** 2);
+
+					if (distance < POKEBALL_RADIUS) {
+						onExit();
+						return;
+					}
+
+					// If thrown (fast release), go into free mode
+					if (speed > 5) {
+						updateState("free");
+					} else {
+						// Slow release, return to walking
+						updateState("walking");
+						(body as any).isKinematic = true;
+						Matter.Body.setAngle(body, 0);
+						Matter.Body.setVelocity(body, { x: 0, y: 0 });
+						Matter.Body.setAngularVelocity(body, 0);
+					}
 				}
-			}
-		});
+			});
+		}
 
-		// Accelerometer support for mobile
-		const handleOrientation = (event: DeviceOrientationEvent) => {
+		// Accelerometer support for mobile (not in overlay mode)
+		const handleOrientation = !overlay ? (event: DeviceOrientationEvent) => {
 			if (engineRef.current && event.beta !== null && event.gamma !== null) {
 				// Beta: front-to-back tilt (-180 to 180)
 				// Gamma: left-to-right tilt (-90 to 90)
@@ -329,27 +336,29 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				engineRef.current.gravity.x = gravityX;
 				engineRef.current.gravity.y = gravityY;
 			}
-		};
+		} : () => {};
 
 		// Request permission for iOS devices
-		if (
-			typeof (DeviceOrientationEvent as any).requestPermission === "function"
-		) {
-			(DeviceOrientationEvent as any)
-				.requestPermission()
-				.then((permissionState: string) => {
-					if (permissionState === "granted") {
-						window.addEventListener("deviceorientation", handleOrientation);
-					}
-				})
-				.catch(console.error);
-		} else {
-			window.addEventListener("deviceorientation", handleOrientation);
+		if (!overlay) {
+			if (
+				typeof (DeviceOrientationEvent as any).requestPermission === "function"
+			) {
+				(DeviceOrientationEvent as any)
+					.requestPermission()
+					.then((permissionState: string) => {
+						if (permissionState === "granted") {
+							window.addEventListener("deviceorientation", handleOrientation);
+						}
+					})
+					.catch(console.error);
+			} else {
+				window.addEventListener("deviceorientation", handleOrientation);
+			}
 		}
 
-		// Shake detection for free mode
+		// Shake detection for free mode (not in overlay mode)
 		let lastAcceleration = { x: 0, y: 0, z: 0 };
-		const handleMotion = (event: DeviceMotionEvent) => {
+		const handleMotion = !overlay ? (event: DeviceMotionEvent) => {
 			if (
 				event.accelerationIncludingGravity &&
 				pubmonBodyRef.current &&
@@ -376,9 +385,11 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 
 				lastAcceleration = { x, y, z };
 			}
-		};
+		} : () => {};
 
-		window.addEventListener("devicemotion", handleMotion);
+		if (!overlay) {
+			window.addEventListener("devicemotion", handleMotion);
+		}
 
 		// Run the engine
 		const runner = Matter.Runner.create();
@@ -424,9 +435,11 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 			// Clear canvas
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-			// Background
-			ctx.fillStyle = "#87CEEB";
-			ctx.fillRect(0, 0, canvas.width, canvas.height);
+			// Background (only in non-overlay mode)
+			if (!overlay) {
+				ctx.fillStyle = "#87CEEB";
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+			}
 
 			ctx.restore();
 
@@ -476,20 +489,22 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 					ctx.stroke();
 				}
 
-				// Draw state bubble
-				const bubble =
-					stateRef.current === "walking"
-						? "😊"
-						: stateRef.current === "grabbed"
-							? "❤️"
-							: "😵";
-				ctx.font = "24px Arial";
-				ctx.textAlign = "center";
-				ctx.fillText(
-					bubble,
-					body.position.x,
-					body.position.y - SPRITE_SIZE / 2 - 20,
-				);
+				// Draw state bubble (not in overlay mode)
+				if (!overlay) {
+					const bubble =
+						stateRef.current === "walking"
+							? "😊"
+							: stateRef.current === "grabbed"
+								? "❤️"
+								: "😵";
+					ctx.font = "24px Arial";
+					ctx.textAlign = "center";
+					ctx.fillText(
+						bubble,
+						body.position.x,
+						body.position.y - SPRITE_SIZE / 2 - 20,
+					);
+				}
 			}
 
 			// Draw pokeball in top right
@@ -522,15 +537,18 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 					// Pace left and right
 					const speed = 0.2;
 
+					// In overlay mode, walk at bottom of screen
+					const targetY = overlay ? canvas.height - 100 : body.position.y;
+
 					// Check if out of bounds and reverse direction
 					if (body.position.x < 100) {
 						walkDirectionRef.current = 1; // Force right
-						Matter.Body.setPosition(body, { x: 100, y: body.position.y });
+						Matter.Body.setPosition(body, { x: 100, y: targetY });
 					} else if (body.position.x > canvas.width - 100) {
 						walkDirectionRef.current = -1; // Force left
 						Matter.Body.setPosition(body, {
 							x: canvas.width - 100,
-							y: body.position.y,
+							y: targetY,
 						});
 					}
 
@@ -555,11 +573,11 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 
 					Matter.Body.setPosition(body, {
 						x: body.position.x + walkDirectionRef.current * speed,
-						y: body.position.y,
+						y: targetY,
 					});
 
-					// Random jump (roughly once every 5-6 seconds at 60fps)
-					if (Math.random() < 0.0003) {
+					// Random jump (roughly once every 5-6 seconds at 60fps) - not in overlay mode
+					if (!overlay && Math.random() < 0.0003) {
 						Matter.Body.setVelocity(body, {
 							x: walkDirectionRef.current * speed,
 							y: -10,
@@ -575,8 +593,8 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				}
 			}
 
-			// Check for recovery (free -> walking after resting)
-			if (stateRef.current === "free" && body) {
+			// Check for recovery (free -> walking after resting) - not in overlay mode
+			if (!overlay && stateRef.current === "free" && body) {
 				const velocity = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
 
 				if (velocity < VELOCITY_THRESHOLD) {
@@ -599,8 +617,8 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				}
 			}
 
-			// Play cry when grabbed and moved slowly
-			if (stateRef.current === "grabbed" && body) {
+			// Play cry when grabbed and moved slowly (not in overlay mode)
+			if (!overlay && stateRef.current === "grabbed" && body) {
 				const dx = body.position.x - lastPositionRef.current.x;
 				const dy = body.position.y - lastPositionRef.current.y;
 				const distance = Math.sqrt(dx ** 2 + dy ** 2);
@@ -636,49 +654,51 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 			canvasRef.current.width = window.innerWidth;
 			canvasRef.current.height = window.innerHeight;
 
-			// Update walls
-			const world = engineRef.current?.world;
-			if (world) {
-				const bodiesToRemove = Matter.Composite.allBodies(world).filter(
-					(b) =>
-						b.label.includes("wall") ||
-						b.label === "floor" ||
-						b.label === "ceiling",
-				);
-				Matter.World.remove(world, bodiesToRemove);
+			// Update walls (only in non-overlay mode)
+			if (!overlay) {
+				const world = engineRef.current?.world;
+				if (world) {
+					const bodiesToRemove = Matter.Composite.allBodies(world).filter(
+						(b) =>
+							b.label.includes("wall") ||
+							b.label === "floor" ||
+							b.label === "ceiling",
+					);
+					Matter.World.remove(world, bodiesToRemove);
 
-				const newWalls = [
-					Matter.Bodies.rectangle(
-						canvas.width / 2,
-						canvas.height + wallThickness / 2,
-						canvas.width,
-						wallThickness,
-						{ isStatic: true, label: "floor" },
-					),
-					Matter.Bodies.rectangle(
-						canvas.width / 2,
-						-wallThickness / 2,
-						canvas.width,
-						wallThickness,
-						{ isStatic: true, label: "ceiling" },
-					),
-					Matter.Bodies.rectangle(
-						-wallThickness / 2,
-						canvas.height / 2,
-						wallThickness,
-						canvas.height,
-						{ isStatic: true, label: "wall-left" },
-					),
-					Matter.Bodies.rectangle(
-						canvas.width + wallThickness / 2,
-						canvas.height / 2,
-						wallThickness,
-						canvas.height,
-						{ isStatic: true, label: "wall-right" },
-					),
-				];
+					const newWalls = [
+						Matter.Bodies.rectangle(
+							canvas.width / 2,
+							canvas.height + wallThickness / 2,
+							canvas.width,
+							wallThickness,
+							{ isStatic: true, label: "floor" },
+						),
+						Matter.Bodies.rectangle(
+							canvas.width / 2,
+							-wallThickness / 2,
+							canvas.width,
+							wallThickness,
+							{ isStatic: true, label: "ceiling" },
+						),
+						Matter.Bodies.rectangle(
+							-wallThickness / 2,
+							canvas.height / 2,
+							wallThickness,
+							canvas.height,
+							{ isStatic: true, label: "wall-left" },
+						),
+						Matter.Bodies.rectangle(
+							canvas.width + wallThickness / 2,
+							canvas.height / 2,
+							wallThickness,
+							canvas.height,
+							{ isStatic: true, label: "wall-right" },
+						),
+					];
 
-				Matter.World.add(world, newWalls);
+					Matter.World.add(world, newWalls);
+				}
 			}
 		};
 
@@ -694,7 +714,7 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 			window.removeEventListener("devicemotion", handleMotion);
 			window.removeEventListener("resize", handleResize);
 		};
-	}, [pubmon, onExit, debugMode]);
+	}, [pubmon, onExit, debugMode, overlay]);
 
 	return (
 		<div
@@ -705,10 +725,32 @@ export function PlayCanvas({ pubmon, onExit }: PlayCanvasProps) {
 				width: "100vw",
 				height: "100vh",
 				zIndex: 9999,
-				backgroundColor: "#000",
+				backgroundColor: overlay ? "transparent" : "#000",
+				pointerEvents: overlay ? "none" : "auto",
 			}}
 		>
-			<canvas ref={canvasRef} style={{ display: "block" }} />
+			<canvas
+				ref={canvasRef}
+				style={{
+					display: "block",
+					pointerEvents: overlay ? "none" : "auto",
+				}}
+			/>
+			{/* Pokeball click area - always interactive */}
+			{overlay && (
+				<div
+					style={{
+						position: "absolute",
+						top: 20,
+						right: 20,
+						width: POKEBALL_SIZE,
+						height: POKEBALL_SIZE,
+						pointerEvents: "auto",
+						cursor: "pointer",
+					}}
+					onClick={onExit}
+				/>
+			)}
 		</div>
 	);
 }

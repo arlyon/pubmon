@@ -4,8 +4,6 @@ import { useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
-import PixelHeader from "./pixel/PixelHeader";
-import PixelMenu from "./pixel/PixelMenu";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 
 interface PokedexProps {
@@ -72,10 +70,13 @@ function PubBallIcon({
 	);
 }
 
-export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
+export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 	const [selectedId, setSelectedId] = useState<number | null>(null);
 	const [filterType, setFilterType] = useState<PubType | "all">("all");
 	const { playPokemonCry } = usePokemonCry(ALL_PUBMON);
+
+	// Set to true to unlock all pokemon (see and catch all)
+	const allUnlocked = false;
 
 	const filteredPubMon =
 		filterType === "all"
@@ -84,11 +85,11 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 
 	const selected =
 		selectedId !== null ? ALL_PUBMON.find((p) => p.id === selectedId) : null;
-	const isSeen = selected ? seenIds.has(selected.id) : false;
-	const isCaught = selected ? caughtIds.has(selected.id) : false;
+	const isSeen = selected ? (allUnlocked || seenIds.has(selected.id)) : false;
+	const isCaught = selected ? (allUnlocked || caughtIds.has(selected.id)) : false;
 
-	const totalSeen = seenIds.size;
-	const totalCaught = caughtIds.size;
+	const totalSeen = allUnlocked ? ALL_PUBMON.length : seenIds.size;
+	const totalCaught = allUnlocked ? ALL_PUBMON.length : caughtIds.size;
 	const totalPubMon = ALL_PUBMON.length;
 
 	return (
@@ -171,8 +172,8 @@ export function Pokedex({ seenIds, caughtIds, onBack }: PokedexProps) {
 					<div className="overflow-y-auto pixel-scroll flex-1">
 						<div className="grid grid-cols-4 gap-[2px] p-[2px]">
 							{filteredPubMon.map((mon) => {
-								const seen = seenIds.has(mon.id);
-								const caught = caughtIds.has(mon.id);
+								const seen = allUnlocked || seenIds.has(mon.id);
+								const caught = allUnlocked || caughtIds.has(mon.id);
 								const isSelected = selectedId === mon.id;
 								const typeInfo = TYPE_INFO[mon.type];
 

@@ -86,14 +86,14 @@ export function GymHeader({
 								alignItems: "center",
 							}}
 						>
-							<div className="text-leftF">
-								<div style={{ fontSize: 9, color: "#a8c8f0", marginBottom: 3 }}>
-									CURRENT GYM
+							<div className="text-left">
+								<div style={{ fontSize: 8, color: "#a8c8f0", marginBottom: 3 }}>
+									Current Gym
 								</div>
 								<div
-									style={{ fontSize: 11, color: "#f8f8f8", letterSpacing: 1 }}
+									style={{ fontSize: 8, color: "#f8f8f8", letterSpacing: 1 }}
 								>
-									{currentGym.name}
+									{currentGym.name.toUpperCase()}
 								</div>
 							</div>
 							<div

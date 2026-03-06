@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { PubType } from "@/lib/pokemon-data";
+import type { PubMon, PubType } from "@/lib/pokemon-data";
 import { GymHeader } from "./GymHeader";
 import { PixelBox, PixelButton } from "./pixel-box";
+import { TrainerSprite } from "./trainer-sprite";
 
 const DRINK_TYPES: {
 	type: PubType;
@@ -136,6 +137,12 @@ interface DrinkSelectProps {
 	currentGymId: number;
 	badges: Set<number>;
 	onSelectGym: (gymId: number) => void;
+	activePubmon: PubMon | null;
+	pokedexSeen: number;
+	pokedexTotal: number;
+	playerSprite?: string;
+	playerName?: string;
+	playerGender?: "boy" | "girl";
 }
 
 export function DrinkSelect({
@@ -144,9 +151,23 @@ export function DrinkSelect({
 	currentGymId,
 	badges,
 	onSelectGym,
+	activePubmon,
+	pokedexSeen,
+	pokedexTotal,
+	playerSprite,
+	playerName,
+	playerGender = "boy",
 }: DrinkSelectProps) {
 	const [selectedIdx, setSelectedIdx] = useState(0);
 	const selected = DRINK_TYPES[selectedIdx];
+	const player = {
+		name: playerName,
+		totalBattles: drinksCollected,
+		earnedBadges: badges.size,
+		pokedexSeen,
+		pokedexTotal,
+		level: activePubmon?.level ?? 1,
+	};
 
 	return (
 		<div className="flex flex-1 flex-col w-full max-w-md mx-auto">
@@ -156,33 +177,109 @@ export function DrinkSelect({
 				badges={badges}
 				onSelectGym={onSelectGym}
 			/>
-			<div className="flex-1 overflow-y-scroll py-4 px-2 mt-[110]">
-				{/* Header */}
-				<PixelBox variant="battle">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-[10px] text-muted-foreground">PUB CRAWL</p>
-							<p className="text-[14px] text-primary mt-1">Add a Drink</p>
+			<div className="flex-1 flex flex-col gap-2 overflow-y-scroll p-2 mt-[105]">
+				<PixelBox>
+					{/* Card title bar */}
+					<div
+						className="border-b-2 border-red-900"
+						style={{
+							background: "#f85858",
+							padding: "3px 6px",
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
+						}}
+					>
+						<span style={{ fontSize: 7, color: "#f8f8f8" }}>TRAINER CARD</span>
+						<span style={{ fontSize: 6, color: "#f8f8f8" }}>ID: #0042</span>
+					</div>
+
+					{/* Main content */}
+					<div style={{ padding: "6px", display: "flex", gap: 8 }}>
+						{/* Trainer sprite placeholder */}
+						<div
+							style={{
+								width: 56,
+								height: 64,
+								border: "1px solid #181010",
+								background: "#d0e8f0",
+								flexShrink: 0,
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								justifyContent: "center",
+								fontSize: 28,
+								position: "relative",
+								overflow: "hidden",
+							}}
+						>
+							{/* Pixel trainer art */}
+							<TrainerSprite
+								sprite={playerSprite ?? playerName ?? playerGender}
+								gender={playerGender}
+								size={64}
+								className="pt-4"
+								flipped
+							/>
+							<div
+								style={{
+									position: "absolute",
+									bottom: 0,
+									left: 0,
+									right: 0,
+									background: "#2038a0",
+									fontSize: 5,
+									color: "#f8f8f8",
+									textAlign: "center",
+									padding: "1px 0",
+									borderTop: "1px solid #181010",
+								}}
+							>
+								LV.{player.level}
+							</div>
 						</div>
-						<div className="text-right">
-							<p className="text-[8px] text-muted-foreground">DRINKS</p>
-							<p className="text-[16px] text-primary">{drinksCollected}</p>
+
+						{/* Stats */}
+						<div className="flex flex-1 flex-col gap-1">
+							<div
+								style={{ fontSize: 8, color: "#181010" }}
+								className="font-bold"
+							>
+								{player.name}
+							</div>
+
+							<XpBar activePubmon={activePubmon} />
+
+							{/* Stats row */}
+							<div
+								style={{
+									display: "grid",
+									gridTemplateColumns: "1fr 1fr",
+									gap: 4,
+									marginTop: 2,
+								}}
+							>
+								<StatBox label="BATTLES" value={player.totalBattles} />
+								<StatBox label="BADGES" value={player.earnedBadges} accent />
+								<StatBox
+									label="PUBDEX"
+									value={`${player.pokedexSeen}/${player.pokedexTotal}`}
+								/>
+								<StatBox label="STATUS" value="OK" color="#38c838" />
+							</div>
 						</div>
 					</div>
 				</PixelBox>
 
 				{/* Drink type grid */}
-				<PixelBox>
-					<p className="text-[8px] text-muted-foreground mb-3">
-						SELECT DRINK TYPE
-					</p>
+				<PixelBox className="p-2">
 					<div className="flex flex-col gap-2">
 						{DRINK_TYPES.map((drink, idx) => (
 							<button
 								key={drink.type}
 								onClick={() => setSelectedIdx(idx)}
 								className={`
-                flex items-center gap-3 p-2 border-2 cursor-pointer
+                flex items-center gap-3 p-1 border-2 cursor-pointer
                 transition-all font-sans text-left
                 ${
 									idx === selectedIdx
@@ -226,6 +323,90 @@ export function DrinkSelect({
 						ORDER {selected.label}
 					</PixelButton>
 				</div>
+			</div>
+		</div>
+	);
+}
+
+function StatBox({
+	label,
+	value,
+	accent,
+	color,
+}: {
+	label: string;
+	value: string | number;
+	accent?: boolean;
+	color?: string;
+}) {
+	return (
+		<div
+			style={{
+				border: "1px solid #181010",
+				background: accent ? "#2038a0" : "#c8d8a8",
+				padding: "2px 4px",
+			}}
+		>
+			<div
+				style={{
+					fontSize: 5,
+					color: accent ? "#a0c0f0" : "#505830",
+					marginBottom: 1,
+				}}
+			>
+				{label}
+			</div>
+			<div
+				style={{
+					fontSize: 8,
+					color: color ?? (accent ? "#f8f8f8" : "#181010"),
+					fontFamily: "'Press Start 2P', monospace",
+				}}
+			>
+				{value}
+			</div>
+		</div>
+	);
+}
+
+function XpBar({ activePubmon }: { activePubmon: PubMon | null }) {
+	// Calculate XP percentage (assuming maxXp is level * 100)
+	const level = activePubmon?.level ?? 1;
+	const xp = activePubmon?.xp ?? 0;
+	const maxXp = level * 100;
+	const xpPct = (xp / maxXp) * 100;
+	const name = activePubmon?.name ?? "No Pubmon";
+
+	return (
+		<div>
+			<div
+				style={{
+					display: "flex",
+					justifyContent: "space-between",
+					marginBottom: 2,
+					fontSize: 6,
+					color: "#383028",
+				}}
+			>
+				<span>{name}</span>
+				<span style={{ color: "#2038a0" }}>LV.{level}</span>
+			</div>
+			<div
+				style={{
+					height: 4,
+					background: "#6870a0",
+					border: "1px solid #181010",
+					overflow: "hidden",
+				}}
+			>
+				<div
+					style={{
+						height: "100%",
+						width: `${Math.min(100, xpPct)}%`,
+						background: "#3878f8",
+						transition: "width 0.3s ease",
+					}}
+				/>
 			</div>
 		</div>
 	);

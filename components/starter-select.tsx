@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	ALL_PUBMON,
@@ -13,6 +12,7 @@ import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
+import { TrainerSprite } from "./trainer-sprite";
 
 const STARTERS: Record<PubType, string> = {
 	beer: "Hoppsin",
@@ -30,16 +30,7 @@ interface StarterSelectProps {
 }
 
 function ProfessorSprite() {
-	return (
-		<Image
-			src="/profbarley.png"
-			alt="Professor Barley"
-			className="pixel-perfect"
-			style={{ imageRendering: "pixelated" }}
-			width={96}
-			height={96}
-		/>
-	);
+	return <TrainerSprite sprite="profbarley" size={96} />;
 }
 
 function PokeballRow() {

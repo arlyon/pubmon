@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { PubType } from "@/lib/pokemon-data";
 import { getMissingnoSprite, getPubMonSprite } from "@/lib/pokemon-data";
 

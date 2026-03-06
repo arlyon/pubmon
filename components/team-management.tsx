@@ -345,7 +345,7 @@ export function TeamManagement({
 
 			{/* Play Mode Overlay */}
 			{isPlaying && selected && (
-				<PlayCanvas pubmon={selected} onExit={onExit} />
+				<PlayCanvas pubmon={selected} onExit={onExit} overlay={true} />
 			)}
 		</div>
 	);

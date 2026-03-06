@@ -3,10 +3,12 @@
 import Image from "next/image";
 import type { PartySocket } from "partysocket";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getTrainerSprite } from "@/lib/trainer-sprites";
+import { useAudio } from "./audio-manager";
 import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
-import { useAudio } from "./audio-manager";
+import { TrainerSprite } from "./trainer-sprite";
 
 export interface PlayerInfo {
 	name: string;
@@ -20,139 +22,7 @@ interface PlayerCreateProps {
 }
 
 function ProfessorSprite() {
-	return (
-		<Image
-			src="/profbarley.png"
-			alt="Professor Barley"
-			className="pixel-perfect"
-			style={{ imageRendering: "pixelated" }}
-			width={96}
-			height={96}
-		/>
-	);
-}
-
-function BoySprite({ size = 72 }: { size?: number }) {
-	const s = size / 12;
-	return (
-		<svg
-			viewBox="0 0 12 16"
-			width={size}
-			height={size * (16 / 12)}
-			className="pixel-perfect"
-		>
-			{/* Cap */}
-			<rect x={3} y={0} width={6} height={1} fill="rgb(var(--pixel-red))" />
-			<rect x={2} y={1} width={8} height={1} fill="rgb(var(--pixel-red))" />
-			<rect x={2} y={2} width={8} height={1} fill="rgb(var(--pixel-black))" />
-			{/* Hair */}
-			<rect x={2} y={3} width={1} height={2} fill="#5a3d1a" />
-			<rect x={9} y={3} width={1} height={2} fill="#5a3d1a" />
-			{/* Face */}
-			<rect x={3} y={3} width={6} height={4} fill="rgb(var(--pixel-yellow))" />
-			{/* Eyes */}
-			<rect x={4} y={4} width={1} height={1} fill="rgb(var(--pixel-black))" />
-			<rect x={7} y={4} width={1} height={1} fill="rgb(var(--pixel-black))" />
-			{/* Mouth */}
-			<rect x={5} y={6} width={2} height={0.5} fill="#c28b4a" />
-			{/* Jacket */}
-			<rect x={2} y={7} width={8} height={5} fill="rgb(var(--pixel-blue))" />
-			<rect
-				x={5}
-				y={7}
-				width={2}
-				height={5}
-				fill="rgb(var(--pixel-blue-dark))"
-			/>
-			{/* Zipper */}
-			<rect
-				x={5.5}
-				y={8}
-				width={1}
-				height={1}
-				fill="rgb(var(--pixel-yellow))"
-			/>
-			<rect
-				x={5.5}
-				y={10}
-				width={1}
-				height={1}
-				fill="rgb(var(--pixel-yellow))"
-			/>
-			{/* Arms */}
-			<rect x={1} y={8} width={1} height={3} fill="rgb(var(--pixel-blue))" />
-			<rect x={10} y={8} width={1} height={3} fill="rgb(var(--pixel-blue))" />
-			<rect x={1} y={11} width={1} height={1} fill="rgb(var(--pixel-yellow))" />
-			<rect
-				x={10}
-				y={11}
-				width={1}
-				height={1}
-				fill="rgb(var(--pixel-yellow))"
-			/>
-			{/* Legs */}
-			<rect x={3} y={12} width={3} height={2} fill="rgb(var(--pixel-gray))" />
-			<rect x={6} y={12} width={3} height={2} fill="rgb(var(--pixel-gray))" />
-			{/* Shoes */}
-			<rect x={3} y={14} width={3} height={1} fill="rgb(var(--pixel-red))" />
-			<rect x={6} y={14} width={3} height={1} fill="rgb(var(--pixel-red))" />
-		</svg>
-	);
-}
-
-function GirlSprite({ size = 72 }: { size?: number }) {
-	const s = size / 12;
-	return (
-		<svg
-			viewBox="0 0 12 16"
-			width={size}
-			height={size * (16 / 12)}
-			className="pixel-perfect"
-		>
-			{/* Hair */}
-			<rect x={3} y={0} width={6} height={1} fill="#c28b4a" />
-			<rect x={2} y={1} width={8} height={2} fill="#c28b4a" />
-			<rect x={2} y={1} width={1} height={5} fill="#c28b4a" />
-			<rect x={9} y={1} width={1} height={5} fill="#c28b4a" />
-			{/* Long hair sides */}
-			<rect x={1} y={3} width={1} height={5} fill="#c28b4a" />
-			<rect x={10} y={3} width={1} height={5} fill="#c28b4a" />
-			{/* Hair bow */}
-			<rect x={8} y={0} width={2} height={1} fill="rgb(var(--pixel-red))" />
-			<rect x={9} y={1} width={1} height={1} fill="rgb(var(--pixel-red))" />
-			{/* Face */}
-			<rect x={3} y={3} width={6} height={4} fill="rgb(var(--pixel-yellow))" />
-			{/* Eyes */}
-			<rect x={4} y={4} width={1} height={1} fill="rgb(var(--pixel-black))" />
-			<rect x={7} y={4} width={1} height={1} fill="rgb(var(--pixel-black))" />
-			{/* Eyelashes */}
-			<rect x={4} y={3.5} width={1} height={0.5} fill="#5a3d1a" />
-			<rect x={7} y={3.5} width={1} height={0.5} fill="#5a3d1a" />
-			{/* Mouth */}
-			<rect x={5} y={6} width={2} height={0.5} fill="rgb(var(--pixel-red))" />
-			{/* Top */}
-			<rect x={2} y={7} width={8} height={5} fill="rgb(var(--pixel-red))" />
-			<rect
-				x={5}
-				y={7}
-				width={2}
-				height={3}
-				fill="rgb(var(--pixel-red-dark))"
-			/>
-			{/* Belt */}
-			<rect x={2} y={10} width={8} height={1} fill="rgb(var(--pixel-black))" />
-			<rect x={5} y={10} width={2} height={1} fill="rgb(var(--pixel-yellow))" />
-			{/* Skirt */}
-			<rect x={2} y={11} width={8} height={2} fill="rgb(var(--pixel-blue))" />
-			<rect x={1} y={12} width={10} height={1} fill="rgb(var(--pixel-blue))" />
-			{/* Legs */}
-			<rect x={4} y={13} width={2} height={1} fill="rgb(var(--pixel-yellow))" />
-			<rect x={6} y={13} width={2} height={1} fill="rgb(var(--pixel-yellow))" />
-			{/* Shoes */}
-			<rect x={3} y={14} width={3} height={1} fill="rgb(var(--pixel-red))" />
-			<rect x={6} y={14} width={3} height={1} fill="rgb(var(--pixel-red))" />
-		</svg>
-	);
+	return <TrainerSprite sprite="profbarley" size={96} />;
 }
 
 type Phase = "welcome" | "gender" | "name" | "confirm" | "take_over_prompt";
@@ -239,6 +109,9 @@ export function PlayerCreate({
 
 	const handleConfirm = useCallback(() => {
 		if (gender && name.trim()) {
+			// Get the appropriate sprite (tries custom sprite, falls back on render)
+			const sprite = getTrainerSprite(name.trim(), gender);
+
 			// Send create_player message
 			socket.send(
 				JSON.stringify({
@@ -246,7 +119,7 @@ export function PlayerCreate({
 					sessionId,
 					playerInfo: {
 						name: name.trim().toUpperCase(),
-						sprite: gender === "boy" ? "boy" : "girl",
+						sprite,
 					},
 				}),
 			);
@@ -254,6 +127,8 @@ export function PlayerCreate({
 			// Listen for response (either player_created for new players or player_state for returning users)
 			const handleMessage = (event: MessageEvent) => {
 				const msg = JSON.parse(event.data);
+
+				console.log("waiting for message", event);
 				if (msg.type === "player_created" || msg.type === "player_state") {
 					// For player_state, pass the existing state
 					const existingState =
@@ -337,20 +212,7 @@ export function PlayerCreate({
 				<div>
 					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
 						<div className="flex flex-col items-center">
-							<Image
-								src={gender === "boy" ? "/boy.png" : "/girl.png"}
-								alt={gender === "boy" ? "Boy" : "Girl"}
-								className="pixel-perfect"
-								style={{
-									imageRendering: "pixelated",
-									objectFit: "none",
-									objectPosition: "0 0",
-									width: "32px",
-									height: "48px",
-								}}
-								width={32}
-								height={48}
-							/>
+							<TrainerSprite sprite="" gender={gender} size={64} />
 						</div>
 					</PixelBox>
 				</div>
