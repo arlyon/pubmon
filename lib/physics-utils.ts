@@ -61,7 +61,13 @@ export async function getSpriteHitbox(
 						// If pixel is visible (alpha > threshold)
 						if (alpha > 50) {
 							// Check if it's an edge pixel (has at least one transparent neighbor)
-							const isEdge = isEdgePixel(imageData, x, y, canvas.width, canvas.height);
+							const isEdge = isEdgePixel(
+								imageData,
+								x,
+								y,
+								canvas.width,
+								canvas.height,
+							);
 							if (isEdge) {
 								points.push({ x, y });
 							}
@@ -108,7 +114,8 @@ function isEdgePixel(
 	height: number,
 ): boolean {
 	// Check 8 surrounding pixels
-	const neighbors = [		[x - 1, y - 1],
+	const neighbors = [
+		[x - 1, y - 1],
 		[x, y - 1],
 		[x + 1, y - 1],
 		[x - 1, y],
@@ -154,7 +161,7 @@ export function calculateConvexHull(points: Point[]): Point[] {
 	// Convert back to Point[]
 	const result: Point[] = [];
 	for (let i = 0; i < hull.length; i += 2) {
-	const [x, y] = hull[i];
+		const [x, y] = hull[i];
 		result.push({ x, y });
 	}
 

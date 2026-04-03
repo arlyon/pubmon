@@ -1,35 +1,49 @@
 "use client";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 interface PixelScreenProps {
 	children: React.ReactNode;
 }
 
 /**
- * PixelScreen renders children at exactly 320px wide and scales up
- * using nearest-neighbor to fill available width. Content can overflow vertically.
+ * PixelScreen renders children at exactly 320px logical width and applies
+ * a CSS variable (--pixel-scale) for responsive scaling. Uses continuous
+ * scaling optimized for HiDPI displays with a max 2x cap (640px).
  */
 const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [scale, setScale] = useState(1);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
+		let timeoutId: NodeJS.Timeout;
+
 		const updateScale = () => {
 			if (!containerRef.current) return;
 			const parent = containerRef.current.parentElement;
 			if (!parent) return;
-			const availableWidth = parent.clientWidth;
-			// Scale to nearest integer multiple for pixel-perfect rendering
-			const rawScale = availableWidth / 320;
-			// Also clamp by height if we want to ensure it fits in screen, but width is primary here
-			const intScale = Math.max(1, Math.floor(rawScale));
-			setScale(intScale);
+
+			// Calculate scale based on available width, capped at 640px (2x)
+			const availableWidth = Math.min(parent.clientWidth, 640);
+			const newScale = Math.max(1, availableWidth / 320);
+
+			console.log("SCALE", newScale);
+
+			setScale(newScale);
 		};
 
+		const debouncedUpdate = () => {
+			clearTimeout(timeoutId);
+			timeoutId = setTimeout(updateScale, 100);
+		};
+
+		// Run immediately on mount (before paint)
 		updateScale();
-		window.addEventListener("resize", updateScale);
-		return () => window.removeEventListener("resize", updateScale);
+		window.addEventListener("resize", debouncedUpdate);
+		return () => {
+			window.removeEventListener("resize", debouncedUpdate);
+			clearTimeout(timeoutId);
+		};
 	}, []);
 
 	return (
@@ -39,10 +53,10 @@ const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 		>
 			<div
 				style={{
-					width: 320,
-					transformOrigin: "top center",
-					// transform: `scale(${scale})`,
-					fontFamily: "var(--font-pixel)",
+					width: 320 * scale,
+					maxWidth: 640,
+					// @ts-expect-error CSS custom properties are valid
+					"--pixel-scale": scale,
 				}}
 				className="pixel-perfect relative"
 			>

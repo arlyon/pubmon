@@ -20,7 +20,11 @@ const POKEBALL_RADIUS = 48;
 const RECOVERY_TIME = 2000; // ms to wait before auto-recovery
 const VELOCITY_THRESHOLD = 0.5; // Velocity below which PubMon is considered "resting"
 
-export function PlayCanvas({ pubmon, onExit, overlay = false }: PlayCanvasProps) {
+export function PlayCanvas({
+	pubmon,
+	onExit,
+	overlay = false,
+}: PlayCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const engineRef = useRef<Matter.Engine | null>(null);
 	const pubmonBodyRef = useRef<Matter.Body | null>(null);
@@ -326,17 +330,23 @@ export function PlayCanvas({ pubmon, onExit, overlay = false }: PlayCanvasProps)
 		}
 
 		// Accelerometer support for mobile (not in overlay mode)
-		const handleOrientation = !overlay ? (event: DeviceOrientationEvent) => {
-			if (engineRef.current && event.beta !== null && event.gamma !== null) {
-				// Beta: front-to-back tilt (-180 to 180)
-				// Gamma: left-to-right tilt (-90 to 90)
-				const gravityX = (event.gamma / 90) * 1;
-				const gravityY = (event.beta / 90) * 1;
+		const handleOrientation = !overlay
+			? (event: DeviceOrientationEvent) => {
+					if (
+						engineRef.current &&
+						event.beta !== null &&
+						event.gamma !== null
+					) {
+						// Beta: front-to-back tilt (-180 to 180)
+						// Gamma: left-to-right tilt (-90 to 90)
+						const gravityX = (event.gamma / 90) * 1;
+						const gravityY = (event.beta / 90) * 1;
 
-				engineRef.current.gravity.x = gravityX;
-				engineRef.current.gravity.y = gravityY;
-			}
-		} : () => {};
+						engineRef.current.gravity.x = gravityX;
+						engineRef.current.gravity.y = gravityY;
+					}
+				}
+			: () => {};
 
 		// Request permission for iOS devices
 		if (!overlay) {
@@ -358,34 +368,36 @@ export function PlayCanvas({ pubmon, onExit, overlay = false }: PlayCanvasProps)
 
 		// Shake detection for free mode (not in overlay mode)
 		let lastAcceleration = { x: 0, y: 0, z: 0 };
-		const handleMotion = !overlay ? (event: DeviceMotionEvent) => {
-			if (
-				event.accelerationIncludingGravity &&
-				pubmonBodyRef.current &&
-				stateRef.current !== "grabbed"
-			) {
-				const { x = 0, y = 0, z = 0 } = event.accelerationIncludingGravity;
-				const deltaX = Math.abs(x - lastAcceleration.x);
-				const deltaY = Math.abs(y - lastAcceleration.y);
-				const deltaZ = Math.abs(z - lastAcceleration.z);
+		const handleMotion = !overlay
+			? (event: DeviceMotionEvent) => {
+					if (
+						event.accelerationIncludingGravity &&
+						pubmonBodyRef.current &&
+						stateRef.current !== "grabbed"
+					) {
+						const { x = 0, y = 0, z = 0 } = event.accelerationIncludingGravity;
+						const deltaX = Math.abs(x - lastAcceleration.x);
+						const deltaY = Math.abs(y - lastAcceleration.y);
+						const deltaZ = Math.abs(z - lastAcceleration.z);
 
-				// Detect shake (sudden acceleration change)
-				if (deltaX > 15 || deltaY > 15 || deltaZ > 15) {
-					updateState("free");
-					(pubmonBodyRef.current as any).isKinematic = false;
-					Matter.Body.applyForce(
-						pubmonBodyRef.current,
-						pubmonBodyRef.current.position,
-						{
-							x: (Math.random() - 0.5) * 0.05,
-							y: (Math.random() - 0.5) * 0.05,
-						},
-					);
+						// Detect shake (sudden acceleration change)
+						if (deltaX > 15 || deltaY > 15 || deltaZ > 15) {
+							updateState("free");
+							(pubmonBodyRef.current as any).isKinematic = false;
+							Matter.Body.applyForce(
+								pubmonBodyRef.current,
+								pubmonBodyRef.current.position,
+								{
+									x: (Math.random() - 0.5) * 0.05,
+									y: (Math.random() - 0.5) * 0.05,
+								},
+							);
+						}
+
+						lastAcceleration = { x, y, z };
+					}
 				}
-
-				lastAcceleration = { x, y, z };
-			}
-		} : () => {};
+			: () => {};
 
 		if (!overlay) {
 			window.addEventListener("devicemotion", handleMotion);

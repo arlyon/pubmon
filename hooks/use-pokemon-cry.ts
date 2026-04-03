@@ -19,12 +19,15 @@ export function usePokemonCry(pokemon: PubMon[]) {
 		return map;
 	}, [pokemon]);
 
-	const playPokemonCry = useCallback((pokemonId: number) => {
-		const cryNumber = pokemonCryMap.get(pokemonId);
-		if (!cryNumber) return;
+	const playPokemonCry = useCallback(
+		(pokemonId: number) => {
+			const cryNumber = pokemonCryMap.get(pokemonId);
+			if (!cryNumber) return;
 
-		playCry(cryNumber);
-	}, [pokemonCryMap]);
+			playCry(cryNumber);
+		},
+		[pokemonCryMap],
+	);
 
 	return { playPokemonCry };
 }

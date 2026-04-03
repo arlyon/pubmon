@@ -85,8 +85,8 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 	const selected =
 		selectedId !== null ? ALL_PUBMON.find((p) => p.id === selectedId) : null;
-	const isSeen = selected ? (allUnlocked || seenIds.has(selected.id)) : false;
-	const isCaught = selected ? (allUnlocked || caughtIds.has(selected.id)) : false;
+	const isSeen = selected ? allUnlocked || seenIds.has(selected.id) : false;
+	const isCaught = selected ? allUnlocked || caughtIds.has(selected.id) : false;
 
 	const totalSeen = allUnlocked ? ALL_PUBMON.length : seenIds.size;
 	const totalCaught = allUnlocked ? ALL_PUBMON.length : caughtIds.size;

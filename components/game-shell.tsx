@@ -2,13 +2,20 @@
 
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getRandomPubMon, ALL_PUBMON, type PubMon, type PubType } from "@/lib/pokemon-data";
+import {
+	ALL_PUBMON,
+	getRandomPubMon,
+	type PubMon,
+	type PubType,
+} from "@/lib/pokemon-data";
 import { pubmonMachine } from "@/machines/pubmon-machine";
 import { useAudio } from "./audio-manager";
 import { Badge3D } from "./Badge3D";
 import { BattleScreen } from "./battle-screen";
 import { CollapsibleGymPath } from "./CollapsibleGymPath";
+import { DebugPanel } from "./debug-panel";
 import { DrinkSelect } from "./drink-select";
+import { GameNavbar } from "./game-navbar";
 import { HallOfFameViewer } from "./hall-of-fame-viewer";
 import { LeaguePage } from "./league-page";
 import PixelTransition, {
@@ -42,11 +49,13 @@ const socket = new PartySocket({
 interface GameShellProps {
 	initialPlayerState?: any;
 	initialGymId?: number;
+	initialGamePhase?: "collection" | "tournament" | "hall-of-fame";
 }
 
 export function GameShell({
 	initialPlayerState,
 	initialGymId,
+	initialGamePhase,
 }: GameShellProps) {
 	const [sessionId, setSessionId] = useState<string>("");
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
@@ -58,6 +67,7 @@ export function GameShell({
 			socket,
 			initialPlayerState,
 			initialGymId,
+			initialGamePhase,
 		},
 	});
 
@@ -186,11 +196,27 @@ export function GameShell({
 
 			// Map WebSocket messages to machine events
 			if (msg.type === "gym_update" && msg.currentGymId != null) {
-				send({ type: "GYM_UPDATE", currentGymId: msg.currentGymId });
+				send({
+					type: "GYM_UPDATE",
+					currentGymId: msg.currentGymId,
+					gamePhase: msg.gamePhase,
+				});
 			}
 
 			if (msg.type === "player_state" && msg.playerState) {
 				send({ type: "PLAYER_STATE_UPDATE", playerState: msg.playerState });
+
+				// Check if player has an active battle (reconnection scenario)
+				if (
+					msg.playerState.activeBattleId &&
+					msg.playerState.activeBattleOpponent
+				) {
+					send({
+						type: "MATCH_STARTED",
+						battleId: msg.playerState.activeBattleId,
+						opponentName: msg.playerState.activeBattleOpponent,
+					});
+				}
 			}
 
 			if (msg.type === "tournament_start") {
@@ -199,6 +225,14 @@ export function GameShell({
 
 			if (msg.type === "bracket_update") {
 				send({ type: "BRACKET_UPDATE", bracket: msg.bracket });
+			}
+
+			if (msg.type === "match_start") {
+				send({
+					type: "MATCH_STARTED",
+					battleId: msg.battleId,
+					opponentName: msg.opponentName,
+				});
 			}
 
 			if (msg.type === "hall_of_fame_ready") {
@@ -228,6 +262,12 @@ export function GameShell({
 		stateValue.view?.onboarding === "selectingStarter";
 	const isCrawl = stateValue.view?.mainLoop === "crawl";
 	const isBattle = stateValue.view?.mainLoop === "standardBattle";
+	const isTournamentBattle = state.matches({
+		view: { mainLoop: { tournament: "tournamentBattle" } },
+	});
+	const isTournamentBracket = state.matches({
+		view: { mainLoop: { tournament: "bracketView" } },
+	});
 	const isTeam =
 		stateValue.view?.mainLoop === "team" ||
 		stateValue.view?.mainLoop === "settingActiveMon";
@@ -241,6 +281,20 @@ export function GameShell({
 	const isXP = stateValue.view?.mainLoop?.celebration === "xpGain";
 	const isBadgeReward =
 		stateValue.view?.mainLoop?.celebration === "badgeReward";
+
+	// Determine active tab for navbar
+	const getActiveTab = ():
+		| "crawl"
+		| "pokedex"
+		| "team"
+		| "league"
+		| undefined => {
+		if (isCrawl) return "crawl";
+		if (isPokedex) return "pokedex";
+		if (isTeam) return "team";
+		if (isLeague) return "league";
+		return undefined;
+	};
 
 	return (
 		<div className="flex flex-col relative h-screen bg-pixel-gray-light">
@@ -290,6 +344,12 @@ export function GameShell({
 						pokedexTotal={ALL_PUBMON.length}
 						playerName={context.playerInfo?.name}
 						playerGender={context.playerInfo?.gender}
+						gamePhase={context.gamePhase}
+						activeBattleId={context.tournamentState.activeBattle?.battleId}
+						activeBattleOpponent={
+							context.tournamentState.activeBattle?.opponentName
+						}
+						onJoinBattle={() => send({ type: "NAVIGATE", phase: "tournament" })}
 					/>
 				)}
 
@@ -301,8 +361,32 @@ export function GameShell({
 						onCatch={handleCatch}
 						onRun={handleRun}
 						onBattleEnd={handleBattleEnd}
+						battleMode="wild"
 					/>
 				)}
+
+				{isTournamentBattle &&
+					context.tournamentState.activeBattle &&
+					activePokemon && (
+						<BattleScreen
+							wildPokemon={activePokemon} // Use player's own pokemon as "opponent" placeholder for now
+							playerPokemon={activePokemon}
+							onFight={() => {}}
+							onCatch={() => {}} // No catch in tournament
+							onRun={() => {}} // No run in tournament
+							onBattleEnd={(result) => {
+								// Handle tournament battle end
+								send({
+									type: "FAINT_DETECTED",
+									result: result === "win" ? "win" : "loss",
+								});
+							}}
+							battleMode="p2p"
+							battleId={context.tournamentState.activeBattle.battleId}
+							socket={socket}
+							sessionId={sessionId}
+						/>
+					)}
 
 				{isTeam && (
 					<TeamManagement
@@ -328,11 +412,15 @@ export function GameShell({
 						playerName={context.playerInfo.name}
 						tournamentOptIn={context.tournamentState.isOptedIn}
 						leaderboard={context.leaderboard}
+						activeBattle={context.tournamentState.activeBattle}
+						onReturnToBattle={() =>
+							send({ type: "NAVIGATE", phase: "tournament" })
+						}
 						onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
 					/>
 				)}
 
-				{isTournament && (
+				{isTournamentBracket && (
 					<TournamentBracketViewer
 						socket={socket}
 						sessionId={sessionId}
@@ -464,128 +552,14 @@ export function GameShell({
 			</main>
 
 			{/* Bottom nav */}
-			<nav
-				className={`border-t-4 border-pixel-black bg-pixel-white ${isStarter || isOnboarding || isBattle ? "hidden" : ""}`}
-			>
-				<div className="max-w-md mx-auto flex items-stretch">
-					<button
-						type="button"
-						onClick={() => send({ type: "NAVIGATE", phase: "crawl" })}
-						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
-              ${isCrawl ? "bg-pixel-blue text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
-            `}
-					>
-						<svg
-							viewBox="0 0 8 8"
-							width={16}
-							height={16}
-							className="pixel-perfect"
-						>
-							<rect x={2} y={0} width={4} height={1} fill="currentColor" />
-							<rect x={1} y={1} width={6} height={5} fill="currentColor" />
-							<rect x={3} y={6} width={2} height={2} fill="currentColor" />
-						</svg>
-						<span className="text-[5px]">CRAWL</span>
-					</button>
-					<div className="w-[2px] bg-pixel-gray/30" />
-					<button
-						onClick={() => send({ type: "NAVIGATE", phase: "pokedex" })}
-						type="button"
-						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
-              ${isPokedex ? "bg-pixel-red text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
-            `}
-					>
-						<svg
-							viewBox="0 0 12 12"
-							width={16}
-							height={16}
-							className="pixel-perfect"
-						>
-							<rect
-								x={0}
-								y={0}
-								width={12}
-								height={12}
-								rx={1}
-								fill="currentColor"
-							/>
-							<rect
-								x={1}
-								y={1}
-								width={10}
-								height={10}
-								rx={1}
-								fill="rgb(var(--pixel-white))"
-							/>
-							<rect
-								x={2}
-								y={2}
-								width={8}
-								height={5}
-								fill="currentColor"
-								opacity={0.3}
-							/>
-							<rect
-								x={3}
-								y={8}
-								width={6}
-								height={1}
-								fill="currentColor"
-								opacity={0.3}
-							/>
-						</svg>
-						<span className="text-[5px]">PUBDEX</span>
-					</button>
-					<div className="w-[2px] bg-pixel-gray/30" />
-					<button
-						onClick={() => send({ type: "NAVIGATE", phase: "team" })}
-						type="button"
-						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
-              ${isTeam ? "bg-pixel-blue text-pixel-white" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
-            `}
-					>
-						<svg
-							viewBox="0 0 10 10"
-							width={16}
-							height={16}
-							className="pixel-perfect"
-						>
-							<circle
-								cx={5}
-								cy={5}
-								r={4.5}
-								fill="none"
-								stroke="currentColor"
-								strokeWidth={1}
-							/>
-							<rect x={0.5} y={4.5} width={9} height={1} fill="currentColor" />
-							<circle cx={5} cy={5} r={1.5} fill="currentColor" />
-						</svg>
-						<span className="text-[5px]">PUBMON</span>
-					</button>
-					<div className="w-[2px] bg-pixel-gray/30" />
-					<button
-						onClick={() => send({ type: "NAVIGATE", phase: "league" })}
-						type="button"
-						className={`flex-1 flex flex-col items-center gap-[2px] py-[8px] cursor-pointer font-pixel transition-colors
-              ${isLeague ? "bg-pixel-yellow text-pixel-black" : "text-pixel-gray hover:text-pixel-black hover:bg-pixel-gray-light"}
-            `}
-					>
-						<svg
-							viewBox="0 0 12 12"
-							width={16}
-							height={16}
-							className="pixel-perfect"
-						>
-							<polygon
-								points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9 3,11 3.5,7.5 1,5 4.5,4.5"
-								fill="currentColor"
-							/>
-						</svg>
-						<span className="text-[5px]">LEAGUE</span>
-					</button>
-				</div>
-			</nav>
+			<GameNavbar
+				isHidden={isStarter || isOnboarding || isBattle}
+				activeTab={getActiveTab() || "crawl"}
+				onNavigate={(phase) => send({ type: "NAVIGATE", phase })}
+			/>
+
+			{/* Debug Panel - only shows in development */}
+			<DebugPanel state={state} context={context} />
 		</div>
 	);
 }

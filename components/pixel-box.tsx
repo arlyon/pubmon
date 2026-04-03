@@ -1,18 +1,24 @@
 "use client";
 
-interface PixelBoxProps {
+interface PixelBoxProps<T extends React.ElementType = "div"> {
 	children: React.ReactNode;
 	className?: string;
 	variant?: "default" | "battle" | "menu" | "info";
 	style?: React.CSSProperties;
+	as?: T;
 }
 
-export function PixelBox({
+export function PixelBox<T extends React.ElementType = "div">({
 	children,
 	className = "",
 	variant = "default",
 	style,
-}: PixelBoxProps) {
+	as,
+	...props
+}: PixelBoxProps<T> &
+	Omit<React.ComponentPropsWithoutRef<T>, keyof PixelBoxProps<T>>) {
+	const Component = as || "div";
+
 	const borderColors = {
 		default: "border-foreground",
 		battle: "border-primary",
@@ -28,16 +34,17 @@ export function PixelBox({
 	};
 
 	return (
-		<div
+		<Component
 			className={`
-        relative border-2 ${borderColors[variant]} ${bgColors[variant]}
-        shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)]
+        relative border-gba-[1] ${borderColors[variant]} ${bgColors[variant]}
+        shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]
         ${className}
       `}
 			style={style}
+			{...props}
 		>
 			<div className="relative">{children}</div>
-		</div>
+		</Component>
 	);
 }
 
@@ -55,24 +62,21 @@ export function PixelButton({
 	disabled?: boolean;
 }) {
 	const variants = {
-		default:
-			"bg-secondary text-secondary-foreground border-foreground hover:bg-accent",
-		primary:
-			"bg-primary text-primary-foreground border-foreground hover:brightness-110",
-		danger:
-			"bg-destructive text-destructive-foreground border-foreground hover:brightness-110",
-		type: "bg-accent text-accent-foreground border-foreground hover:bg-muted",
+		default: "bg-secondary text-secondary-foreground hover:bg-accent",
+		primary: "bg-primary text-primary-foreground hover:brightness-110",
+		danger: "bg-destructive text-destructive-foreground hover:brightness-110",
+		type: "bg-accent text-accent-foreground hover:bg-muted",
 	};
 
 	return (
-		<button
+		<PixelBox
+			as="button"
 			onClick={onClick}
 			disabled={disabled}
 			className={`
-        border-2 px-4 py-2 font-sans text-[10px]
-        shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)]
-        active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)]
-        active:translate-x-[2px] active:translate-y-[2px]
+        px-4 py-2 font-sans text-[10px]
+        hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)]
+        hover:-translate-y-0.5
         transition-all cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${variants[variant]}
@@ -80,6 +84,6 @@ export function PixelButton({
       `}
 		>
 			{children}
-		</button>
+		</PixelBox>
 	);
 }

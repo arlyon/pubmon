@@ -7,10 +7,7 @@
  * Get the trainer sprite filename for a given name
  * Converts name to lowercase for the sprite file
  */
-export function getTrainerSprite(
-	name: string,
-	gender: "boy" | "girl",
-): string {
+export function getTrainerSprite(name: string, gender: "boy" | "girl"): string {
 	// Use lowercase name as sprite identifier
 	return name.trim().toLowerCase();
 }

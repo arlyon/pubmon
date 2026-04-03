@@ -11,7 +11,7 @@ export default function SpritesPage() {
 
 	return (
 		<div className="min-h-screen bg-[#1a1c2c] p-8">
-			<h1 className="text-3xl font-pixel text-white mb-4 text-center">
+			<h1 className="text-gba-[24] font-pixel text-white mb-4 text-center">
 				Trainer Sprites
 			</h1>
 			<p className="text-sm font-pixel text-white/70 mb-8 text-center">
@@ -28,7 +28,7 @@ export default function SpritesPage() {
 
 					return (
 						<div key={file} className="flex flex-col items-center gap-2">
-							<div className="bg-[#2d3748] p-4 rounded-lg border-2 border-[#4a5568] hover:border-[#60a5fa] transition-colors">
+							<div className="bg-[#2d3748] p-gba-[32] rounded-lg border-[2gba] border-[#4a5568] hover:border-[#60a5fa] transition-colors">
 								<Image
 									src={`/sprites/trainers/front/${file}`}
 									alt={displayName}

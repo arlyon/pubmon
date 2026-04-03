@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import type { PubMon, PubType } from "@/lib/pokemon-data";
+import { cn } from "@/lib/utils";
+import { CollapsibleGymPath } from "./CollapsibleGymPath";
 import { GymHeader } from "./GymHeader";
+import PixelScrollWrapper from "./pixel/PixelScrollWrapper";
 import { PixelBox, PixelButton } from "./pixel-box";
 import { TrainerSprite } from "./trainer-sprite";
 
@@ -143,6 +146,10 @@ interface DrinkSelectProps {
 	playerSprite?: string;
 	playerName?: string;
 	playerGender?: "boy" | "girl";
+	gamePhase?: "collection" | "tournament" | "hall-of-fame";
+	activeBattleId?: string;
+	activeBattleOpponent?: string;
+	onJoinBattle?: () => void;
 }
 
 export function DrinkSelect({
@@ -156,7 +163,11 @@ export function DrinkSelect({
 	pokedexTotal,
 	playerSprite,
 	playerName,
+	gamePhase,
 	playerGender = "boy",
+	activeBattleId,
+	activeBattleOpponent,
+	onJoinBattle,
 }: DrinkSelectProps) {
 	const [selectedIdx, setSelectedIdx] = useState(0);
 	const selected = DRINK_TYPES[selectedIdx];
@@ -170,18 +181,23 @@ export function DrinkSelect({
 	};
 
 	return (
-		<div className="flex flex-1 flex-col w-full max-w-md mx-auto">
+		<div className="flex flex-1 flex-col w-full mx-auto">
 			{/* Gym Header */}
 			<GymHeader
 				currentGymId={currentGymId}
 				badges={badges}
 				onSelectGym={onSelectGym}
+				gamePhase={gamePhase}
+				activeBattleId={activeBattleId}
+				activeBattleOpponent={activeBattleOpponent}
+				onJoinBattle={onJoinBattle}
+				className="mb-4"
 			/>
-			<div className="flex-1 flex flex-col gap-2 overflow-y-scroll p-2 mt-[105]">
+			<PixelScrollWrapper className="flex-1 flex flex-col overflow-y-scroll p-2 mt-gba-[80] gap-gba-[2]">
 				<PixelBox>
 					{/* Card title bar */}
 					<div
-						className="border-b-2 border-red-900"
+						className="border-b-2 border-red-900 [font-palette:--emerald-red]"
 						style={{
 							background: "#f85858",
 							padding: "3px 6px",
@@ -190,25 +206,28 @@ export function DrinkSelect({
 							alignItems: "center",
 						}}
 					>
-						<span style={{ fontSize: 7, color: "#f8f8f8" }}>TRAINER CARD</span>
-						<span style={{ fontSize: 6, color: "#f8f8f8" }}>ID: #0042</span>
+						<span style={{ color: "#f8f8f8" }} className="text-gba-[9]">
+							TRAINER CARD
+						</span>
+						<span style={{ color: "#f8f8f8" }} className="text-gba-[9]">
+							ID: #0042
+						</span>
 					</div>
 
 					{/* Main content */}
 					<div style={{ padding: "6px", display: "flex", gap: 8 }}>
 						{/* Trainer sprite placeholder */}
 						<div
+							className="border-gba-[1] border-black"
 							style={{
 								width: 56,
 								height: 64,
-								border: "1px solid #181010",
 								background: "#d0e8f0",
 								flexShrink: 0,
 								display: "flex",
 								flexDirection: "column",
 								alignItems: "center",
 								justifyContent: "center",
-								fontSize: 28,
 								position: "relative",
 								overflow: "hidden",
 							}}
@@ -222,16 +241,15 @@ export function DrinkSelect({
 								flipped
 							/>
 							<div
+								className="text-gba-[9] [font-palette:--emerald-blue] leading-none p-gba-[2] text-white"
 								style={{
 									position: "absolute",
 									bottom: 0,
+
 									left: 0,
 									right: 0,
 									background: "#2038a0",
-									fontSize: 5,
-									color: "#f8f8f8",
 									textAlign: "center",
-									padding: "1px 0",
 									borderTop: "1px solid #181010",
 								}}
 							>
@@ -241,10 +259,7 @@ export function DrinkSelect({
 
 						{/* Stats */}
 						<div className="flex flex-1 flex-col gap-1">
-							<div
-								style={{ fontSize: 8, color: "#181010" }}
-								className="font-bold"
-							>
+							<div className="text-gba-[9] font-heading leading-none">
 								{player.name}
 							</div>
 
@@ -297,9 +312,9 @@ export function DrinkSelect({
 								>
 									<DrinkIcon icon={drink.icon} color={drink.color} size={4} />
 								</div>
-								<div className="flex-1">
-									<p className="text-[10px] text-foreground">{drink.label}</p>
-									<p className="text-[8px] text-muted-foreground">
+								<div className="flex-1 leading-none">
+									<p className="text-gba-[9] text-foreground">{drink.label}</p>
+									<p className="text-gba-[9] [font-palette:--emerald-muted]">
 										{drink.element}
 									</p>
 								</div>
@@ -318,12 +333,12 @@ export function DrinkSelect({
 					<PixelButton
 						variant="primary"
 						onClick={() => onSelect(selected.type)}
-						className="w-full text-[12px] py-3"
+						className="w-full text-gba-[9] py-3 [font-palette:--emerald-blue]"
 					>
 						ORDER {selected.label}
 					</PixelButton>
 				</div>
-			</div>
+			</PixelScrollWrapper>
 		</div>
 	);
 }
@@ -341,6 +356,7 @@ function StatBox({
 }) {
 	return (
 		<div
+			className="flex justify-between items-center leading-none"
 			style={{
 				border: "1px solid #181010",
 				background: accent ? "#2038a0" : "#c8d8a8",
@@ -348,17 +364,16 @@ function StatBox({
 			}}
 		>
 			<div
-				style={{
-					fontSize: 5,
-					color: accent ? "#a0c0f0" : "#505830",
-					marginBottom: 1,
-				}}
+				className={cn(
+					"text-gba-[9]",
+					accent ? "[font-palette:--emerald-blue]" : null,
+				)}
 			>
 				{label}
 			</div>
 			<div
+				className="text-gba-[6]"
 				style={{
-					fontSize: 8,
 					color: color ?? (accent ? "#f8f8f8" : "#181010"),
 					fontFamily: "'Press Start 2P', monospace",
 				}}
@@ -380,11 +395,10 @@ function XpBar({ activePubmon }: { activePubmon: PubMon | null }) {
 	return (
 		<div>
 			<div
+				className="text-gba-[9] leading-none mb-gba-[1]"
 				style={{
 					display: "flex",
 					justifyContent: "space-between",
-					marginBottom: 2,
-					fontSize: 6,
 					color: "#383028",
 				}}
 			>

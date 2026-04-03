@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import React, { useState } from "react";
-import { GYMS, type Gym } from "@/lib/gym-data";
+import { GYMS, type Gym, MASTER_TOURNAMENT } from "@/lib/gym-data";
 import { cn } from "@/lib/utils";
 import { GymTrailInline } from "./gym-trail";
 
@@ -19,6 +19,11 @@ interface GymHeaderProps {
 	badges: Set<number>;
 	className?: string;
 	onSelectGym?: (gymId: number) => void;
+	tournamentWinner?: string;
+	gamePhase?: "collection" | "tournament" | "hall-of-fame";
+	activeBattleId?: string;
+	activeBattleOpponent?: string;
+	onJoinBattle?: () => void;
 }
 
 export function GymHeader({
@@ -26,10 +31,35 @@ export function GymHeader({
 	badges = new Set(),
 	className,
 	onSelectGym,
+	tournamentWinner,
+	gamePhase = "collection",
+	activeBattleId,
+	activeBattleOpponent,
+	onJoinBattle,
 }: GymHeaderProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 
-	const currentGym = GYMS.find((g) => g.id === currentGymId) || GYMS[0]!;
+	// When in tournament phase, override and show tournament regardless of currentGymId
+	const effectiveGymId =
+		gamePhase === "tournament" ? MASTER_TOURNAMENT.id : currentGymId;
+
+	const currentGym =
+		Number(effectiveGymId) === MASTER_TOURNAMENT.id ||
+		gamePhase === "tournament"
+			? {
+					id: MASTER_TOURNAMENT.id,
+					name: MASTER_TOURNAMENT.name,
+					subtitle: MASTER_TOURNAMENT.subtitle,
+					badgeColor: MASTER_TOURNAMENT.badgeColor,
+					badgeSprite: "",
+					requiredDrinks: 0,
+					specialty: MASTER_TOURNAMENT.specialty,
+					leaderName: tournamentWinner || "???",
+					badgeName: "Champion Trophy",
+					pub: "Grand Pub League Arena",
+					address: "Elite District",
+				}
+			: GYMS.find((g) => g.id === currentGymId) || GYMS[0]!;
 	const typeColor = TYPE_COLORS[currentGym.specialty] ?? {
 		bg: "#2038a0",
 		text: "#f8f8f8",
@@ -37,16 +67,7 @@ export function GymHeader({
 
 	return (
 		<div className={cn("w-full absolute z-50", className)}>
-			<div
-				className="w-full font-sans relative"
-				style={{
-					border: "var(--pixel-border)",
-					borderTop: "none",
-					borderLeft: "none",
-					borderRight: "none",
-					fontFamily: "'Press Start 2P', monospace",
-				}}
-			>
+			<div className="w-full font-sans relative [font-palette:--emerald-blue] text-gba-[9] leading-none">
 				{/* Blue expandable section */}
 				<motion.div
 					layout
@@ -68,14 +89,50 @@ export function GymHeader({
 								display: "flex",
 								justifyContent: "space-between",
 								alignItems: "center",
-								fontSize: 6,
 								color: "#78b8f0",
 								borderBottom: "1px solid #181010",
 							}}
 						>
-							<span>▶ PUBMON LEAGUE</span>
-							<span>GYM {currentGym.id}/10</span>
+							<span>
+								PUBMON LEAGUE{" "}
+								{gamePhase === "tournament" && (
+									<span style={{ color: "#f8b830" }}>• TOURNAMENT</span>
+								)}
+								{gamePhase === "hall-of-fame" && (
+									<span style={{ color: "#f0e070" }}>• HALL OF FAME</span>
+								)}
+							</span>
+							<span>
+								{Number(effectiveGymId) === MASTER_TOURNAMENT.id
+									? null
+									: `GYM ${currentGym.id}/10`}
+							</span>
 						</div>
+
+						{/* Active Battle Alert - shows when player has an ongoing battle */}
+						{activeBattleId && activeBattleOpponent && (
+							<div
+								className="text-gba-[6] animate-pulse"
+								style={{
+									background: "#f85858",
+									padding: "6px 8px",
+									display: "flex",
+									justifyContent: "space-between",
+									alignItems: "center",
+									color: "#f8f8f8",
+									borderBottom: "2px solid #c83030",
+								}}
+								onClick={(e) => {
+									e.stopPropagation();
+									if (onJoinBattle) {
+										onJoinBattle();
+									}
+								}}
+							>
+								<span>⚔ BATTLE IN PROGRESS</span>
+								<span>vs {activeBattleOpponent}</span>
+							</div>
+						)}
 
 						{/* Gym name banner */}
 						<div
@@ -86,28 +143,47 @@ export function GymHeader({
 								alignItems: "center",
 							}}
 						>
-							<div className="text-left">
-								<div style={{ fontSize: 8, color: "#a8c8f0", marginBottom: 3 }}>
+							<div className="text-left gap-[4px] flex flex-col">
+								<div className="text-gba-[9] leading-none [font-palette:--emerald-blue]">
 									Current Gym
 								</div>
-								<div
-									style={{ fontSize: 8, color: "#f8f8f8", letterSpacing: 1 }}
-								>
+								<div className="text-gba-[9] leading-none font-heading text-white tracking-wide">
 									{currentGym.name.toUpperCase()}
 								</div>
 							</div>
-							<div
-								style={{
-									background: typeColor.bg,
-									color: typeColor.text,
-									fontSize: 6,
-									padding: "2px 5px",
-									border: "1px solid #181010",
-									boxShadow: "1px 1px 0 #181010",
-								}}
-							>
-								{currentGym.specialty.toUpperCase()}
-							</div>
+							{gamePhase === "tournament" ? (
+								activeBattleId && onJoinBattle ? (
+									<button
+										type="button"
+										className="text-gba-[6] border-gba-[1] border-black hover:brightness-110 transition-all animate-pulse"
+										style={{
+											background: "#f85858",
+											color: "#f8f8f8",
+											padding: "3px 6px",
+											boxShadow: "1px 1px 0 #181010",
+											cursor: "pointer",
+										}}
+										onClick={(e) => {
+											e.stopPropagation();
+											onJoinBattle();
+										}}
+									>
+										⚔ ENTER BATTLE
+									</button>
+								) : null
+							) : (
+								<div
+									className="text-gba-[6] border-gba-[1] border-black"
+									style={{
+										background: typeColor.bg,
+										color: typeColor.text,
+										padding: "2px 5px",
+										boxShadow: "1px 1px 0 #181010",
+									}}
+								>
+									{currentGym.specialty.toUpperCase()}
+								</div>
+							)}
 						</div>
 					</button>
 
@@ -122,7 +198,7 @@ export function GymHeader({
 								className="h-full"
 							>
 								<GymTrailInline
-									currentGymId={currentGymId}
+									currentGymId={effectiveGymId}
 									badges={badges}
 									onSelectGym={(gymId) => {
 										if (onSelectGym) {
@@ -151,20 +227,16 @@ export function GymHeader({
 						borderTop: "1px solid #101828",
 					}}
 				>
-					<div style={{ fontSize: 6, color: "#f0e070" }}>🏠</div>
+					<div style={{ color: "#f0e070" }}>🏠</div>
 					<div style={{ flex: 1, textAlign: "left" }}>
-						<div style={{ fontSize: 6, color: "#f8f8f8" }}>
-							{currentGym.pub}
-						</div>
-						<div style={{ fontSize: 5, color: "#78a8d8", marginTop: 2 }}>
+						<div style={{ color: "#f8f8f8" }}>{currentGym.pub}</div>
+						<div style={{ color: "#78a8d8", marginTop: 2 }}>
 							{currentGym.address}
 						</div>
 					</div>
 					<div style={{ textAlign: "right" }}>
-						<div style={{ fontSize: 5, color: "#a8c8f0" }}>LEADER</div>
-						<div style={{ fontSize: 7, color: "#f8d858" }}>
-							{currentGym.leaderName}
-						</div>
+						<div style={{ color: "#a8c8f0" }}>LEADER</div>
+						<div style={{ color: "#f8d858" }}>{currentGym.leaderName}</div>
 					</div>
 				</button>
 
@@ -172,11 +244,9 @@ export function GymHeader({
 				<button
 					type="button"
 					onClick={() => setIsExpanded(!isExpanded)}
-					className="w-full cursor-pointer group"
+					className="w-full cursor-pointer group px-gba-[4] py-gba-[2]"
 					style={{
 						background: "#101828",
-						padding: "3px 8px",
-						fontSize: 6,
 						color: "#f8b830",
 						borderTop: "1px solid #181010",
 						display: "flex",
@@ -188,7 +258,7 @@ export function GymHeader({
 						<span style={{ color: "#78b8f0" }}>PRIZE:</span>
 						<span>★ {currentGym.badgeName}</span>
 					</div>
-					<div className="text-muted-foreground text-[12px] group-hover:text-primary transition-colors">
+					<div className="text-muted-foreground text-gba-[4] group-hover:text-primary transition-colors">
 						{isExpanded ? "▼" : "▶"}
 					</div>
 				</button>

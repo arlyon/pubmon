@@ -21,7 +21,9 @@ interface LeaguePageProps {
 	playerName: string;
 	tournamentOptIn: boolean;
 	leaderboard: LeaderboardEntry[];
+	activeBattle: { battleId: string; opponentName: string } | null;
 	onBack: () => void;
+	onReturnToBattle: () => void;
 }
 
 export function LeaguePage({
@@ -30,7 +32,9 @@ export function LeaguePage({
 	playerName,
 	tournamentOptIn,
 	leaderboard,
+	activeBattle,
 	onBack,
+	onReturnToBattle,
 }: LeaguePageProps) {
 	const [optedIn, setOptedIn] = useState(tournamentOptIn);
 
@@ -116,6 +120,35 @@ export function LeaguePage({
 				</div>
 				<div style={{ width: 40 }} /> {/* Spacer */}
 			</div>
+
+			{/* Active Battle Alert */}
+			{activeBattle && (
+				<div className="p-[4px] pt-0">
+					<PixelBox
+						variant="battle"
+						className="w-full bg-[#f85858] animate-pulse"
+					>
+						<div className="p-[8px] flex flex-col gap-[4px]">
+							<div className="font-pixel text-[8px] text-pixel-white text-center">
+								⚔ ACTIVE BATTLE ⚔
+							</div>
+							<div
+								className="font-pixel text-pixel-white text-center"
+								style={{ fontSize: 6, opacity: 0.9 }}
+							>
+								VS {activeBattle.opponentName}
+							</div>
+							<button
+								type="button"
+								onClick={onReturnToBattle}
+								className="mt-[4px] font-pixel text-[7px] bg-pixel-yellow text-pixel-black px-[8px] py-[4px] border-2 border-pixel-white hover:bg-pixel-white transition-colors"
+							>
+								→ RETURN TO BATTLE
+							</button>
+						</div>
+					</PixelBox>
+				</div>
+			)}
 
 			{/* Tournament Opt-In */}
 			<div className="p-[4px]">

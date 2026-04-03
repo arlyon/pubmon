@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@plugin '../tailwind.config.ts';
+
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
@@ -8,9 +10,69 @@
   src: local('Press Start 2P');
 }
 
+/* Emerald font color palette customization */
+@font-palette-values --emerald-default {
+  font-family: emeraldFont;
+  /* Default: black text with dark shadow */
+}
+
+@font-palette-values --green-shadow {
+  font-family: emeraldFont;
+  override-colors: 0 #ffffff, 2 #00ff00; /* Overriding the shadow layer */
+}
+
+@font-palette-values --emerald-no-shadow {
+  font-family: emeraldFont;
+  override-colors:
+    2 #00000000; /* Make shadow transparent */
+}
+
+@font-palette-values --emerald-blue {
+  font-family: emeraldFont;
+  override-colors:
+    0 #ffffff, /* Blue text */
+    2 #101828; /* Dark blue shadow */
+}
+
+@font-palette-values --emerald-red {
+  font-family: emeraldFont;
+  override-colors:
+    0 #ffffff, /* Red text */
+    2 #c83030; /* Dark red shadow */
+}
+
+@font-palette-values --emerald-yellow {
+  font-family: emeraldFont;
+  override-colors:
+    0 #f8b830, /* Yellow text */
+    2 #c89020; /* Dark yellow shadow */
+}
+
+@font-palette-values --emerald-green {
+  font-family: emeraldFont;
+  override-colors:
+    0 #50b058, /* Green text */
+    2 #388840; /* Dark green shadow */
+}
+
+@font-palette-values --emerald-white {
+  font-family: emeraldFont;
+  override-colors:
+    0 #f8f8f8, /* White text */
+    2 #787878; /* Gray shadow */
+}
+
+@font-palette-values --emerald-muted {
+  font-family: emeraldFont;
+  override-colors:
+    0 #a8b0b8, /* Muted text */
+    2 #eeeeee; /* Muted shadow */
+}
+
 :root {
   --background: #d8e0e8;
   --foreground: #282828;
+  --pixel-scale: 1;
   --card: #f8f8f8;
   --card-foreground: #282828;
   --popover: #f8f8f8;
@@ -68,8 +130,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-pixel), 'Press Start 2P', monospace;
-  --font-mono: var(--font-pixel), 'Press Start 2P', monospace;
+  --font-sans: var(--font-emerald), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-emerald), ui-monospace, monospace;
+  --font-heading: var(--font-pixel), 'Press Start 2P', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -136,6 +199,39 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Font palette utilities */
+.font-palette-default {
+  font-palette: --emerald-default;
+}
+
+.font-palette-no-shadow {
+  font-palette: --emerald-no-shadow;
+}
+
+.font-palette-blue {
+  font-palette: --emerald-blue;
+}
+
+.font-palette-red {
+  font-palette: --emerald-red;
+}
+
+.font-palette-yellow {
+  font-palette: --emerald-yellow;
+}
+
+.font-palette-green {
+  font-palette: --emerald-green;
+}
+
+.font-palette-white {
+  font-palette: --emerald-white;
+}
+
+.font-palette-muted {
+  font-palette: --emerald-muted;
 }
 
 /* Pixel art animation keyframes */

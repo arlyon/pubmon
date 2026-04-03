@@ -115,9 +115,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
 	const playSFX = (trackId: TrackId | string) => {
 		// Check if it's a predefined track ID
-		const path = (trackId as TrackId) in AUDIO_PATHS
-			? AUDIO_PATHS[trackId as TrackId]
-			: `/audio/attacks/${trackId}.wav`;
+		const path =
+			(trackId as TrackId) in AUDIO_PATHS
+				? AUDIO_PATHS[trackId as TrackId]
+				: `/audio/attacks/${trackId}.wav`;
 
 		const sound = new Howl({
 			src: [path],
@@ -135,47 +136,47 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 	const formatMoveNameForAudio = (moveId: string): string => {
 		// Special cases for multi-word moves
 		const specialCases: Record<string, string> = {
-			'hydropump': 'HydroPump',
-			'fireblast': 'FireBlast',
-			'solarbeam': 'SolarBeam',
-			'razorleaf': 'RazorLeaf',
-			'bodyslam': 'BodySlam',
-			'doubleedge': 'DoubleEdge',
-			'megapunch': 'MegaPunch',
-			'megadrain': 'MegaDrain',
-			'takedown': 'TakeDown',
-			'quickattack': 'QuickAttack',
-			'confuseray': 'ConfuseRay',
-			'leechseed': 'LeechSeed',
-			'wingattack': 'WingAttack',
-			'sandattack': 'SandAttack',
-			'skyattack': 'SkyAttack',
-			'hornattack': 'HornAttack',
-			'horndrill': 'HornDrill',
-			'focusenergy': 'FocusEnergy',
-			'stunspore': 'StunSpore',
-			'dizzypunch': 'DizzyPunch',
-			'razorwind': 'RazorWind',
-			'poisonpowder': 'PoisonPowder',
-			'poisonsting': 'PoisonSting',
-			'firespin': 'FireSpin',
-			'aurorabeam': 'AuroraBeam',
-			'defensecurl': 'DefenseCurl',
-			'thundershock': 'ThunderShock',
-			'doubleteam': 'DoubleTeam',
-			'sleeppowder': 'SleepPowder',
-			'swordsdance': 'SwordsDance',
-			'tailwhip': 'TailWhip',
-			'vinewhip': 'VineWhip',
-			'lightscreen': 'LightScreen',
-			'drillpeck': 'DrillPeck',
-			'dreameater': 'DreamEater',
-			'karatechop': 'KarateChop',
-			'bubblebeam': 'Bubblebeam',
-			'watergun': 'WaterGun',
-			'jumpkick': 'JumpKick',
-			'icepunch': 'IcePunch',
-			'nightshade': 'NightShade',
+			hydropump: "HydroPump",
+			fireblast: "FireBlast",
+			solarbeam: "SolarBeam",
+			razorleaf: "RazorLeaf",
+			bodyslam: "BodySlam",
+			doubleedge: "DoubleEdge",
+			megapunch: "MegaPunch",
+			megadrain: "MegaDrain",
+			takedown: "TakeDown",
+			quickattack: "QuickAttack",
+			confuseray: "ConfuseRay",
+			leechseed: "LeechSeed",
+			wingattack: "WingAttack",
+			sandattack: "SandAttack",
+			skyattack: "SkyAttack",
+			hornattack: "HornAttack",
+			horndrill: "HornDrill",
+			focusenergy: "FocusEnergy",
+			stunspore: "StunSpore",
+			dizzypunch: "DizzyPunch",
+			razorwind: "RazorWind",
+			poisonpowder: "PoisonPowder",
+			poisonsting: "PoisonSting",
+			firespin: "FireSpin",
+			aurorabeam: "AuroraBeam",
+			defensecurl: "DefenseCurl",
+			thundershock: "ThunderShock",
+			doubleteam: "DoubleTeam",
+			sleeppowder: "SleepPowder",
+			swordsdance: "SwordsDance",
+			tailwhip: "TailWhip",
+			vinewhip: "VineWhip",
+			lightscreen: "LightScreen",
+			drillpeck: "DrillPeck",
+			dreameater: "DreamEater",
+			karatechop: "KarateChop",
+			bubblebeam: "Bubblebeam",
+			watergun: "WaterGun",
+			jumpkick: "JumpKick",
+			icepunch: "IcePunch",
+			nightshade: "NightShade",
 		};
 
 		if (specialCases[moveId.toLowerCase()]) {
@@ -199,7 +200,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 				console.warn(`Attack SFX not found: ${path}, falling back to Tackle`);
 				// Fallback to a generic hit sound
 				const fallbackSound = new Howl({
-					src: ['/audio/attacks/Tackle.wav'],
+					src: ["/audio/attacks/Tackle.wav"],
 					loop: false,
 					volume: volume,
 				});
@@ -296,7 +297,18 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 	};
 
 	return (
-		<AudioContext.Provider value={{ playBGM, stopBGM, playSFX, playCry, playAttackSFX, preloadTrack, preloadCry, setVolume }}>
+		<AudioContext.Provider
+			value={{
+				playBGM,
+				stopBGM,
+				playSFX,
+				playCry,
+				playAttackSFX,
+				preloadTrack,
+				preloadCry,
+				setVolume,
+			}}
+		>
 			{children}
 		</AudioContext.Provider>
 	);

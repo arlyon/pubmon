@@ -5,28 +5,30 @@ import type { PubMon, PubType } from "../../lib/pokemon-data";
 // ============================================================================
 
 export interface PlayerInfo {
-  name: string;
-  sprite: string;
+	name: string;
+	sprite: string;
 }
 
 export interface BattleLogEntry {
-  pokemon: PubMon;
-  startTime: number;
-  endTime: number;
-  outcome: "win" | "caught" | "run" | "lose";
+	pokemon: PubMon;
+	startTime: number;
+	endTime: number;
+	outcome: "win" | "caught" | "run" | "lose";
 }
 
 export interface PlayerState {
-  sessionId: string;
-  info: PlayerInfo;
-  party: PubMon[];
-  activeIndex: number;
-  badges: Set<number>;
-  battleLog: BattleLogEntry[];
-  tournamentOptIn: boolean;
-  ribbons: string[]; // Ribbon sprite paths earned by player
-  createdAt: number;
-  lastActivity: number;
+	sessionId: string;
+	info: PlayerInfo;
+	party: PubMon[];
+	activeIndex: number;
+	badges: Set<number>;
+	battleLog: BattleLogEntry[];
+	tournamentOptIn: boolean;
+	ribbons: string[]; // Ribbon sprite paths earned by player
+	createdAt: number;
+	lastActivity: number;
+	activeBattleId?: string; // Set when player is in active tournament match
+	activeBattleOpponent?: string; // Name of opponent in active match
 }
 
 // ============================================================================
@@ -34,11 +36,11 @@ export interface PlayerState {
 // ============================================================================
 
 export interface GameState {
-  phase: "collection" | "tournament" | "hall-of-fame";
-  currentGymId: number; // Admin-controlled global gym
-  players: Map<string, PlayerState>; // sessionId -> PlayerState
-  tournamentBracket?: TournamentBracket;
-  hallOfFame?: Record<string, string[]>; // sessionId -> ribbon paths
+	phase: "collection" | "tournament" | "hall-of-fame";
+	currentGymId: number; // Admin-controlled global gym
+	players: Map<string, PlayerState>; // sessionId -> PlayerState
+	tournamentBracket?: TournamentBracket;
+	hallOfFame?: Record<string, string[]>; // sessionId -> ribbon paths
 }
 
 // ============================================================================
@@ -46,18 +48,18 @@ export interface GameState {
 // ============================================================================
 
 export interface TournamentBracket {
-  round: number;
-  matches: TournamentMatch[];
+	round: number;
+	matches: TournamentMatch[];
 }
 
 export interface TournamentMatch {
-  matchId: string;
-  player1SessionId: string;
-  player2SessionId: string | null; // null for bye matches
-  battleId?: string; // Generated when battle starts
-  winnerId?: string; // Set when battle completes
-  status: "pending" | "in_progress" | "completed" | "forfeited";
-  adminOverride?: boolean; // True if admin manually advanced a player
+	matchId: string;
+	player1SessionId: string;
+	player2SessionId: string | null; // null for bye matches
+	battleId?: string; // Generated when battle starts
+	winnerId?: string; // Set when battle completes
+	status: "pending" | "in_progress" | "completed" | "forfeited";
+	adminOverride?: boolean; // True if admin manually advanced a player
 }
 
 // ============================================================================
@@ -65,21 +67,21 @@ export interface TournamentMatch {
 // ============================================================================
 
 export interface BattleState {
-  battleId: string;
-  player1: BattlePlayer;
-  player2: BattlePlayer;
-  currentTurn: "player1" | "player2";
-  turnCount: number;
-  status: "waiting" | "active" | "completed";
-  winnerId?: string;
+	battleId: string;
+	player1: BattlePlayer;
+	player2: BattlePlayer;
+	currentTurn: "player1" | "player2";
+	turnCount: number;
+	status: "waiting" | "active" | "completed";
+	winnerId?: string;
 }
 
 export interface BattlePlayer {
-  sessionId: string;
-  name: string;
-  party: PubMon[];
-  activeIndex: number;
-  connected: boolean;
+	sessionId: string;
+	name: string;
+	party: PubMon[];
+	activeIndex: number;
+	connected: boolean;
 }
 
 // ============================================================================
@@ -87,74 +89,80 @@ export interface BattlePlayer {
 // ============================================================================
 
 export interface SerializablePlayerState {
-  sessionId: string;
-  info: PlayerInfo;
-  party: PubMon[];
-  activeIndex: number;
-  badges: number[];
-  battleLog: BattleLogEntry[];
-  tournamentOptIn: boolean;
-  ribbons: string[];
-  createdAt: number;
-  lastActivity: number;
+	sessionId: string;
+	info: PlayerInfo;
+	party: PubMon[];
+	activeIndex: number;
+	badges: number[];
+	battleLog: BattleLogEntry[];
+	tournamentOptIn: boolean;
+	ribbons: string[];
+	createdAt: number;
+	lastActivity: number;
+	activeBattleId?: string;
+	activeBattleOpponent?: string;
 }
 
 export interface SerializableGameState {
-  phase: "collection" | "tournament" | "hall-of-fame";
-  currentGymId: number;
-  players: Record<string, SerializablePlayerState>;
-  tournamentBracket?: TournamentBracket;
-  hallOfFame?: Record<string, string[]>;
+	phase: "collection" | "tournament" | "hall-of-fame";
+	currentGymId: number;
+	players: Record<string, SerializablePlayerState>;
+	tournamentBracket?: TournamentBracket;
+	hallOfFame?: Record<string, string[]>;
 }
 
 // ============================================================================
 // Utility functions for serialization
 // ============================================================================
 
-export function serializePlayerState(state: PlayerState): SerializablePlayerState {
-  return {
-    ...state,
-    badges: Array.from(state.badges),
-    battleLog: state.battleLog,
-    ribbons: state.ribbons || [],
-  };
+export function serializePlayerState(
+	state: PlayerState,
+): SerializablePlayerState {
+	return {
+		...state,
+		badges: Array.from(state.badges),
+		battleLog: state.battleLog,
+		ribbons: state.ribbons || [],
+	};
 }
 
-export function deserializePlayerState(state: SerializablePlayerState): PlayerState {
-  return {
-    ...state,
-    badges: new Set(state.badges),
-    battleLog: state.battleLog || [], // Handle legacy players without battleLog
-    ribbons: state.ribbons || [], // Handle legacy players without ribbons
-  };
+export function deserializePlayerState(
+	state: SerializablePlayerState,
+): PlayerState {
+	return {
+		...state,
+		badges: new Set(state.badges),
+		battleLog: state.battleLog || [], // Handle legacy players without battleLog
+		ribbons: state.ribbons || [], // Handle legacy players without ribbons
+	};
 }
 
 export function serializeGameState(state: GameState): SerializableGameState {
-  const players: Record<string, SerializablePlayerState> = {};
-  state.players.forEach((player, sessionId) => {
-    players[sessionId] = serializePlayerState(player);
-  });
+	const players: Record<string, SerializablePlayerState> = {};
+	state.players.forEach((player, sessionId) => {
+		players[sessionId] = serializePlayerState(player);
+	});
 
-  return {
-    phase: state.phase,
-    currentGymId: state.currentGymId,
-    players,
-    tournamentBracket: state.tournamentBracket,
-    hallOfFame: state.hallOfFame,
-  };
+	return {
+		phase: state.phase,
+		currentGymId: state.currentGymId,
+		players,
+		tournamentBracket: state.tournamentBracket,
+		hallOfFame: state.hallOfFame,
+	};
 }
 
 export function deserializeGameState(state: SerializableGameState): GameState {
-  const players = new Map<string, PlayerState>();
-  Object.entries(state.players).forEach(([sessionId, playerState]) => {
-    players.set(sessionId, deserializePlayerState(playerState));
-  });
+	const players = new Map<string, PlayerState>();
+	Object.entries(state.players).forEach(([sessionId, playerState]) => {
+		players.set(sessionId, deserializePlayerState(playerState));
+	});
 
-  return {
-    phase: state.phase,
-    currentGymId: state.currentGymId,
-    players,
-    tournamentBracket: state.tournamentBracket,
-    hallOfFame: state.hallOfFame,
-  };
+	return {
+		phase: state.phase,
+		currentGymId: state.currentGymId,
+		players,
+		tournamentBracket: state.tournamentBracket,
+		hallOfFame: state.hallOfFame,
+	};
 }

@@ -21,12 +21,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { GYMS } from "@/lib/gym-data";
 
 interface PlayerStats {
 	name: string;
 	drinksLogged: number;
 	badges: number[];
 	partyCount: number;
+	tournamentOptIn?: boolean;
 }
 
 interface TournamentMatch {
@@ -50,10 +52,14 @@ export default function AdminPage() {
 	const [players, setPlayers] = useState<PlayerStats[]>([]);
 	const [socket, setSocket] = useState<PartySocket | null>(null);
 	const [isConnected, setIsConnected] = useState(false);
+	const [gamePhase, setGamePhase] = useState<
+		"collection" | "tournament" | "hall-of-fame"
+	>("collection");
 	const [tournamentBracket, setTournamentBracket] =
 		useState<TournamentBracket | null>(null);
 	const [selectedRibbon, setSelectedRibbon] = useState<string>("");
 	const [selectedPlayer, setSelectedPlayer] = useState<string>("");
+	const [debugState, setDebugState] = useState<any>(null);
 
 	// Load admin secret from localStorage on mount
 	useEffect(() => {
@@ -95,8 +101,15 @@ export default function AdminPage() {
 					setPlayers(msg.players);
 				} else if (msg.type === "gym_update") {
 					setCurrentGym(msg.currentGymId.toString());
-				} else if (msg.type === "tournament_start" || msg.type === "bracket_update") {
+				} else if (msg.type === "tournament_start") {
+					setGamePhase("tournament");
 					setTournamentBracket(msg.bracket);
+				} else if (msg.type === "bracket_update") {
+					setTournamentBracket(msg.bracket);
+				} else if (msg.type === "hall_of_fame_ready") {
+					setGamePhase("hall-of-fame");
+				} else if (msg.type === "admin_state") {
+					setDebugState(msg.state);
 				} else if (msg.type === "error") {
 					alert(`Error: ${msg.message}`);
 				}
@@ -207,6 +220,20 @@ export default function AdminPage() {
 		);
 	};
 
+	const handleRequestState = () => {
+		if (!socket || !adminSecret) {
+			alert("Please enter admin secret");
+			return;
+		}
+
+		socket.send(
+			JSON.stringify({
+				type: "admin_request_state",
+				adminSecret,
+			}),
+		);
+	};
+
 	const ribbonOptions = [
 		{ value: "/sprites/ribbons/champion-ribbon.png", label: "Champion" },
 		{ value: "/sprites/ribbons/effort-ribbon.png", label: "Effort" },
@@ -215,7 +242,10 @@ export default function AdminPage() {
 			label: "Expert Battler",
 		},
 		{ value: "/sprites/ribbons/legend-ribbon.png", label: "Legend" },
-		{ value: "/sprites/ribbons/best-friends-ribbon.png", label: "Best Friends" },
+		{
+			value: "/sprites/ribbons/best-friends-ribbon.png",
+			label: "Best Friends",
+		},
 		{ value: "/sprites/ribbons/artist-ribbon.png", label: "Artist" },
 		{ value: "/sprites/ribbons/careless-ribbon.png", label: "Careless" },
 		{ value: "/sprites/ribbons/relax-ribbon.png", label: "Relax" },
@@ -277,9 +307,9 @@ export default function AdminPage() {
 										<SelectValue placeholder="Select gym" />
 									</SelectTrigger>
 									<SelectContent>
-										{[1, 2, 3, 4, 5, 6, 7, 8].map((gymId) => (
-											<SelectItem key={gymId} value={gymId.toString()}>
-												Gym {gymId}
+										{GYMS.map((gym) => (
+											<SelectItem key={gym.id} value={gym.id.toString()}>
+												Gym {gym.id} - {gym.name}
 											</SelectItem>
 										))}
 									</SelectContent>
@@ -289,6 +319,73 @@ export default function AdminPage() {
 								Update Gym
 							</Button>
 						</div>
+					</CardContent>
+				</Card>
+
+				{/* Tournament Status */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Tournament Status</CardTitle>
+						<CardDescription>
+							Current game phase and tournament participation
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="grid grid-cols-2 gap-4">
+							<div className="border rounded-lg p-4">
+								<p className="text-sm text-muted-foreground mb-1">Game Phase</p>
+								<p className="text-2xl font-pixel font-bold capitalize">
+									{gamePhase === "hall-of-fame" ? "Hall of Fame" : gamePhase}
+								</p>
+							</div>
+							<div className="border rounded-lg p-4">
+								<p className="text-sm text-muted-foreground mb-1">
+									Opted In Players
+								</p>
+								<p className="text-2xl font-pixel font-bold">
+									{players.filter((p) => p.tournamentOptIn).length} /{" "}
+									{players.length}
+								</p>
+							</div>
+						</div>
+
+						{tournamentBracket && (
+							<div className="grid grid-cols-3 gap-4">
+								<div className="border rounded-lg p-4">
+									<p className="text-sm text-muted-foreground mb-1">
+										Current Round
+									</p>
+									<p className="text-2xl font-pixel font-bold">
+										{tournamentBracket.round}
+									</p>
+								</div>
+								<div className="border rounded-lg p-4">
+									<p className="text-sm text-muted-foreground mb-1">
+										Active Matches
+									</p>
+									<p className="text-2xl font-pixel font-bold">
+										{
+											tournamentBracket.matches.filter(
+												(m) => m.status === "in_progress",
+											).length
+										}
+									</p>
+								</div>
+								<div className="border rounded-lg p-4">
+									<p className="text-sm text-muted-foreground mb-1">
+										Completed Matches
+									</p>
+									<p className="text-2xl font-pixel font-bold">
+										{
+											tournamentBracket.matches.filter(
+												(m) => m.status === "completed",
+											).length
+										}{" "}
+										/ {tournamentBracket.matches.length}
+									</p>
+								</div>
+							</div>
+						)}
 					</CardContent>
 				</Card>
 
@@ -303,11 +400,13 @@ export default function AdminPage() {
 					<CardContent className="space-y-4">
 						<Button
 							onClick={handleStartTournament}
-							disabled={!adminSecret}
+							disabled={!adminSecret || gamePhase !== "collection"}
 							variant="destructive"
 							size="lg"
 						>
-							Start Tournament
+							{gamePhase === "collection"
+								? "Start Tournament"
+								: "Tournament Active"}
 						</Button>
 
 						{tournamentBracket && (
@@ -431,7 +530,10 @@ export default function AdminPage() {
 						<div className="grid grid-cols-3 gap-4">
 							<div className="col-span-1">
 								<Label htmlFor="player-select">Player</Label>
-								<Select value={selectedPlayer} onValueChange={setSelectedPlayer}>
+								<Select
+									value={selectedPlayer}
+									onValueChange={setSelectedPlayer}
+								>
 									<SelectTrigger id="player-select">
 										<SelectValue placeholder="Select player" />
 									</SelectTrigger>
@@ -447,7 +549,10 @@ export default function AdminPage() {
 
 							<div className="col-span-1">
 								<Label htmlFor="ribbon-select">Ribbon</Label>
-								<Select value={selectedRibbon} onValueChange={setSelectedRibbon}>
+								<Select
+									value={selectedRibbon}
+									onValueChange={setSelectedRibbon}
+								>
 									<SelectTrigger id="ribbon-select">
 										<SelectValue placeholder="Select ribbon" />
 									</SelectTrigger>
@@ -511,7 +616,16 @@ export default function AdminPage() {
 													{idx + 1}.
 												</span>
 												<div>
-													<p className="font-pixel font-bold">{player.name}</p>
+													<div className="flex items-center gap-2">
+														<p className="font-pixel font-bold">
+															{player.name}
+														</p>
+														{player.tournamentOptIn && (
+															<Badge variant="secondary" className="text-xs">
+																Tournament
+															</Badge>
+														)}
+													</div>
 													<p className="text-sm text-muted-foreground">
 														{player.partyCount} PubMon in party
 													</p>
@@ -520,16 +634,53 @@ export default function AdminPage() {
 											<div className="flex items-center gap-4">
 												<div className="text-right">
 													<p className="font-bold">{player.drinksLogged}</p>
-													<p className="text-xs text-muted-foreground">Drinks</p>
+													<p className="text-xs text-muted-foreground">
+														Drinks
+													</p>
 												</div>
 												<div className="text-right">
 													<p className="font-bold">{player.badges.length}</p>
-													<p className="text-xs text-muted-foreground">Badges</p>
+													<p className="text-xs text-muted-foreground">
+														Badges
+													</p>
 												</div>
 											</div>
 										</div>
 									))}
 							</div>
+						)}
+					</CardContent>
+				</Card>
+
+				{/* Debug State Viewer */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Debug State</CardTitle>
+						<CardDescription>
+							View the complete server state for debugging
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<Button
+							onClick={handleRequestState}
+							disabled={!adminSecret}
+							variant="outline"
+						>
+							Refresh State
+						</Button>
+
+						{debugState && (
+							<div className="border rounded-lg p-4 bg-muted/50 overflow-auto max-h-96">
+								<pre className="text-xs font-mono">
+									{JSON.stringify(debugState, null, 2)}
+								</pre>
+							</div>
+						)}
+
+						{!debugState && (
+							<p className="text-muted-foreground text-center py-8">
+								Click "Refresh State" to load the server state
+							</p>
 						)}
 					</CardContent>
 				</Card>

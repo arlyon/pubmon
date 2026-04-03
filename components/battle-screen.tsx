@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useBattle } from "@/hooks/use-battle";
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data";
 import { useAudio } from "./audio-manager";
@@ -16,6 +16,10 @@ interface BattleScreenProps {
 	onCatch: () => void;
 	onRun: () => void;
 	onBattleEnd?: (result: "win" | "loss") => void;
+	battleMode?: "wild" | "p2p"; // Optional: defaults to 'wild'
+	battleId?: string; // Required if battleMode === 'p2p'
+	socket?: any; // PartySocket for P2P battles
+	sessionId?: string; // Required if battleMode === 'p2p'
 }
 
 const SLIDE_FRAMES = 80;
@@ -28,7 +32,21 @@ export function BattleScreen({
 	onCatch,
 	onRun,
 	onBattleEnd,
+	battleMode = "wild",
+	battleId,
+	socket,
+	sessionId,
 }: BattleScreenProps) {
+	// Create appropriate engine for battle mode
+	const engine = React.useMemo(() => {
+		if (battleMode === "p2p" && battleId && socket && sessionId) {
+			// Dynamic import to avoid issues
+			const { RemoteBattleEngine } = require("@/lib/battle-engine");
+			return new RemoteBattleEngine(battleId, sessionId, socket);
+		}
+		return undefined; // Let useBattle create LocalBattleEngine
+	}, [battleMode, battleId, socket, sessionId]);
+
 	const {
 		menu,
 		setMenu,
@@ -46,7 +64,7 @@ export function BattleScreen({
 		battleEnded,
 		battleResult,
 		continueMessage,
-	} = useBattle({ wildPokemon, playerPokemon });
+	} = useBattle({ wildPokemon, playerPokemon, engine });
 	const { playBGM, playCry, preloadCry } = useAudio();
 
 	const [showCatchAnim, setShowCatchAnim] = useState(false);

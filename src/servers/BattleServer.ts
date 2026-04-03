@@ -1,8 +1,15 @@
 import { Server, type Connection } from "partyserver";
 import type { PubMon } from "../../lib/pokemon-data";
 import type { BattleState, BattlePlayer } from "../types/game-state";
-import type { BattleClientMessage, BattleServerMessage } from "../types/messages";
+import type {
+	BattleClientMessage,
+	BattleServerMessage,
+} from "../types/messages";
 import { DurableObjectState } from "@cloudflare/workers-types";
+import { BattleStreams, Dex, Teams } from "@pkmn/sim";
+import { Generations } from "@pkmn/data";
+import { generatePubMonModData } from "../../lib/pokemon-data";
+import { type ID } from "@pkmn/dex-types";
 
 /**
  * BattleServer - Isolated Battle Sub-Room
@@ -15,384 +22,465 @@ import { DurableObjectState } from "@cloudflare/workers-types";
  * - Auto-cleanup after battle completion
  */
 export class BattleServer extends Server {
-  private battleState: BattleState | null = null;
-  private connectionMap: Map<string, Connection> = new Map();
+	private battleState: BattleState | null = null;
+	private connectionMap: Map<string, Connection> = new Map();
 
-  constructor(ctx: DurableObjectState, env: any) {
-    super(ctx, env);
-  }
+	// Battle engine
+	private battleStream: BattleStreams.BattleStream | null = null;
+	private p1Stream: BattleStreams.BattlePlayer | null = null;
+	private p2Stream: BattleStreams.BattlePlayer | null = null;
+	private eventLog: string[] = []; // Full canonical event log
+	private startTime: number = 0;
 
-  async onStart() {
-    console.log(`[BattleServer] Battle room ${this.name} started`);
-  }
+	constructor(ctx: DurableObjectState, env: any) {
+		super(ctx, env);
+	}
 
-  async onConnect(connection: Connection) {
-    console.log(`[BattleServer] Client connected: ${connection.id}`);
-  }
+	async onStart() {
+		console.log(`[BattleServer] Battle room ${this.name} started`);
+	}
 
-  async onMessage(connection: Connection, message: string | ArrayBuffer) {
-    const messageStr = typeof message === "string" ? message : new TextDecoder().decode(message);
-    try {
-      const msg: BattleClientMessage = JSON.parse(messageStr);
+	async onConnect(connection: Connection) {
+		console.log(`[BattleServer] Client connected: ${connection.id}`);
+	}
 
-      switch (msg.type) {
-        case "battle_join":
-          await this.handleBattleJoin(msg, connection);
-          break;
-        case "battle_attack":
-          await this.handleBattleAttack(msg, connection);
-          break;
-        case "battle_switch":
-          await this.handleBattleSwitch(msg, connection);
-          break;
-        case "battle_forfeit":
-          await this.handleBattleForfeit(msg, connection);
-          break;
-        default:
-          this.sendError(connection, "Unknown battle message type");
-      }
-    } catch (error) {
-      console.error("[BattleServer] Error handling message:", error);
-      this.sendError(connection, "Internal server error");
-    }
-  }
+	async onMessage(connection: Connection, message: string | ArrayBuffer) {
+		const messageStr =
+			typeof message === "string" ? message : new TextDecoder().decode(message);
+		try {
+			const msg: BattleClientMessage = JSON.parse(messageStr);
 
-  async onClose(connection: Connection) {
-    console.log(`[BattleServer] Client disconnected: ${connection.id}`);
+			switch (msg.type) {
+				case "battle_join":
+					await this.handleBattleJoin(msg, connection);
+					break;
+				case "battle_attack":
+					await this.handleBattleAttack(msg, connection);
+					break;
+				case "battle_switch":
+					await this.handleBattleSwitch(msg, connection);
+					break;
+				case "battle_forfeit":
+					await this.handleBattleForfeit(msg, connection);
+					break;
+				default:
+					this.sendError(connection, "Unknown battle message type");
+			}
+		} catch (error) {
+			console.error("[BattleServer] Error handling message:", error);
+			this.sendError(connection, "Internal server error");
+		}
+	}
 
-    // Mark player as disconnected
-    if (this.battleState) {
-      if (this.battleState.player1.sessionId === connection.id) {
-        this.battleState.player1.connected = false;
-      } else if (this.battleState.player2.sessionId === connection.id) {
-        this.battleState.player2.connected = false;
-      }
+	async onClose(connection: Connection) {
+		console.log(`[BattleServer] Client disconnected: ${connection.id}`);
 
-      // Auto-forfeit if player disconnects
-      const disconnectedPlayer = !this.battleState.player1.connected
-        ? this.battleState.player1
-        : !this.battleState.player2.connected
-          ? this.battleState.player2
-          : null;
+		// Mark player as disconnected
+		if (this.battleState) {
+			if (this.battleState.player1.sessionId === connection.id) {
+				this.battleState.player1.connected = false;
+			} else if (this.battleState.player2.sessionId === connection.id) {
+				this.battleState.player2.connected = false;
+			}
 
-      if (disconnectedPlayer && this.battleState.status === "active") {
-        const winnerId =
-          disconnectedPlayer === this.battleState.player1
-            ? this.battleState.player2.sessionId
-            : this.battleState.player1.sessionId;
-        await this.endBattle(winnerId);
-      }
-    }
-  }
+			// Auto-forfeit if player disconnects
+			const disconnectedPlayer = !this.battleState.player1.connected
+				? this.battleState.player1
+				: !this.battleState.player2.connected
+					? this.battleState.player2
+					: null;
 
-  // ============================================================================
-  // Message Handlers
-  // ============================================================================
+			if (disconnectedPlayer && this.battleState.status === "active") {
+				const winnerId =
+					disconnectedPlayer === this.battleState.player1
+						? this.battleState.player2.sessionId
+						: this.battleState.player1.sessionId;
+				await this.endBattle(winnerId);
+			}
+		}
+	}
 
-  private async handleBattleJoin(
-    msg: Extract<BattleClientMessage, { type: "battle_join" }>,
-    connection: Connection
-  ) {
-    // Fetch player data from MainEventServer
-    const playerData = await this.fetchPlayerData(msg.sessionId);
-    if (!playerData) {
-      this.sendError(connection, "Failed to fetch player data");
-      return;
-    }
+	// ============================================================================
+	// Message Handlers
+	// ============================================================================
 
-    // Initialize battle state if needed
-    if (!this.battleState) {
-      this.battleState = {
-        battleId: this.name,
-        player1: {
-          sessionId: msg.sessionId,
-          name: playerData.name,
-          party: playerData.party,
-          activeIndex: playerData.activeIndex,
-          connected: true,
-        },
-        player2: {
-          sessionId: "",
-          name: "",
-          party: [],
-          activeIndex: 0,
-          connected: false,
-        },
-        currentTurn: "player1",
-        turnCount: 0,
-        status: "waiting",
-      };
+	private async handleBattleJoin(
+		msg: Extract<BattleClientMessage, { type: "battle_join" }>,
+		connection: Connection,
+	) {
+		// Fetch player data from MainEventServer
+		const playerData = await this.fetchPlayerData(msg.sessionId);
+		if (!playerData) {
+			this.sendError(connection, "Failed to fetch player data");
+			return;
+		}
 
-      this.connectionMap.set(msg.sessionId, connection);
-      console.log(`[BattleServer] Player 1 joined: ${playerData.name}`);
-    } else if (!this.battleState.player2.connected) {
-      // Second player joins
-      this.battleState.player2 = {
-        sessionId: msg.sessionId,
-        name: playerData.name,
-        party: playerData.party,
-        activeIndex: playerData.activeIndex,
-        connected: true,
-      };
+		// Initialize battle state if needed
+		if (!this.battleState) {
+			this.battleState = {
+				battleId: this.name,
+				player1: {
+					sessionId: msg.sessionId,
+					name: playerData.name,
+					party: playerData.party,
+					activeIndex: playerData.activeIndex,
+					connected: true,
+				},
+				player2: {
+					sessionId: "",
+					name: "",
+					party: [],
+					activeIndex: 0,
+					connected: false,
+				},
+				currentTurn: "player1",
+				turnCount: 0,
+				status: "waiting",
+			};
 
-      this.connectionMap.set(msg.sessionId, connection);
-      this.battleState.status = "active";
+			this.connectionMap.set(msg.sessionId, connection);
+			console.log(`[BattleServer] Player 1 joined: ${playerData.name}`);
+		} else if (!this.battleState.player2.connected) {
+			// Second player joins
+			this.battleState.player2 = {
+				sessionId: msg.sessionId,
+				name: playerData.name,
+				party: playerData.party,
+				activeIndex: playerData.activeIndex,
+				connected: true,
+			};
 
-      console.log(`[BattleServer] Player 2 joined: ${playerData.name}`);
+			this.connectionMap.set(msg.sessionId, connection);
+			this.battleState.status = "active";
 
-      // Broadcast initial battle state to both players
-      await this.broadcastBattleState();
-    } else {
-      this.sendError(connection, "Battle is full");
-    }
-  }
+			console.log(`[BattleServer] Player 2 joined: ${playerData.name}`);
 
-  private async handleBattleAttack(
-    msg: Extract<BattleClientMessage, { type: "battle_attack" }>,
-    connection: Connection
-  ) {
-    if (!this.battleState || this.battleState.status !== "active") {
-      this.sendError(connection, "Battle not active");
-      return;
-    }
+			// Initialize battle engine
+			await this.initializeBattleEngine();
 
-    // Verify it's the player's turn
-    const isPlayer1 = this.battleState.player1.sessionId === msg.sessionId;
-    const isPlayer2 = this.battleState.player2.sessionId === msg.sessionId;
+			// Broadcast initial battle state to both players
+			await this.broadcastBattleState();
+		} else {
+			this.sendError(connection, "Battle is full");
+		}
+	}
 
-    if (!isPlayer1 && !isPlayer2) {
-      this.sendError(connection, "You are not in this battle");
-      return;
-    }
+	private async handleBattleAttack(
+		msg: Extract<BattleClientMessage, { type: "battle_attack" }>,
+		connection: Connection,
+	) {
+		if (!this.battleState || this.battleState.status !== "active") {
+			this.sendError(connection, "Battle not active");
+			return;
+		}
 
-    const currentPlayer = isPlayer1 ? this.battleState.player1 : this.battleState.player2;
-    const expectedTurn = isPlayer1 ? "player1" : "player2";
+		// Verify player is in battle
+		const isPlayer1 = this.battleState.player1.sessionId === msg.sessionId;
+		const isPlayer2 = this.battleState.player2.sessionId === msg.sessionId;
 
-    if (this.battleState.currentTurn !== expectedTurn) {
-      this.sendError(connection, "Not your turn");
-      return;
-    }
+		if (!isPlayer1 && !isPlayer2) {
+			this.sendError(connection, "You are not in this battle");
+			return;
+		}
 
-    // Get attacker and defender
-    const attacker = currentPlayer;
-    const defender = isPlayer1 ? this.battleState.player2 : this.battleState.player1;
+		// Validate move index
+		const currentPlayer = isPlayer1
+			? this.battleState.player1
+			: this.battleState.player2;
+		const attackerMon = currentPlayer.party[currentPlayer.activeIndex];
 
-    const attackerMon = attacker.party[attacker.activeIndex];
-    const defenderMon = defender.party[defender.activeIndex];
+		if (!attackerMon) {
+			this.sendError(connection, "Invalid active PubMon");
+			return;
+		}
 
-    if (!attackerMon || !defenderMon) {
-      this.sendError(connection, "Invalid active PubMon");
-      return;
-    }
+		if (msg.moveIndex < 0 || msg.moveIndex >= attackerMon.moves.length) {
+			this.sendError(connection, "Invalid move index");
+			return;
+		}
 
-    if (msg.moveIndex < 0 || msg.moveIndex >= attackerMon.moves.length) {
-      this.sendError(connection, "Invalid move index");
-      return;
-    }
+		// Forward move to battle stream
+		const playerStream = isPlayer1 ? this.p1Stream : this.p2Stream;
+		if (!playerStream) {
+			this.sendError(connection, "Battle engine not initialized");
+			return;
+		}
 
-    // Calculate damage
-    const move = attackerMon.moves[msg.moveIndex];
-    const baseDamage = attackerMon.attack - defenderMon.defense / 2;
-    const damage = Math.max(5, Math.floor(baseDamage + Math.random() * 10));
+		const command = `move ${msg.moveIndex + 1}`;
+		console.log(
+			`[BattleServer] Player ${isPlayer1 ? "1" : "2"} submitting move:`,
+			command,
+		);
+		playerStream.write(command);
 
-    // Apply damage
-    defenderMon.hp = Math.max(0, defenderMon.hp - damage);
+		// Engine will handle the rest via handleEngineChunk
+	}
 
-    // Broadcast turn result
-    this.broadcastMessage({
-      type: "battle_turn_result",
-      attacker: attacker.name,
-      defender: defender.name,
-      move,
-      damage,
-      defenderHp: defenderMon.hp,
-      defenderMaxHp: defenderMon.maxHp,
-      fainted: defenderMon.hp === 0,
-    });
+	private async handleBattleSwitch(
+		msg: Extract<BattleClientMessage, { type: "battle_switch" }>,
+		connection: Connection,
+	) {
+		if (!this.battleState || this.battleState.status !== "active") {
+			this.sendError(connection, "Battle not active");
+			return;
+		}
 
-    // Check if defender's PubMon fainted
-    if (defenderMon.hp === 0) {
-      // Check if defender has more PubMon
-      const hasMoreMons = defender.party.some((mon) => mon.hp > 0);
+		const isPlayer1 = this.battleState.player1.sessionId === msg.sessionId;
+		const currentPlayer = isPlayer1
+			? this.battleState.player1
+			: this.battleState.player2;
 
-      if (!hasMoreMons) {
-        // Battle over
-        await this.endBattle(attacker.sessionId);
-        return;
-      } else {
-        // Auto-switch to next available PubMon
-        const nextIndex = defender.party.findIndex((mon) => mon.hp > 0);
-        if (nextIndex !== -1) {
-          defender.activeIndex = nextIndex;
-        }
-      }
-    }
+		if (
+			msg.newActiveIndex < 0 ||
+			msg.newActiveIndex >= currentPlayer.party.length
+		) {
+			this.sendError(connection, "Invalid switch index");
+			return;
+		}
 
-    // Switch turn
-    this.battleState.currentTurn = this.battleState.currentTurn === "player1" ? "player2" : "player1";
-    this.battleState.turnCount++;
+		const newMon = currentPlayer.party[msg.newActiveIndex];
+		if (newMon.hp === 0) {
+			this.sendError(connection, "Cannot switch to fainted PubMon");
+			return;
+		}
 
-    await this.broadcastBattleState();
-  }
+		currentPlayer.activeIndex = msg.newActiveIndex;
 
-  private async handleBattleSwitch(
-    msg: Extract<BattleClientMessage, { type: "battle_switch" }>,
-    connection: Connection
-  ) {
-    if (!this.battleState || this.battleState.status !== "active") {
-      this.sendError(connection, "Battle not active");
-      return;
-    }
+		// Switching consumes your turn
+		this.battleState.currentTurn =
+			this.battleState.currentTurn === "player1" ? "player2" : "player1";
+		this.battleState.turnCount++;
 
-    const isPlayer1 = this.battleState.player1.sessionId === msg.sessionId;
-    const currentPlayer = isPlayer1 ? this.battleState.player1 : this.battleState.player2;
+		await this.broadcastBattleState();
+	}
 
-    if (msg.newActiveIndex < 0 || msg.newActiveIndex >= currentPlayer.party.length) {
-      this.sendError(connection, "Invalid switch index");
-      return;
-    }
+	private async handleBattleForfeit(
+		msg: Extract<BattleClientMessage, { type: "battle_forfeit" }>,
+		connection: Connection,
+	) {
+		if (!this.battleState) {
+			this.sendError(connection, "No active battle");
+			return;
+		}
 
-    const newMon = currentPlayer.party[msg.newActiveIndex];
-    if (newMon.hp === 0) {
-      this.sendError(connection, "Cannot switch to fainted PubMon");
-      return;
-    }
+		const isPlayer1 = this.battleState.player1.sessionId === msg.sessionId;
+		const winnerId = isPlayer1
+			? this.battleState.player2.sessionId
+			: this.battleState.player1.sessionId;
 
-    currentPlayer.activeIndex = msg.newActiveIndex;
+		await this.endBattle(winnerId);
+	}
 
-    // Switching consumes your turn
-    this.battleState.currentTurn = this.battleState.currentTurn === "player1" ? "player2" : "player1";
-    this.battleState.turnCount++;
+	// ============================================================================
+	// Battle Engine Initialization
+	// ============================================================================
 
-    await this.broadcastBattleState();
-  }
+	private async initializeBattleEngine() {
+		if (!this.battleState) return;
 
-  private async handleBattleForfeit(
-    msg: Extract<BattleClientMessage, { type: "battle_forfeit" }>,
-    connection: Connection
-  ) {
-    if (!this.battleState) {
-      this.sendError(connection, "No active battle");
-      return;
-    }
+		this.startTime = Date.now();
 
-    const isPlayer1 = this.battleState.player1.sessionId === msg.sessionId;
-    const winnerId = isPlayer1
-      ? this.battleState.player2.sessionId
-      : this.battleState.player1.sessionId;
+		const customDex = Dex.mod("pubmon" as ID, generatePubMonModData() as any);
+		const stream = new BattleStreams.BattleStream(
+			{ debug: false },
+			customDex as any,
+		);
+		const streams = BattleStreams.getPlayerStreams(stream);
 
-    await this.endBattle(winnerId);
-  }
+		this.battleStream = stream;
+		this.p1Stream = streams.p1;
+		this.p2Stream = streams.p2;
 
-  // ============================================================================
-  // Battle Utilities
-  // ============================================================================
+		// Listen to omniscient stream
+		(async () => {
+			try {
+				for await (const chunk of streams.omniscient) {
+					this.handleEngineChunk(chunk);
+				}
+			} catch (error) {
+				console.error("[BattleServer] Error in omniscient stream:", error);
+			}
+		})();
 
-  private async endBattle(winnerId: string) {
-    if (!this.battleState) return;
+		// Create team format helper
+		const formatId = (name: string) =>
+			name.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-    this.battleState.status = "completed";
-    this.battleState.winnerId = winnerId;
+		const createTeam = (player: BattlePlayer) => {
+			const activeMon = player.party[player.activeIndex];
+			return Teams.pack([
+				{
+					name: activeMon.name,
+					species: formatId(activeMon.name),
+					item: "",
+					ability: "",
+					moves: activeMon.moves.map(formatId),
+					nature: "",
+					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+					ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+					level: activeMon.level,
+					gender: "M",
+				} as any,
+			]);
+		};
 
-    const winner =
-      this.battleState.player1.sessionId === winnerId
-        ? this.battleState.player1
-        : this.battleState.player2;
+		const p1Team = createTeam(this.battleState.player1);
+		const p2Team = createTeam(this.battleState.player2);
 
-    // Broadcast battle end
-    this.broadcastMessage({
-      type: "battle_end",
-      winnerId,
-      winnerName: winner.name,
-    });
+		// Start battle
+		streams.omniscient.write(
+			`>start {"formatid":"gen1pubmon"}\n` +
+				`>player p1 {"name":"${this.battleState.player1.name}","team":"${p1Team}"}\n` +
+				`>player p2 {"name":"${this.battleState.player2.name}","team":"${p2Team}"}`,
+		);
 
-    // Report result back to MainEventServer
-    await this.reportBattleResult(winnerId);
+		console.log("[BattleServer] Battle engine initialized");
+	}
 
-    // Close connections after a delay
-    setTimeout(() => {
-      this.broadcast("BATTLE_COMPLETE");
-      // Connections will auto-close
-    }, 3000);
-  }
+	private handleEngineChunk(chunk: string) {
+		if (!this.battleState) return;
 
-  private async broadcastBattleState() {
-    if (!this.battleState) return;
+		// Split chunk into lines and filter empty
+		const lines = chunk.split("\n").filter((line) => line.length > 0);
 
-    const player1Mon = this.battleState.player1.party[this.battleState.player1.activeIndex];
-    const player2Mon = this.battleState.player2.party[this.battleState.player2.activeIndex];
+		// Append to canonical event log
+		this.eventLog.push(...lines);
 
-    if (!player1Mon || !player2Mon) return;
+		// Broadcast to both clients
+		this.broadcastMessage({
+			type: "battle_update",
+			events: lines,
+		});
 
-    this.broadcastMessage({
-      type: "battle_state",
-      battleId: this.battleState.battleId,
-      player1: {
-        name: this.battleState.player1.name,
-        activePubmon: player1Mon,
-        partyCount: this.battleState.player1.party.filter((m) => m.hp > 0).length,
-      },
-      player2: {
-        name: this.battleState.player2.name,
-        activePubmon: player2Mon,
-        partyCount: this.battleState.player2.party.filter((m) => m.hp > 0).length,
-      },
-      currentTurn: this.battleState.currentTurn,
-      turnCount: this.battleState.turnCount,
-    });
-  }
+		// Check for |win| event
+		for (const line of lines) {
+			if (line.startsWith("|win|")) {
+				const winner = line.split("|")[2];
+				const winnerId =
+					winner === this.battleState.player1.name
+						? this.battleState.player1.sessionId
+						: this.battleState.player2.sessionId;
 
-  // ============================================================================
-  // Communication with MainEventServer
-  // ============================================================================
+				void this.endBattle(winnerId);
+			}
+		}
+	}
 
-  private async fetchPlayerData(
-    sessionId: string
-  ): Promise<{ name: string; party: PubMon[]; activeIndex: number } | null> {
-    try {
-      // Fetch player data from MainEventServer via RPC
-      const mainServerUrl = `${this.env.PARTYKIT_URL}/parties/main/global`;
-      const response = await fetch(`${mainServerUrl}/rpc/player/${sessionId}`);
+	// ============================================================================
+	// Battle Utilities
+	// ============================================================================
 
-      if (!response.ok) return null;
+	private async endBattle(winnerId: string) {
+		if (!this.battleState) return;
 
-      return await response.json();
-    } catch (error) {
-      console.error("[BattleServer] Failed to fetch player data:", error);
-      return null;
-    }
-  }
+		this.battleState.status = "completed";
+		this.battleState.winnerId = winnerId;
 
-  private async reportBattleResult(winnerId: string) {
-    try {
-      const mainServerUrl = `${this.env.PARTYKIT_URL}/parties/main/global`;
-      await fetch(`${mainServerUrl}/rpc/battle-complete`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          battleId: this.name,
-          winnerId,
-        }),
-      });
-    } catch (error) {
-      console.error("[BattleServer] Failed to report battle result:", error);
-    }
-  }
+		const winner =
+			this.battleState.player1.sessionId === winnerId
+				? this.battleState.player1
+				: this.battleState.player2;
 
-  // ============================================================================
-  // Utility Methods
-  // ============================================================================
+		// Broadcast battle end
+		this.broadcastMessage({
+			type: "battle_end",
+			winnerId,
+			winnerName: winner.name,
+		});
 
-  private broadcastMessage(message: BattleServerMessage) {
-    this.broadcast(JSON.stringify(message));
-  }
+		// Report result back to MainEventServer
+		await this.reportBattleResult(winnerId);
 
-  private sendError(connection: Connection, message: string) {
-    connection.send(
-      JSON.stringify({
-        type: "battle_error",
-        message,
-      })
-    );
-  }
+		// Close connections after a delay
+		setTimeout(() => {
+			this.broadcast("BATTLE_COMPLETE");
+			// Connections will auto-close
+		}, 3000);
+	}
+
+	private async broadcastBattleState() {
+		if (!this.battleState) return;
+
+		const player1Mon =
+			this.battleState.player1.party[this.battleState.player1.activeIndex];
+		const player2Mon =
+			this.battleState.player2.party[this.battleState.player2.activeIndex];
+
+		if (!player1Mon || !player2Mon) return;
+
+		this.broadcastMessage({
+			type: "battle_state",
+			battleId: this.battleState.battleId,
+			player1: {
+				name: this.battleState.player1.name,
+				activePubmon: player1Mon,
+				partyCount: this.battleState.player1.party.filter((m) => m.hp > 0)
+					.length,
+			},
+			player2: {
+				name: this.battleState.player2.name,
+				activePubmon: player2Mon,
+				partyCount: this.battleState.player2.party.filter((m) => m.hp > 0)
+					.length,
+			},
+			currentTurn: this.battleState.currentTurn,
+			turnCount: this.battleState.turnCount,
+		});
+	}
+
+	// ============================================================================
+	// Communication with MainEventServer
+	// ============================================================================
+
+	private async fetchPlayerData(
+		sessionId: string,
+	): Promise<{ name: string; party: PubMon[]; activeIndex: number } | null> {
+		try {
+			// Fetch player data from MainEventServer via RPC
+			const mainServerUrl = `${this.env.PARTYKIT_URL}/parties/main/global`;
+			const response = await fetch(`${mainServerUrl}/rpc/player/${sessionId}`);
+
+			if (!response.ok) return null;
+
+			return await response.json();
+		} catch (error) {
+			console.error("[BattleServer] Failed to fetch player data:", error);
+			return null;
+		}
+	}
+
+	private async reportBattleResult(winnerId: string) {
+		try {
+			const mainServerUrl = `${this.env.PARTYKIT_URL}/parties/main/global`;
+			await fetch(`${mainServerUrl}/rpc/battle-complete`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					battleId: this.name,
+					winnerId,
+					moveCount: this.battleState?.turnCount || 0,
+					duration: Date.now() - this.startTime,
+				}),
+			});
+		} catch (error) {
+			console.error("[BattleServer] Failed to report battle result:", error);
+		}
+	}
+
+	// ============================================================================
+	// Utility Methods
+	// ============================================================================
+
+	private broadcastMessage(message: BattleServerMessage) {
+		this.broadcast(JSON.stringify(message));
+	}
+
+	private sendError(connection: Connection, message: string) {
+		connection.send(
+			JSON.stringify({
+				type: "battle_error",
+				message,
+			}),
+		);
+	}
 }

@@ -35,36 +35,45 @@ async function getPlayerState() {
 	}
 }
 
-async function getCurrentGym() {
+async function getGameState() {
 	try {
-		const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787"}/parties/main/rpc/gym`, {
-			cache: "no-store",
-		});
+		const response = await fetch(
+			`${process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787"}/parties/main/rpc/gym`,
+			{
+				cache: "no-store",
+			},
+		);
 
 		if (!response.ok) {
-			console.error("Failed to fetch current gym:", response.statusText);
-			return 1; // Default to gym 1
+			console.error("Failed to fetch game state:", response.statusText);
+			return { currentGymId: 1, gamePhase: "collection" as const };
 		}
 
 		const data = await response.json();
-		return data.currentGymId;
+		return {
+			currentGymId: data.currentGymId,
+			gamePhase:
+				data.gamePhase ||
+				("collection" as "collection" | "tournament" | "hall-of-fame"),
+		};
 	} catch (error) {
-		console.error("Failed to fetch current gym:", error);
-		return 1; // Default to gym 1
+		console.error("Failed to fetch game state:", error);
+		return { currentGymId: 1, gamePhase: "collection" as const };
 	}
 }
 
 export default async function Page() {
-	const [initialPlayerState, initialGymId] = await Promise.all([
+	const [initialPlayerState, gameState] = await Promise.all([
 		getPlayerState(),
-		getCurrentGym(),
+		getGameState(),
 	]);
 
 	return (
 		<PixelScreen>
 			<GameShell
 				initialPlayerState={initialPlayerState}
-				initialGymId={initialGymId}
+				initialGymId={gameState.currentGymId}
+				initialGamePhase={gameState.gamePhase}
 			/>
 		</PixelScreen>
 	);
