@@ -1,8 +1,10 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Press_Start_2P } from "next/font/google";
 import localFont from "next/font/local";
-import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers";
+import { PWADebug } from "@/components/pwa-debug";
+import { PWAInstaller } from "@/components/pwa-installer";
 import "./globals.css";
 
 const pixelFont = Press_Start_2P({
@@ -21,6 +23,13 @@ export const metadata: Metadata = {
 	description:
 		"Catch drink-themed PubMon on your pub crawl adventure! A retro pixel-art battle game.",
 	generator: "v0.app",
+	manifest: "/manifest.webmanifest",
+	appleWebApp: {
+		capable: true,
+		statusBarStyle: "black-translucent",
+		title: "PubMon",
+	},
+	applicationName: "PubMon",
 	icons: {
 		icon: [
 			{
@@ -38,11 +47,18 @@ export const metadata: Metadata = {
 		],
 		apple: "/apple-icon.png",
 	},
+	formatDetection: {
+		telephone: false,
+	},
 };
 
 export const viewport: Viewport = {
 	themeColor: "#1a1c2c",
 	userScalable: false,
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 1,
+	viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -52,8 +68,22 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${pixelFont.variable} ${emeraldFont.variable} font-sans antialiased`}>
+			<head>
+				<meta name="mobile-web-app-capable" content="yes" />
+				<meta name="apple-mobile-web-app-capable" content="yes" />
+				<meta
+					name="apple-mobile-web-app-status-bar-style"
+					content="black-translucent"
+				/>
+				<meta name="apple-mobile-web-app-title" content="PubMon" />
+				<link rel="apple-touch-startup-image" href="/apple-icon.png" />
+			</head>
+			<body
+				className={`${pixelFont.variable} ${emeraldFont.variable} font-sans antialiased`}
+			>
+				{/*<PWADebug />*/}
 				<Providers>{children}</Providers>
+				<PWAInstaller />
 				<Analytics />
 			</body>
 		</html>

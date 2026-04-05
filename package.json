@@ -7,7 +7,7 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint .",
-		"server:dev": "wrangler dev src/index.ts",
+		"server:dev": "wrangler dev src/index.ts --ip 192.168.1.209",
 		"server:deploy": "wrangler deploy src/index.ts",
 		"server:tail": "wrangler tail"
 	},

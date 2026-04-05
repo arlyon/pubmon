@@ -432,25 +432,25 @@ export function BattleScreen({
 						<button
 							onClick={() => setMenu("fight")}
 							disabled={!playerPokemon}
-							className="pixel-box cursor-pointer font-pixel text-[6px] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light disabled:opacity-50"
+							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light disabled:opacity-50"
 						>
 							FIGHT
 						</button>
 						<button
 							onClick={handleCatch}
-							className="pixel-box cursor-pointer font-pixel text-[6px] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
 						>
 							CATCH
 						</button>
 						<button
 							onClick={handleBag}
-							className="pixel-box cursor-pointer font-pixel text-[6px] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
 						>
 							BAG
 						</button>
 						<button
 							onClick={handleRun}
-							className="pixel-box cursor-pointer font-pixel text-[6px] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
 						>
 							RUN
 						</button>
@@ -476,7 +476,7 @@ export function BattleScreen({
 												}
 											}}
 											disabled={move.disabled || move.pp <= 0}
-											className={`pixel-box cursor-pointer font-pixel text-[6px] text-center py-[4px] border-none ${
+											className={`pixel-box cursor-pointer font-pixel text-gba-[9] text-center py-[4px] border-none ${
 												move.disabled || move.pp <= 0
 													? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
 													: idx === selectedMove
@@ -486,7 +486,7 @@ export function BattleScreen({
 										>
 											<div className="flex flex-col items-center text-black">
 												<span>{move.name.toUpperCase()}</span>
-												<span className="text-[4px] text-pixel-black/70">
+												<span className="text-gba-[9] text-pixel-black/70">
 													PP: {move.pp}/{move.maxpp}
 												</span>
 											</div>
@@ -496,7 +496,7 @@ export function BattleScreen({
 							</div>
 							<button
 								onClick={() => setMenu("main")}
-								className="w-full pixel-box cursor-pointer font-pixel text-[5px] text-pixel-black text-center py-[4px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								className="w-full pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[4px] border-none bg-pixel-white hover:bg-pixel-gray-light"
 							>
 								BACK
 							</button>
@@ -516,13 +516,13 @@ export function BattleScreen({
 						<div className="grid grid-cols-2 gap-[2px]">
 							<button
 								onClick={handleCatch}
-								className="pixel-box cursor-pointer font-pixel text-[6px] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
 							>
 								CATCH
 							</button>
 							<button
 								onClick={handleRun}
-								className="pixel-box cursor-pointer font-pixel text-[6px] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
 							>
 								RUN
 							</button>
@@ -537,17 +537,17 @@ export function BattleScreen({
 					<div className="w-full max-w-sm mx-4">
 						<PixelBox className="bg-pixel-white">
 							<div className="flex flex-col items-center gap-4 py-6">
-								<h2 className="font-pixel text-[14px] text-pixel-black">
+								<h2 className="font-pixel text-gba-[9] text-pixel-black">
 									{battleResult === "win" ? "VICTORY!" : "DEFEATED..."}
 								</h2>
-								<p className="font-pixel text-[8px] text-pixel-black/70 text-center">
+								<p className="font-pixel text-gba-[9] text-pixel-black/70 text-center">
 									{battleResult === "win"
 										? `You defeated the wild ${wildPokemon.name}!`
 										: `You were defeated by the wild ${wildPokemon.name}!`}
 								</p>
 								<button
 									onClick={() => onBattleEnd?.(battleResult)}
-									className="pixel-box cursor-pointer font-pixel text-[8px] text-pixel-black text-center px-8 py-3 border-none bg-primary hover:brightness-110"
+									className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center px-8 py-3 border-none bg-primary hover:brightness-110"
 								>
 									CONTINUE
 								</button>

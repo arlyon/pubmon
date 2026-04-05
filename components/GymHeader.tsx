@@ -66,7 +66,7 @@ export function GymHeader({
 	};
 
 	return (
-		<div className={cn("w-full absolute z-50", className)}>
+		<div className={cn("w-full absolute z-50", className)} style={{ top: "var(--safe-area-inset-top, 0px)" }}>
 			<div className="w-full font-sans relative [font-palette:--emerald-blue] text-gba-[9] leading-none">
 				{/* Blue expandable section */}
 				<motion.div
@@ -112,10 +112,9 @@ export function GymHeader({
 						{/* Active Battle Alert - shows when player has an ongoing battle */}
 						{activeBattleId && activeBattleOpponent && (
 							<div
-								className="text-gba-[6] animate-pulse"
+								className="text-gba-[6] animate-pulse px-gba-[2] py-gba-[1]"
 								style={{
 									background: "#f85858",
-									padding: "6px 8px",
 									display: "flex",
 									justifyContent: "space-between",
 									alignItems: "center",
@@ -136,18 +135,18 @@ export function GymHeader({
 
 						{/* Gym name banner */}
 						<div
+							className="px-gba-[4] py-gba-[1]"
 							style={{
-								padding: "6px 8px 4px",
 								display: "flex",
 								justifyContent: "space-between",
 								alignItems: "center",
 							}}
 						>
-							<div className="text-left gap-[4px] flex flex-col">
+							<div className="text-left gap-[4px] flex flex-col pb-gba-[2]">
 								<div className="text-gba-[9] leading-none [font-palette:--emerald-blue]">
 									Current Gym
 								</div>
-								<div className="text-gba-[9] leading-none font-heading text-white tracking-wide">
+								<div className="text-gba-[6] leading-none font-heading text-white tracking-wide">
 									{currentGym.name.toUpperCase()}
 								</div>
 							</div>

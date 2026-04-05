@@ -14,6 +14,9 @@ export default plugin(function ({ matchUtilities }) {
 		"p-gba": (value) => ({
 			padding: `calc(${value} * 1px * var(--pixel-scale))`,
 		}),
+		"pb-gba": (value) => ({
+			paddingBottom: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
 		"px-gba": (value) => ({
 			paddingLeft: `calc(${value} * 1px * var(--pixel-scale))`,
 			paddingRight: `calc(${value} * 1px * var(--pixel-scale))`,

@@ -53,7 +53,12 @@ export function GameNavbar({
 	if (isHidden) return null;
 
 	return (
-		<nav className="border-t-4 border-pixel-black bg-pixel-white text-gba-[9]">
+		<nav
+			className="border-t-4 border-pixel-black bg-pixel-white text-gba-[9]"
+			style={{
+				paddingBottom: "max(8px, var(--safe-area-inset-bottom, 0px))",
+			}}
+		>
 			<div className="max-w-md mx-auto flex items-stretch">
 				<NavButton
 					icon={

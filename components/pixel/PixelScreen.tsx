@@ -13,7 +13,7 @@ interface PixelScreenProps {
  */
 const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const [scale, setScale] = useState(1);
+	const [scale, setScale] = useState<number | null>(null);
 
 	useLayoutEffect(() => {
 		let timeoutId: NodeJS.Timeout;
@@ -24,12 +24,12 @@ const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 			if (!parent) return;
 
 			// Calculate scale based on available width, capped at 640px (2x)
-			const availableWidth = Math.min(parent.clientWidth, 640);
+			const availableWidth = Math.min(parent.clientWidth, 1280);
 			const newScale = Math.max(1, availableWidth / 320);
 
 			console.log("SCALE", newScale);
 
-			setScale(newScale);
+			setScale(newScale * 2);
 		};
 
 		const debouncedUpdate = () => {
@@ -45,6 +45,13 @@ const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 			clearTimeout(timeoutId);
 		};
 	}, []);
+
+	// Don't render until we have calculated the initial scale
+	if (scale === null) {
+		return (
+			<div ref={containerRef} className="pixel-perfect w-full flex justify-center" />
+		);
+	}
 
 	return (
 		<div

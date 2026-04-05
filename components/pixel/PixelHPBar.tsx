@@ -22,14 +22,14 @@ const PixelHPBar: React.FC<PixelHPBarProps> = ({
 				: "bg-pixel-hp-red";
 
 	return (
-		<div className="flex flex-col gap-[2px]">
-			<div className="flex items-center gap-[4px]">
+		<div className="flex flex-col gap-1">
+			<div className="flex items-center gap-1">
 				{label && (
-					<span className="font-pixel text-[4px] text-pixel-black">
+					<span className="font-pixel text-gba-[9] text-pixel-black">
 						{label}
 					</span>
 				)}
-				<div className="flex-1 h-[6px] bg-pixel-gray-light border border-pixel-black">
+				<div className="flex-1 h-[8px] bg-pixel-gray-light border border-pixel-black">
 					<div
 						className={`h-full ${color} transition-all duration-500 ease-out`}
 						style={{ width: `${pct}%` }}
@@ -37,7 +37,7 @@ const PixelHPBar: React.FC<PixelHPBarProps> = ({
 				</div>
 			</div>
 			{showNumbers && (
-				<span className="font-pixel text-[6px] text-pixel-black/70 text-right">
+				<span className="font-pixel text-gba-[9] text-pixel-black/70 text-right">
 					{current}/{max}
 				</span>
 			)}

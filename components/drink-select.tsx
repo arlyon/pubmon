@@ -193,7 +193,7 @@ export function DrinkSelect({
 				onJoinBattle={onJoinBattle}
 				className="mb-4"
 			/>
-			<PixelScrollWrapper className="flex-1 flex flex-col overflow-y-scroll p-2 mt-gba-[80] gap-gba-[2]">
+			<PixelScrollWrapper className="flex-1 flex flex-col overflow-y-scroll p-2 mt-gba-[70] gap-gba-[2]">
 				<PixelBox>
 					{/* Card title bar */}
 					<div

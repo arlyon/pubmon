@@ -22,7 +22,7 @@ function StatusBadge({ status }: { status: string | null }) {
 
 	return (
 		<span
-			className="font-pixel text-[4px] px-[2px] py-[1px] rounded-sm"
+			className="font-pixel text-gba-[9] px-1 py-0.5 rounded-sm"
 			style={{ backgroundColor: statusInfo.bg, color: statusInfo.text }}
 		>
 			{statusInfo.label}
@@ -51,14 +51,14 @@ export default function PixelStatCard({
 
 	return (
 		<PixelBox className="bg-transparent">
-			<div className="flex items-center gap-1 mb-[2px]">
-				<span className="font-pixel text-[6px] text-pixel-black">
+			<div className="flex items-center gap-1 mb-1">
+				<span className="font-pixel text-gba-[9] text-pixel-black">
 					{pokemon.name.toUpperCase()}
 				</span>
 				<TypeBadge type={pokemon.type} />
 				{status && <StatusBadge status={status} />}
 			</div>
-			<span className="font-pixel text-[5px] text-pixel-black block mb-[2px]">
+			<span className="font-pixel text-gba-[9] text-pixel-black block mb-1">
 				Lv{pokemon.level}
 			</span>
 			<PixelHPBar
