@@ -58,6 +58,8 @@ export function BattleScreen({
 		setIsAnimating,
 		playerShake,
 		enemyShake,
+		playerAttacking,
+		enemyAttacking,
 		handleAttack,
 		playerActivePokemon,
 		enemyActivePokemon,
@@ -317,8 +319,12 @@ export function BattleScreen({
 				<div
 					className="absolute top-6 right-12 z-10"
 					style={{
-						transform: `translateX(-${enemyOffset}px)`,
-						transition: "none",
+						transform: `translateX(-${enemyOffset}px) ${
+							enemyAttacking
+								? "translate(calc(-25% - 20px), calc(25% + 20px))"
+								: ""
+						}`,
+						transition: enemyAttacking ? "transform 0.15s ease-out" : "none",
 						animation: enemyShake ? "pixel-shake 0.3s ease-in-out" : undefined,
 					}}
 				>
@@ -395,8 +401,14 @@ export function BattleScreen({
 						<div
 							className="absolute bottom-0 left-6 z-10"
 							style={{
-								transform: `translateX(${playerOffset}px)`,
-								transition: "none",
+								transform: `translateX(${playerOffset}px) ${
+									playerAttacking
+										? "translate(calc(25% + 20px), calc(-25% - 20px))"
+										: ""
+								}`,
+								transition: playerAttacking
+									? "transform 0.15s ease-out"
+									: "none",
 								animation: playerShake
 									? "pixel-shake 0.3s ease-in-out"
 									: undefined,

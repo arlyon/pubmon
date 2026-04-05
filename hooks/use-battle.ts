@@ -55,6 +55,8 @@ export function useBattle({
 	const [isAnimating, setIsAnimating] = useState(false);
 	const [playerShake, setPlayerShake] = useState(false);
 	const [enemyShake, setEnemyShake] = useState(false);
+	const [playerAttacking, setPlayerAttacking] = useState(false);
+	const [enemyAttacking, setEnemyAttacking] = useState(false);
 	const [playerActivePokemon, setPlayerActivePokemon] =
 		useState<ActivePokemon | null>(null);
 	const [enemyActivePokemon, setEnemyActivePokemon] =
@@ -81,6 +83,8 @@ export function useBattle({
 		enemyHp?: number;
 		playerShake?: boolean;
 		enemyShake?: boolean;
+		playerAttacking?: boolean;
+		enemyAttacking?: boolean;
 		onDisplay?: () => void;
 	}
 
@@ -232,6 +236,14 @@ export function useBattle({
 		if (nextMsg.enemyShake) {
 			setEnemyShake(true);
 			setTimeout(() => setEnemyShake(false), 400);
+		}
+		if (nextMsg.playerAttacking) {
+			setPlayerAttacking(true);
+			setTimeout(() => setPlayerAttacking(false), 300);
+		}
+		if (nextMsg.enemyAttacking) {
+			setEnemyAttacking(true);
+			setTimeout(() => setEnemyAttacking(false), 300);
 		}
 
 		// Execute callback when message is displayed
@@ -537,21 +549,28 @@ export function useBattle({
 					const parts = line.split("|");
 					const pkmn = parts[2].substring(4);
 					const move = parts[3];
-					messageQueueRef.current.push({ text: `${pkmn} used ${move}!` });
+					const isPlayer = parts[2].startsWith("p1a");
+					const isEnemy = parts[2].startsWith("p2a");
 
-					// Trigger attack sound effect
-					// Convert move name to ID format and lookup base Gen 1 move
-					const moveId = move.toLowerCase().replace(/[^a-z0-9]+/g, "");
-					const baseMoveId = getBaseMoveForAudio(moveId);
-					if (baseMoveId) {
-						playAttackSFX(baseMoveId);
-					} else {
-						// Fallback to Tackle if no mapping found
-						console.warn(
-							`No base move mapping found for '${move}', using Tackle`,
-						);
-						playAttackSFX("tackle");
-					}
+					messageQueueRef.current.push({
+						text: `${pkmn} used ${move}!`,
+						playerAttacking: isPlayer,
+						enemyAttacking: isEnemy,
+						onDisplay: () => {
+							// Trigger attack sound effect when message is displayed
+							const moveId = move.toLowerCase().replace(/[^a-z0-9]+/g, "");
+							const baseMoveId = getBaseMoveForAudio(moveId);
+							if (baseMoveId) {
+								playAttackSFX(baseMoveId);
+							} else {
+								// Fallback to Tackle if no mapping found
+								console.warn(
+									`No base move mapping found for '${move}', using Tackle`,
+								);
+								playAttackSFX("tackle");
+							}
+						},
+					});
 				} else if (line.startsWith("|-supereffective|")) {
 					messageQueueRef.current.push({ text: "It's super effective!" });
 				} else if (line.startsWith("|-resisted|")) {
@@ -708,6 +727,8 @@ export function useBattle({
 		setIsAnimating,
 		playerShake,
 		enemyShake,
+		playerAttacking,
+		enemyAttacking,
 		handleAttack,
 		playerActivePokemon,
 		enemyActivePokemon,
