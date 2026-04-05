@@ -66,7 +66,12 @@ export function BattleScreen({
 		battleEnded,
 		battleResult,
 		continueMessage,
+		forfeitTurn,
+		protocolRequest,
 	} = useBattle({ wildPokemon, playerPokemon, engine });
+
+	console.log(playerActivePokemon);
+
 	const { playBGM, playCry, preloadCry } = useAudio();
 
 	const [showCatchAnim, setShowCatchAnim] = useState(false);
@@ -164,9 +169,8 @@ export function BattleScreen({
 		} else {
 			setMessage("Can't escape!");
 			setTimeout(() => {
-				setIsAnimating(false);
-				setMenu("main");
-				setMessage(null);
+				// Forfeit turn - enemy gets to attack
+				forfeitTurn();
 			}, 1500);
 		}
 	}, [
@@ -177,6 +181,7 @@ export function BattleScreen({
 		setIsAnimating,
 		setMenu,
 		setMessage,
+		forfeitTurn,
 	]);
 
 	const handleCatch = useCallback(() => {
@@ -229,9 +234,8 @@ export function BattleScreen({
 			} else {
 				setMessage(`Oh no! ${wildPokemon.name} broke free!`);
 				setTimeout(() => {
-					setIsAnimating(false);
-					setMenu("main");
-					setMessage(null);
+					// Forfeit turn - enemy gets to attack
+					forfeitTurn();
 				}, 1500);
 			}
 		}, 2000);
@@ -243,6 +247,7 @@ export function BattleScreen({
 		setMenu,
 		setMessage,
 		enemyActivePokemon,
+		forfeitTurn,
 	]);
 
 	// Calculate pixel offsets (snap to grid of 2px)
@@ -250,6 +255,8 @@ export function BattleScreen({
 	const eased = 1 - (1 - progress) ** 2;
 	const playerOffset = Math.round(((1 - eased) * 320) / 2) * 2;
 	const enemyOffset = Math.round(((1 - eased) * 320) / 2) * 2;
+
+	console.log("PROTOCOL", protocolRequest?.active);
 
 	return (
 		<div
@@ -329,44 +336,16 @@ export function BattleScreen({
 					}}
 				>
 					{showCatchAnim ? (
-						<div
-							style={{ animation: "pokeball-shake 0.5s ease-in-out infinite" }}
-						>
-							<svg
-								viewBox="0 0 10 10"
-								width={60}
-								height={60}
-								style={{ imageRendering: "pixelated" }}
-							>
-								<circle cx={5} cy={5} r={4.5} fill="#e43b44" />
-								<rect x={0.5} y={4.5} width={9} height={1} fill="#1a1c2c" />
-								<circle
-									cx={5}
-									cy={5}
-									r={4.5}
-									fill="none"
-									stroke="#1a1c2c"
-									strokeWidth={0.5}
-								/>
-								<rect
-									x={0.5}
-									y={5}
-									width={9}
-									height={4.5}
-									rx={4.5}
-									fill="#f4f4f4"
-								/>
-								<circle
-									cx={5}
-									cy={5}
-									r={1.2}
-									fill="#f4f4f4"
-									stroke="#1a1c2c"
-									strokeWidth={0.4}
-								/>
-								<circle cx={5} cy={5} r={0.6} fill="#1a1c2c" />
-							</svg>
-						</div>
+						<img
+							src="/sprites/POKEBALL.png"
+							alt="Pokeball"
+							width={60}
+							height={60}
+							style={{
+								imageRendering: "pixelated",
+								animation: "pokeball-shake 0.6s steps(3, end) infinite",
+							}}
+						/>
 					) : (
 						<PixelSprite
 							name={wildPokemon.sprite}
@@ -440,32 +419,59 @@ export function BattleScreen({
 
 				{/* Main menu */}
 				{showMenu && menu === "main" && !message && (
-					<div className="grid grid-cols-2 gap-[2px]">
-						<button
-							onClick={() => setMenu("fight")}
-							disabled={!playerPokemon}
-							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light disabled:opacity-50"
+					<div>
+						<PixelBox
+							className="mb-[2px]"
+							style={{
+								background:
+									"linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%)",
+								boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)",
+							}}
 						>
-							FIGHT
-						</button>
-						<button
-							onClick={handleCatch}
-							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
-						>
-							CATCH
-						</button>
-						<button
-							onClick={handleBag}
-							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
-						>
-							BAG
-						</button>
-						<button
-							onClick={handleRun}
-							className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
-						>
-							RUN
-						</button>
+							<div className="py-2 px-3 text-center">
+								<p className="font-pixel text-gba-[9] text-pixel-black">
+									What will{" "}
+									{playerPokemon ? (
+										<span
+											className="font-bold"
+											style={{ color: TYPE_INFO[playerPokemon.type].color }}
+										>
+											{playerPokemon.name.toUpperCase()}
+										</span>
+									) : (
+										<span className="font-bold text-pixel-black/70">YOU</span>
+									)}{" "}
+									do?
+								</p>
+							</div>
+						</PixelBox>
+						<div className="grid grid-cols-2 gap-[2px]">
+							<button
+								onClick={() => setMenu("fight")}
+								disabled={!playerPokemon}
+								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light disabled:opacity-50"
+							>
+								FIGHT
+							</button>
+							<button
+								onClick={handleCatch}
+								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+							>
+								CATCH
+							</button>
+							<button
+								onClick={handleBag}
+								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+							>
+								BAG
+							</button>
+							<button
+								onClick={handleRun}
+								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+							>
+								RUN
+							</button>
+						</div>
 					</div>
 				)}
 
@@ -473,23 +479,45 @@ export function BattleScreen({
 				{menu === "fight" &&
 					!message &&
 					playerPokemon &&
-					playerActivePokemon && (
+					protocolRequest?.active?.[0]?.moves && (
 						<div>
+							<PixelBox
+								className="mb-[2px]"
+								style={{
+									background:
+										"linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%)",
+									boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)",
+								}}
+							>
+								<div className="py-2 px-3 text-center">
+									<p className="font-pixel text-gba-[9] text-pixel-black">
+										What will{" "}
+										<span
+											className="font-bold"
+											style={{ color: TYPE_INFO[playerPokemon.type].color }}
+										>
+											{playerPokemon.name.toUpperCase()}
+										</span>{" "}
+										do?
+									</p>
+								</div>
+							</PixelBox>
 							<div className="grid grid-cols-2 gap-[2px] mb-[2px]">
-								{playerActivePokemon.moves.map((move, idx) => {
+								{protocolRequest.active[0].moves.map((move, idx) => {
+									const isDisabled = move.disabled || move.pp <= 0;
 									return (
 										<button
 											type="button"
-											key={move.name}
+											key={move.id}
 											onClick={() => {
-												if (!move.disabled && move.pp > 0) {
+												if (!isDisabled) {
 													setSelectedMove(idx);
 													handleAttack(idx);
 												}
 											}}
-											disabled={move.disabled || move.pp <= 0}
+											disabled={isDisabled}
 											className={`pixel-box cursor-pointer font-pixel text-gba-[9] text-center py-[4px] border-none ${
-												move.disabled || move.pp <= 0
+												isDisabled
 													? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
 													: idx === selectedMove
 														? "bg-pixel-gray-light"
@@ -497,7 +525,7 @@ export function BattleScreen({
 											}`}
 										>
 											<div className="flex flex-col items-center text-black">
-												<span>{move.name.toUpperCase()}</span>
+												<span>{move.move.toUpperCase()}</span>
 												<span className="text-gba-[9] text-pixel-black/70">
 													PP: {move.pp}/{move.maxpp}
 												</span>
@@ -518,7 +546,22 @@ export function BattleScreen({
 				{/* No player pokemon message */}
 				{showMenu && !playerPokemon && menu === "main" && !message && (
 					<div>
-						<div>
+						<PixelBox
+							className="mb-[2px]"
+							style={{
+								background:
+									"linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%)",
+								boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)",
+							}}
+						>
+							<div className="py-2 px-3 text-center">
+								<p className="font-pixel text-gba-[9] text-pixel-black">
+									What will{" "}
+									<span className="font-bold text-pixel-black/70">YOU</span> do?
+								</p>
+							</div>
+						</PixelBox>
+						<div className="mb-[2px]">
 							<PixelTextBox
 								text={`You have no PubMon! Try to catch this wild ${wildPokemon.name.toUpperCase()}!`}
 								showContinue={false}
@@ -549,17 +592,17 @@ export function BattleScreen({
 					<div className="w-full max-w-sm mx-4">
 						<PixelBox className="bg-pixel-white">
 							<div className="flex flex-col items-center gap-4 py-6">
-								<h2 className="font-pixel text-gba-[9] text-pixel-black">
+								<h2 className="font-pixel text-gba-[9] font-palette-default">
 									{battleResult === "win" ? "VICTORY!" : "DEFEATED..."}
 								</h2>
-								<p className="font-pixel text-gba-[9] text-pixel-black/70 text-center">
+								<p className="font-pixel text-gba-[9] font-palette-muted text-center">
 									{battleResult === "win"
 										? `You defeated the wild ${wildPokemon.name}!`
 										: `You were defeated by the wild ${wildPokemon.name}!`}
 								</p>
 								<button
 									onClick={() => onBattleEnd?.(battleResult)}
-									className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center px-8 py-3 border-none bg-primary hover:brightness-110"
+									className="pixel-box cursor-pointer font-pixel text-gba-[9] font-palette-blue text-center px-8 py-3 border-none bg-primary hover:brightness-110"
 								>
 									CONTINUE
 								</button>

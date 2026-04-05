@@ -22,16 +22,16 @@ const PixelHPBar: React.FC<PixelHPBarProps> = ({
 				: "bg-pixel-hp-red";
 
 	return (
-		<div className="flex flex-col gap-1">
-			<div className="flex items-center gap-1">
+		<div className="flex flex-col gap-gba-[2]">
+			<div className="flex items-center gap-gba-[2]">
 				{label && (
 					<span className="font-pixel text-gba-[9] text-pixel-black">
 						{label}
 					</span>
 				)}
-				<div className="flex-1 h-[8px] bg-pixel-gray-light border border-pixel-black">
+				<div className="flex-1 h-gba-[4] bg-pixel-gray-light border-gba-[0.5] border-pixel-black">
 					<div
-						className={`h-full ${color} transition-all duration-500 ease-out`}
+						className={`h-full ${color} transition-all duration-500 linear`}
 						style={{ width: `${pct}%` }}
 					/>
 				</div>

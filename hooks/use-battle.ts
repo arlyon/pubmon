@@ -642,14 +642,14 @@ export function useBattle({
 		const formatId = (name: string) =>
 			name.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-		const createTeam = (name: string, p: any) =>
+		const createTeam = (name: string, p: any, doRun?: boolean, doCatch?: boolean) =>
 			Teams.pack([
 				{
 					name: name,
 					species: formatId(p.name),
 					item: "",
 					ability: "",
-					moves: p.moves.map(formatId),
+					moves: [...p.moves, ...(doRun === true ? ["run"] : []), ...(doCatch === true ? ["catch"] : [])].map(formatId),
 					nature: "",
 					evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
 					ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
@@ -658,7 +658,7 @@ export function useBattle({
 				} as any,
 			]);
 
-		const p1Team = createTeam("Player", playerPokemon);
+		const p1Team = createTeam("Player", playerPokemon, true, true);
 		const p2Team = createTeam("Wild PubMon", wildPokemon);
 
 		// Start battle
@@ -698,23 +698,14 @@ export function useBattle({
 		[isAnimating],
 	);
 
-	const queueMessage = useCallback((msg: QueuedMessage) => {
-		messageQueueRef.current.push(msg);
-	}, []);
-
 	const forfeitTurn = useCallback(() => {
 		if (!engineRef.current) {
 			console.error("engineRef.current is null!");
 			return;
 		}
 
-		// Use first available move to forfeit the turn
-		// This consumes the player's turn and allows enemy to attack
-		if (playerActivePokemon && playerActivePokemon.moves.length > 0) {
-			console.log("Forfeiting turn with move 0");
-			engineRef.current.submitMove(0);
-		}
-	}, [playerActivePokemon]);
+		engineRef.current.forfeitTurn();
+	}, []);
 
 	return {
 		menu,
@@ -735,7 +726,7 @@ export function useBattle({
 		battleEnded,
 		battleResult,
 		continueMessage,
-		queueMessage,
 		forfeitTurn,
+		protocolRequest: lastRequestRef.current,
 	};
 }

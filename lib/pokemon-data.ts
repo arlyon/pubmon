@@ -1433,6 +1433,66 @@ export const PUBMON_TYPE_MAP: Record<PubType, string> = {
 export function generatePubMonModData(): ModData {
 	const Species: Record<string, any> = {};
 	const Moves: Record<string, any> = {};
+
+	Moves['run'] = {
+    num: 2000,
+    accuracy: true,
+    basePower: 0,
+    category: "Status",
+    name: "Run",
+    pp: 1,
+    priority: 6, // Runs usually happen before moves (like switching)
+    onTryHit(source, target) {
+        // right now we always can't escape. success is handled by aborting the sim
+        const canEscape = false
+
+        if (canEscape) {
+            this.add('|message|You escaped safely!');
+            this.win(null); // Ends the battle
+            return null;
+        } else {
+            // This is the "Skip Turn" part
+            this.add('-activate', source, 'move: Run');
+            this.add('|cant', source, 'trapped');
+            return false; // Move fails, turn is consumed
+        }
+    },
+    secondary: null,
+    target: "self",
+    type: "Water", // Type doesn't matter for logic
+};
+
+Moves['catch'] = {
+    num: 2001,
+    accuracy: true,
+    basePower: 0,
+    category: "Status",
+    name: "Catch",
+    pp: 1,
+    priority: 0,
+    onTryHit(target, source) {
+        this.add('-activate', source, 'move: Catch');
+
+        // Catch Math (very simplified)
+        // right now we always can't catch. success is handled by aborting the sim
+        const isCaught = false;
+
+        if (isCaught) {
+            this.add('-activate', target, 'shake3'); // Visual indicator
+            this.add('|message|Gotcha! ' + target.name + ' was caught!');
+            this.win(source.side.id); // P1 wins by catching
+            return null;
+        } else {
+            this.add('-activate', target, 'shake1');
+            this.add('|message|Oh no! The PubMon broke free!');
+            return false; // Turn wasted, opponent attacks now
+        }
+    },
+    secondary: null,
+    target: "normal",
+    type: "Water",
+};
+
 	let moveCounter = 1000; // Start custom moves at a high ID to avoid collisions
 
 	// Get Gen 1 Dex for cloning move properties

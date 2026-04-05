@@ -22,7 +22,7 @@ function StatusBadge({ status }: { status: string | null }) {
 
 	return (
 		<span
-			className="font-pixel text-gba-[9] px-1 py-0.5 rounded-sm"
+			className="font-pixel leading-none text-gba-[9] px-gba-[3] py-gba-[1]"
 			style={{ backgroundColor: statusInfo.bg, color: statusInfo.text }}
 		>
 			{statusInfo.label}
@@ -35,7 +35,7 @@ interface PixelStatCardProps {
 	currentHp: number;
 	maxHp?: number; // Optional override for battle-calculated max HP
 	status?: string | null;
-	showHpLabel?: boolean;
+	level?: number; // Optional override for level
 	showHpNumbers?: boolean; // Whether to show exact HP numbers
 }
 
@@ -44,28 +44,38 @@ export default function PixelStatCard({
 	currentHp,
 	maxHp,
 	status,
-	showHpLabel = false,
+	level,
 	showHpNumbers = true,
 }: PixelStatCardProps) {
 	const actualMaxHp = maxHp ?? pokemon.maxHp;
+	const actualLevel = level ?? pokemon.level;
 
 	return (
-		<PixelBox className="bg-transparent">
-			<div className="flex items-center gap-1 mb-1">
+		<PixelBox className="bg-transparent leading-none flex flex-col gap-gba-[2]">
+			<div className="flex items-center gap-gba-[10]">
 				<span className="font-pixel text-gba-[9] text-pixel-black">
 					{pokemon.name.toUpperCase()}
 				</span>
-				<TypeBadge type={pokemon.type} />
-				{status && <StatusBadge status={status} />}
+				<div className="flex gap-gba-[2]">
+					<TypeBadge type={pokemon.type} />
+					{status && <StatusBadge status={status} />}
+				</div>
 			</div>
-			<span className="font-pixel text-gba-[9] text-pixel-black block mb-1">
-				Lv{pokemon.level}
-			</span>
+			<div className="flex items-center gap-2 justify-between">
+				<span className="font-pixel text-gba-[9] text-pixel-black">
+					Lv{actualLevel}
+				</span>
+				{showHpNumbers && (
+					<span className="font-pixel text-gba-[9] text-pixel-black">
+						{currentHp}/{actualMaxHp}
+					</span>
+				)}
+			</div>
 			<PixelHPBar
 				current={currentHp}
 				max={actualMaxHp}
-				label={showHpLabel ? "HP" : undefined}
-				showNumbers={showHpNumbers}
+				label="HP"
+				showNumbers={false}
 			/>
 		</PixelBox>
 	);

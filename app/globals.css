@@ -13,60 +13,58 @@
 /* Emerald font color palette customization */
 @font-palette-values --emerald-default {
   font-family: emeraldFont;
-  /* Default: black text with dark shadow */
-}
-
-@font-palette-values --green-shadow {
-  font-family: emeraldFont;
-  override-colors: 0 #ffffff, 2 #00ff00; /* Overriding the shadow layer */
+  override-colors:
+    0 #282828, /* Dark text */
+    2 #a8b0b8; /* Light shadow for depth */
 }
 
 @font-palette-values --emerald-no-shadow {
   font-family: emeraldFont;
   override-colors:
-    2 #00000000; /* Make shadow transparent */
+    0 #282828, /* Dark text */
+    2 #00000000; /* Transparent shadow */
 }
 
 @font-palette-values --emerald-blue {
   font-family: emeraldFont;
   override-colors:
-    0 #ffffff, /* Blue text */
-    2 #101828; /* Dark blue shadow */
+    0 #f8f8f8, /* White text */
+    2 #305098; /* Deep blue shadow */
 }
 
 @font-palette-values --emerald-red {
   font-family: emeraldFont;
   override-colors:
-    0 #ffffff, /* Red text */
-    2 #c83030; /* Dark red shadow */
+    0 #f8f8f8, /* White text */
+    2 #a82828; /* Deep red shadow */
 }
 
 @font-palette-values --emerald-yellow {
   font-family: emeraldFont;
   override-colors:
-    0 #f8b830, /* Yellow text */
-    2 #c89020; /* Dark yellow shadow */
+    0 #f8d030, /* Bright yellow text */
+    2 #a88820; /* Dark yellow/gold shadow */
 }
 
 @font-palette-values --emerald-green {
   font-family: emeraldFont;
   override-colors:
-    0 #50b058, /* Green text */
-    2 #388840; /* Dark green shadow */
+    0 #50c858, /* Bright green text */
+    2 #307838; /* Dark green shadow */
 }
 
 @font-palette-values --emerald-white {
   font-family: emeraldFont;
   override-colors:
     0 #f8f8f8, /* White text */
-    2 #787878; /* Gray shadow */
+    2 #686868; /* Gray shadow */
 }
 
 @font-palette-values --emerald-muted {
   font-family: emeraldFont;
   override-colors:
-    0 #a8b0b8, /* Muted text */
-    2 #eeeeee; /* Muted shadow */
+    0 #a8b0b8, /* Muted gray text */
+    2 #d8e0e8; /* Very light shadow */
 }
 
 :root {
@@ -278,11 +276,10 @@
 }
 
 @keyframes pokeball-shake {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(15deg); }
-  50% { transform: rotate(0deg); }
-  75% { transform: rotate(-15deg); }
-  100% { transform: rotate(0deg); }
+  0% { transform: rotate(-20deg); }
+  33% { transform: rotate(0deg); }
+  66% { transform: rotate(20deg); }
+  100% { transform: rotate(-20deg); }
 }
 
 @keyframes encounter-flash {

@@ -490,14 +490,14 @@ export function GameShell({
 										</svg>
 									</div>
 								</div>
-								<p className="text-[14px] text-primary text-center">GOTCHA!</p>
-								<p className="text-[10px] text-foreground text-center">
+								<p className="text-gba-[9] font-pixel font-palette-default text-center">GOTCHA!</p>
+								<p className="text-gba-[9] font-sans font-palette-default text-center">
 									{context.caughtPokemon.name} was caught!
 								</p>
-								<p className="text-[8px] text-muted-foreground text-center leading-relaxed">
+								<p className="text-gba-[9] font-sans font-palette-muted text-center leading-relaxed">
 									{context.caughtPokemon.description}
 								</p>
-								<p className="text-[9px] text-foreground">
+								<p className="text-gba-[9] font-sans font-palette-default">
 									{context.caughtPokemon.name} was added to your team!
 								</p>
 							</div>
@@ -505,7 +505,7 @@ export function GameShell({
 						<button
 							type="button"
 							onClick={() => send({ type: "CONTINUE" })}
-							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-[10px] font-sans shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
+							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-gba-[9] font-sans font-palette-blue shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
 						>
 							CONTINUE CRAWL
 						</button>
@@ -523,18 +523,18 @@ export function GameShell({
 					<div className="max-w-md mx-auto flex flex-col items-center gap-4 pt-8">
 						<PixelBox variant="battle" className="w-full">
 							<div className="flex flex-col items-center gap-4 py-4">
-								<p className="text-[14px] text-primary text-center">VICTORY!</p>
-								<p className="text-[10px] text-foreground text-center">
+								<p className="text-gba-[9] font-pixel font-palette-default text-center">VICTORY!</p>
+								<p className="text-gba-[9] font-sans font-palette-default text-center">
 									You defeated the wild{" "}
 									{context.activeEncounter.wildPubmon?.name}!
 								</p>
 								<div className="border-2 border-primary/30 px-4 py-2">
-									<p className="text-[12px] text-primary">
+									<p className="text-gba-[9] font-sans font-palette-default">
 										+{context.xpGained} XP
 									</p>
 								</div>
 								{activePokemon && (
-									<p className="text-[8px] text-muted-foreground text-center">
+									<p className="text-gba-[9] font-sans font-palette-muted text-center">
 										{activePokemon.name} gained experience!
 									</p>
 								)}
@@ -543,7 +543,7 @@ export function GameShell({
 						<button
 							onClick={() => send({ type: "CONTINUE" })}
 							type="button"
-							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-[10px] font-sans shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
+							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-gba-[9] font-sans font-palette-blue shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
 						>
 							CONTINUE CRAWL
 						</button>

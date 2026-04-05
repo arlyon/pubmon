@@ -72,7 +72,7 @@ export function TypeBadge({ type }: { type: PubType }) {
 
 	return (
 		<span
-			className={`inline-block px-1 py-0.5 text-gba-[9] font-sans ${info.bg} text-background`}
+			className={`leading-none px-gba-[3] py-gba-[1] text-gba-[9] ${info.bg}`}
 		>
 			{info.label}
 		</span>

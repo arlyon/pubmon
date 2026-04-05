@@ -17,13 +17,13 @@ export function Badge3D({ badgeId, onContinue }: Badge3DProps) {
 			<div className="flex flex-col items-center gap-6 max-w-md px-4">
 				{/* 3D Badge Display */}
 				<div
-					className="relative"
+					className="relative w-32 h-32"
 					style={{
 						perspective: "1000px",
 					}}
 				>
 					<div
-						className="relative"
+						className="relative w-32 h-32"
 						style={{
 							transformStyle: "preserve-3d",
 							animation: "spin-y 3s linear infinite",
@@ -51,17 +51,17 @@ export function Badge3D({ badgeId, onContinue }: Badge3DProps) {
 				{/* Badge Info */}
 				<div className="flex flex-col items-center gap-2 text-center">
 					<p
-						className="text-[20px] text-primary font-pixel"
+						className="text-gba-[9] font-pixel font-palette-white"
 						style={{
 							animation: "pixel-bounce 1s ease-in-out infinite",
 						}}
 					>
 						BADGE EARNED!
 					</p>
-					<p className="text-[14px] text-foreground font-sans">
+					<p className="text-gba-[9] font-sans font-palette-white">
 						{gym.badgeName}
 					</p>
-					<p className="text-[10px] text-muted-foreground font-sans">
+					<p className="text-gba-[9] font-sans font-palette-muted">
 						Awarded by {gym.leaderName} at {gym.name}
 					</p>
 				</div>
@@ -70,7 +70,7 @@ export function Badge3D({ badgeId, onContinue }: Badge3DProps) {
 				<button
 					type="button"
 					onClick={onContinue}
-					className="border-4 border-foreground bg-primary text-primary-foreground px-8 py-4 text-[12px] font-sans shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all"
+					className="border-4 border-foreground bg-primary text-primary-foreground px-8 py-4 text-gba-[9] font-sans font-palette-blue shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all"
 				>
 					CONTINUE
 				</button>
