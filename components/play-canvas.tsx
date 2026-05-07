@@ -15,10 +15,57 @@ interface PlayCanvasProps {
 type PubMonState = "walking" | "grabbed" | "free";
 
 const SPRITE_SIZE = 192; // Display size of the PubMon
-const POKEBALL_SIZE = 96;
+const POKEBALL_SIZE = 48;
 const POKEBALL_RADIUS = 48;
 const RECOVERY_TIME = 2000; // ms to wait before auto-recovery
 const VELOCITY_THRESHOLD = 0.5; // Velocity below which PubMon is considered "resting"
+
+const CUTE_SAYINGS = [
+	"I love walks!",
+	"*happy noises*",
+	"Pet me!",
+	"La la la~",
+	"So comfy...",
+	"Hehe!",
+	"Pick me up!",
+	"*yawn*",
+	"What's over there?",
+	"Snack time?",
+	"I'm the best!",
+	"Wheee~!",
+	"*purrs*",
+	"Look at me go!",
+	"Are we there yet?",
+	"*hums a tune*",
+	"Feeling great!",
+	"Boop!",
+	"*wiggles*",
+	"Let's explore!",
+];
+
+const GRABBED_SAYINGS = [
+	"Wheee!",
+	"Higher! Higher!",
+	"I can fly!",
+	"Woooo!",
+	"Don't drop me!",
+	"*giggles*",
+	"This is fun!",
+	"I'm so high up!",
+];
+
+const FREE_SAYINGS = [
+	"Oof...",
+	"Dizzy...",
+	"*sees stars*",
+	"That was wild!",
+	"Again! Again!",
+	"I'm okay...",
+];
+
+const SPEECH_DISPLAY_TIME = 2000; // frames (~2 seconds)
+const SPEECH_COOLDOWN_MIN = 2000; // minimum frames between sayings (~3 seconds)
+const SPEECH_COOLDOWN_MAX = 4000; // maximum frames between sayings (~7 seconds)
 
 export function PlayCanvas({
 	pubmon,
@@ -52,10 +99,28 @@ export function PlayCanvas({
 		flipped: Point[];
 	}>({ normal: [], flipped: [] });
 	const { playPokemonCry } = usePokemonCry([pubmon]);
+	const speechTextRef = useRef<string>("");
+	const speechTimerRef = useRef<number>(0);
+	const speechCooldownRef = useRef<number>(
+		Math.floor(Math.random() * (SPEECH_COOLDOWN_MAX - SPEECH_COOLDOWN_MIN)) +
+			SPEECH_COOLDOWN_MIN,
+	);
 
 	const updateState = (newState: PubMonState) => {
 		setState(newState);
 		stateRef.current = newState;
+		// Trigger an immediate saying on state change
+		const sayings =
+			newState === "grabbed"
+				? GRABBED_SAYINGS
+				: newState === "free"
+					? FREE_SAYINGS
+					: CUTE_SAYINGS;
+		speechTextRef.current = sayings[Math.floor(Math.random() * sayings.length)];
+		speechTimerRef.current = SPEECH_DISPLAY_TIME;
+		speechCooldownRef.current =
+			Math.floor(Math.random() * (SPEECH_COOLDOWN_MAX - SPEECH_COOLDOWN_MIN)) +
+			SPEECH_COOLDOWN_MIN;
 	};
 
 	console.log("STATE", state);
@@ -73,49 +138,47 @@ export function PlayCanvas({
 
 		// Create Matter.js engine
 		const engine = Matter.Engine.create();
-		engine.gravity.y = overlay ? 0 : 1; // No gravity in overlay mode
+		engine.gravity.y = 1;
 		engineRef.current = engine;
 
-		// Create boundaries (walls) - skip in overlay mode
+		// Create boundaries (walls)
 		const wallThickness = 50;
-		if (!overlay) {
-			const walls = [
-				// Floor
-				Matter.Bodies.rectangle(
-					canvas.width / 2,
-					canvas.height + wallThickness / 2,
-					canvas.width,
-					wallThickness,
-					{ isStatic: true, label: "floor" },
-				),
-				// Ceiling
-				Matter.Bodies.rectangle(
-					canvas.width / 2,
-					-wallThickness / 2,
-					canvas.width,
-					wallThickness,
-					{ isStatic: true, label: "ceiling" },
-				),
-				// Left wall
-				Matter.Bodies.rectangle(
-					-wallThickness / 2,
-					canvas.height / 2,
-					wallThickness,
-					canvas.height,
-					{ isStatic: true, label: "wall-left" },
-				),
-				// Right wall
-				Matter.Bodies.rectangle(
-					canvas.width + wallThickness / 2,
-					canvas.height / 2,
-					wallThickness,
-					canvas.height,
-					{ isStatic: true, label: "wall-right" },
-				),
-			];
+		const walls = [
+			// Floor
+			Matter.Bodies.rectangle(
+				canvas.width / 2,
+				canvas.height + wallThickness / 2,
+				canvas.width,
+				wallThickness,
+				{ isStatic: true, label: "floor" },
+			),
+			// Ceiling
+			Matter.Bodies.rectangle(
+				canvas.width / 2,
+				-wallThickness / 2,
+				canvas.width,
+				wallThickness,
+				{ isStatic: true, label: "ceiling" },
+			),
+			// Left wall
+			Matter.Bodies.rectangle(
+				-wallThickness / 2,
+				canvas.height / 2,
+				wallThickness,
+				canvas.height,
+				{ isStatic: true, label: "wall-left" },
+			),
+			// Right wall
+			Matter.Bodies.rectangle(
+				canvas.width + wallThickness / 2,
+				canvas.height / 2,
+				wallThickness,
+				canvas.height,
+				{ isStatic: true, label: "wall-right" },
+			),
+		];
 
-			Matter.World.add(engine.world, walls);
-		}
+		Matter.World.add(engine.world, walls);
 
 		// Load sprite and create PubMon body
 		const spritePath = getPubMonSprite(pubmon.sprite, pubmon.spriteVariant);
@@ -218,20 +281,18 @@ export function PlayCanvas({
 				};
 			});
 
-		// Create mouse constraint for dragging (not in overlay mode)
-		if (!overlay) {
-			const mouse = Matter.Mouse.create(canvas);
-			const mouseConstraint = Matter.MouseConstraint.create(engine, {
-				mouse: mouse,
-				constraint: {
-					stiffness: 0.8,
-					render: { visible: false },
-				} as any,
-			});
+		// Create mouse constraint for dragging
+		const mouse = Matter.Mouse.create(canvas);
+		const mouseConstraint = Matter.MouseConstraint.create(engine, {
+			mouse: mouse,
+			constraint: {
+				stiffness: 0.8,
+				render: { visible: false },
+			} as any,
+		});
 
-			mouseConstraintRef.current = mouseConstraint;
-			Matter.World.add(engine.world, mouseConstraint);
-		}
+		mouseConstraintRef.current = mouseConstraint;
+		Matter.World.add(engine.world, mouseConstraint);
 
 		// Collision events for landing damping
 		Matter.Events.on(engine, "collisionStart", (event) => {
@@ -286,8 +347,8 @@ export function PlayCanvas({
 		// 	});
 		// });
 
-		// Mouse events for interaction (not in overlay mode)
-		if (!overlay && mouseConstraintRef.current) {
+		// Mouse events for interaction
+		if (mouseConstraintRef.current) {
 			Matter.Events.on(mouseConstraintRef.current, "startdrag", (event) => {
 				if (event.body?.label === "pubmon") {
 					updateState("grabbed");
@@ -501,21 +562,80 @@ export function PlayCanvas({
 					ctx.stroke();
 				}
 
-				// Draw state bubble (not in overlay mode)
-				if (!overlay) {
-					const bubble =
-						stateRef.current === "walking"
-							? "😊"
-							: stateRef.current === "grabbed"
-								? "❤️"
-								: "😵";
-					ctx.font = "24px Arial";
+				// Speech bubble logic
+				if (speechTimerRef.current > 0) {
+					speechTimerRef.current--;
+				} else if (speechCooldownRef.current > 0) {
+					speechCooldownRef.current--;
+				} else {
+					// Pick a new saying based on current state
+					const sayings =
+						stateRef.current === "grabbed"
+							? GRABBED_SAYINGS
+							: stateRef.current === "free"
+								? FREE_SAYINGS
+								: CUTE_SAYINGS;
+					speechTextRef.current =
+						sayings[Math.floor(Math.random() * sayings.length)];
+					speechTimerRef.current = SPEECH_DISPLAY_TIME;
+					speechCooldownRef.current =
+						Math.floor(
+							Math.random() * (SPEECH_COOLDOWN_MAX - SPEECH_COOLDOWN_MIN),
+						) + SPEECH_COOLDOWN_MIN;
+				}
+
+				// Draw speech bubble when active
+				if (speechTimerRef.current > 0 && speechTextRef.current) {
+					const text = speechTextRef.current;
+					const bubbleX = body.position.x;
+					const bubbleY = body.position.y - SPRITE_SIZE / 2 - 16;
+
+					ctx.save();
+					ctx.font = "bold 14px monospace";
 					ctx.textAlign = "center";
-					ctx.fillText(
-						bubble,
-						body.position.x,
-						body.position.y - SPRITE_SIZE / 2 - 20,
-					);
+					ctx.textBaseline = "middle";
+					const metrics = ctx.measureText(text);
+					const padX = 10;
+					const padY = 6;
+					const bw = metrics.width + padX * 2;
+					const bh = 20 + padY * 2;
+
+					// Fade out in last 30 frames
+					const alpha =
+						speechTimerRef.current < 30 ? speechTimerRef.current / 30 : 1;
+					ctx.globalAlpha = alpha;
+
+					// Bubble background
+					const bx = bubbleX - bw / 2;
+					const by = bubbleY - bh;
+					ctx.fillStyle = "#fff";
+					ctx.strokeStyle = "#222";
+					ctx.lineWidth = 2;
+
+					// Rounded rect
+					const r = 8;
+					ctx.beginPath();
+					ctx.moveTo(bx + r, by);
+					ctx.lineTo(bx + bw - r, by);
+					ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+					ctx.lineTo(bx + bw, by + bh - r);
+					ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+					ctx.lineTo(bx + bw / 2 + 6, by + bh);
+					// Speech tail
+					ctx.lineTo(bubbleX, by + bh + 8);
+					ctx.lineTo(bx + bw / 2 - 6, by + bh);
+					ctx.lineTo(bx + r, by + bh);
+					ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+					ctx.lineTo(bx, by + r);
+					ctx.quadraticCurveTo(bx, by, bx + r, by);
+					ctx.closePath();
+					ctx.fill();
+					ctx.stroke();
+
+					// Text
+					ctx.fillStyle = "#222";
+					ctx.fillText(text, bubbleX, bubbleY - bh / 2);
+					ctx.restore();
 				}
 			}
 
@@ -549,8 +669,7 @@ export function PlayCanvas({
 					// Pace left and right
 					const speed = 0.2;
 
-					// In overlay mode, walk at bottom of screen
-					const targetY = overlay ? canvas.height - 100 : body.position.y;
+					const targetY = body.position.y;
 
 					// Check if out of bounds and reverse direction
 					if (body.position.x < 100) {
@@ -605,8 +724,8 @@ export function PlayCanvas({
 				}
 			}
 
-			// Check for recovery (free -> walking after resting) - not in overlay mode
-			if (!overlay && stateRef.current === "free" && body) {
+			// Check for recovery (free -> walking after resting)
+			if (stateRef.current === "free" && body) {
 				const velocity = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
 
 				if (velocity < VELOCITY_THRESHOLD) {
@@ -629,8 +748,8 @@ export function PlayCanvas({
 				}
 			}
 
-			// Play cry when grabbed and moved slowly (not in overlay mode)
-			if (!overlay && stateRef.current === "grabbed" && body) {
+			// Play cry when grabbed and moved slowly
+			if (stateRef.current === "grabbed" && body) {
 				const dx = body.position.x - lastPositionRef.current.x;
 				const dy = body.position.y - lastPositionRef.current.y;
 				const distance = Math.sqrt(dx ** 2 + dy ** 2);
@@ -738,14 +857,16 @@ export function PlayCanvas({
 				height: "100vh",
 				zIndex: 9999,
 				backgroundColor: overlay ? "transparent" : "#000",
-				pointerEvents: overlay ? "none" : "auto",
+				// pointerEvents: overlay ? "none" : "auto",
+				pointerEvents: "auto",
 			}}
 		>
 			<canvas
 				ref={canvasRef}
 				style={{
 					display: "block",
-					pointerEvents: overlay ? "none" : "auto",
+					// pointerEvents: overlay ? "none" : "auto",
+					pointerEvents: "auto",
 				}}
 			/>
 			{/* Pokeball click area - always interactive */}
