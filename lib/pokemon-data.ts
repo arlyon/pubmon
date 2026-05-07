@@ -1440,11 +1440,12 @@ export function generatePubMonModData(): ModData {
     basePower: 0,
     category: "Status",
     name: "Run",
-    pp: 1,
+    pp: 99,
+    noPPBoosts: true,
     priority: 6, // Runs usually happen before moves (like switching)
     onTryHit(source, target) {
-        // right now we always can't escape. success is handled by aborting the sim
-        const canEscape = false
+        // Your Run Logic (example)
+        const canEscape = source.speed >= target.speed || Math.random() > 0.5;
 
         if (canEscape) {
             this.add('|message|You escaped safely!');
@@ -1468,14 +1469,15 @@ Moves['catch'] = {
     basePower: 0,
     category: "Status",
     name: "Catch",
-    pp: 1,
+    pp: 99,
+    noPPBoosts: true,
     priority: 0,
     onTryHit(target, source) {
         this.add('-activate', source, 'move: Catch');
 
         // Catch Math (very simplified)
-        // right now we always can't catch. success is handled by aborting the sim
-        const isCaught = false;
+        const catchRate = 0.5;
+        const isCaught = Math.random() < catchRate;
 
         if (isCaught) {
             this.add('-activate', target, 'shake3'); // Visual indicator

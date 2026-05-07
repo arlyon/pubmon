@@ -13,9 +13,9 @@ interface BattleScreenProps {
 	wildPokemon: PubMon;
 	playerPokemon: PubMon | null;
 	onFight: () => void;
-	onCatch: () => void;
-	onRun: () => void;
-	onBattleEnd?: (result: "win" | "loss") => void;
+	onCatch: () => void; // Called when catch succeeds in sim
+	onRun: () => void; // Called when run succeeds in sim
+	onBattleEnd?: (result: "win" | "loss") => void; // Called when pokemon faints
 	battleMode?: "wild" | "p2p"; // Optional: defaults to 'wild'
 	battleId?: string; // Required if battleMode === 'p2p'
 	socket?: any; // PartySocket for P2P battles
@@ -68,13 +68,18 @@ export function BattleScreen({
 		continueMessage,
 		forfeitTurn,
 		protocolRequest,
-	} = useBattle({ wildPokemon, playerPokemon, engine });
+	} = useBattle({
+		wildPokemon,
+		playerPokemon,
+		engine,
+		onCatchSuccess: onCatch,
+		onRunSuccess: onRun,
+	});
 
 	console.log(playerActivePokemon);
 
 	const { playBGM, playCry, preloadCry } = useAudio();
 
-	const [showCatchAnim, setShowCatchAnim] = useState(false);
 	const [slideFrame, setSlideFrame] = useState(0);
 	const [showMenu, setShowMenu] = useState(false);
 	const [selectedMove, setSelectedMove] = useState(0);
@@ -144,111 +149,38 @@ export function BattleScreen({
 	}, [isAnimating, setIsAnimating, setMenu, setMessage]);
 
 	const handleRun = useCallback(() => {
-		if (isAnimating || !playerActivePokemon || !enemyActivePokemon) return;
+		if (isAnimating || !protocolRequest?.active?.[0]?.moves) return;
 
-		setIsAnimating(true);
-		setMenu("message");
+		// Find the "run" move index
+		const runMoveIndex = protocolRequest.active[0].moves.findIndex(
+			(move) => move.id === "run"
+		);
 
-		// Calculate effective speed including boosts
-		const playerSpeed = playerActivePokemon.boosts.spe;
-		const enemySpeed = enemyActivePokemon.boosts.spe;
-
-		// Higher speed guarantees escape, otherwise RNG roll
-		let escapeChance = 0.5; // Base 50% chance
-		if (playerSpeed > enemySpeed) {
-			escapeChance = 1.0; // Guaranteed escape if faster
-		} else if (playerSpeed < enemySpeed) {
-			escapeChance = 0.25; // Lower chance if slower
+		if (runMoveIndex === -1) {
+			console.error("Run move not found!");
+			return;
 		}
 
-		const escaped = Math.random() < escapeChance;
-
-		if (escaped) {
-			setMessage("Got away safely!");
-			setTimeout(() => onRun(), 1500);
-		} else {
-			setMessage("Can't escape!");
-			setTimeout(() => {
-				// Forfeit turn - enemy gets to attack
-				forfeitTurn();
-			}, 1500);
-		}
-	}, [
-		isAnimating,
-		playerActivePokemon,
-		enemyActivePokemon,
-		onRun,
-		setIsAnimating,
-		setMenu,
-		setMessage,
-		forfeitTurn,
-	]);
+		// Use the battle engine's run move
+		handleAttack(runMoveIndex);
+	}, [isAnimating, protocolRequest, handleAttack]);
 
 	const handleCatch = useCallback(() => {
-		if (isAnimating) return;
-		setIsAnimating(true);
-		setMenu("message");
-		setShowCatchAnim(true);
-		setMessage("You threw a PubBall!");
+		if (isAnimating || !protocolRequest?.active?.[0]?.moves) return;
 
-		// Play ball toss sound effect
-		const ballTossAudio = new Audio("/audio/general/SFX_BALL_TOSS.wav");
-		ballTossAudio.play().catch(() => {
-			// Silently fail if audio can't play
-		});
+		// Find the "catch" move index
+		const catchMoveIndex = protocolRequest.active[0].moves.findIndex(
+			(move) => move.id === "catch"
+		);
 
-		setTimeout(() => {
-			// Calculate catch rate based on enemy's weakened HP and status
-			let catchRate = 0.3; // Base catch rate
+		if (catchMoveIndex === -1) {
+			console.error("Catch move not found!");
+			return;
+		}
 
-			if (enemyActivePokemon) {
-				// HP factor: Lower HP = higher catch rate (up to 3x multiplier)
-				const hpRatio = enemyActivePokemon.hp / enemyActivePokemon.maxhp;
-				const hpMultiplier = Math.max(1, (1 - hpRatio) * 2 + 1); // 1x at full HP, up to 3x at low HP
-
-				// Status multiplier
-				let statusMultiplier = 1;
-				if (
-					enemyActivePokemon.status === "slp" ||
-					enemyActivePokemon.status === "frz"
-				) {
-					statusMultiplier = 2; // Sleep and Freeze give 2x multiplier
-				} else if (enemyActivePokemon.status) {
-					statusMultiplier = 1.5; // Other status conditions give 1.5x multiplier
-				}
-
-				catchRate = catchRate * hpMultiplier * statusMultiplier;
-			}
-
-			const caught = Math.random() < catchRate;
-			setShowCatchAnim(false);
-			if (caught) {
-				// Play caught sound effect
-				const caughtAudio = new Audio("/audio/general/SFX_CAUGHT_MON.wav");
-				caughtAudio.play().catch(() => {
-					// Silently fail if audio can't play
-				});
-
-				setMessage(`Gotcha! ${wildPokemon.name} was caught!`);
-				setTimeout(() => onCatch(), 2000);
-			} else {
-				setMessage(`Oh no! ${wildPokemon.name} broke free!`);
-				setTimeout(() => {
-					// Forfeit turn - enemy gets to attack
-					forfeitTurn();
-				}, 1500);
-			}
-		}, 2000);
-	}, [
-		wildPokemon,
-		isAnimating,
-		onCatch,
-		setIsAnimating,
-		setMenu,
-		setMessage,
-		enemyActivePokemon,
-		forfeitTurn,
-	]);
+		// Use the battle engine's catch move
+		handleAttack(catchMoveIndex);
+	}, [isAnimating, protocolRequest, handleAttack]);
 
 	// Calculate pixel offsets (snap to grid of 2px)
 	const progress = Math.min(slideFrame / SLIDE_FRAMES, 1);
@@ -503,36 +435,39 @@ export function BattleScreen({
 								</div>
 							</PixelBox>
 							<div className="grid grid-cols-2 gap-[2px] mb-[2px]">
-								{protocolRequest.active[0].moves.map((move, idx) => {
-									const isDisabled = move.disabled || move.pp <= 0;
-									return (
-										<button
-											type="button"
-											key={move.id}
-											onClick={() => {
-												if (!isDisabled) {
-													setSelectedMove(idx);
-													handleAttack(idx);
-												}
-											}}
-											disabled={isDisabled}
-											className={`pixel-box cursor-pointer font-pixel text-gba-[9] text-center py-[4px] border-none ${
-												isDisabled
-													? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
-													: idx === selectedMove
-														? "bg-pixel-gray-light"
-														: "bg-pixel-white hover:bg-pixel-gray-light"
-											}`}
-										>
-											<div className="flex flex-col items-center text-black">
-												<span>{move.move.toUpperCase()}</span>
-												<span className="text-gba-[9] text-pixel-black/70">
-													PP: {move.pp}/{move.maxpp}
-												</span>
-											</div>
-										</button>
-									);
-								})}
+								{protocolRequest.active[0].moves
+									.map((move, originalIdx) => ({ move, originalIdx }))
+									.filter(({ move }) => move.id !== "run" && move.id !== "catch")
+									.map(({ move, originalIdx }) => {
+										const isDisabled = move.disabled || move.pp <= 0;
+										return (
+											<button
+												type="button"
+												key={move.id}
+												onClick={() => {
+													if (!isDisabled) {
+														setSelectedMove(originalIdx);
+														handleAttack(originalIdx);
+													}
+												}}
+												disabled={isDisabled}
+												className={`pixel-box cursor-pointer font-pixel text-gba-[9] text-center py-[4px] border-none ${
+													isDisabled
+														? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
+														: originalIdx === selectedMove
+															? "bg-pixel-gray-light"
+															: "bg-pixel-white hover:bg-pixel-gray-light"
+												}`}
+											>
+												<div className="flex flex-col items-center text-black">
+													<span>{move.move.toUpperCase()}</span>
+													<span className="text-gba-[9] text-pixel-black/70">
+														PP: {move.pp}/{move.maxpp}
+													</span>
+												</div>
+											</button>
+										);
+									})}
 							</div>
 							<button
 								onClick={() => setMenu("main")}
@@ -586,7 +521,7 @@ export function BattleScreen({
 				)}
 			</div>
 
-			{/* Battle End Overlay */}
+			{/* Battle End Overlay - only for win/loss */}
 			{battleEnded && battleResult && (
 				<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
 					<div className="w-full max-w-sm mx-4">

@@ -41,12 +41,16 @@ interface UseBattleProps {
 	wildPokemon: PubMon;
 	playerPokemon: PubMon | null;
 	engine?: BattleEngine; // Optional: if not provided, creates LocalBattleEngine
+	onCatchSuccess?: () => void; // Called when catch succeeds in sim
+	onRunSuccess?: () => void; // Called when run succeeds in sim
 }
 
 export function useBattle({
 	wildPokemon,
 	playerPokemon,
 	engine,
+	onCatchSuccess,
+	onRunSuccess,
 }: UseBattleProps) {
 	const [menu, setMenu] = useState<BattleMenu>("main");
 	const [message, setMessage] = useState<string | null>(null);
@@ -63,6 +67,7 @@ export function useBattle({
 		useState<ActivePokemon | null>(null);
 	const [battleEnded, setBattleEnded] = useState(false);
 	const [battleResult, setBattleResult] = useState<"win" | "loss" | null>(null);
+	const lastMoveUsedRef = useRef<string | null>(null);
 
 	// Track PP usage for player's moves
 	const movePPUsage = useRef<Map<string, number>>(new Map());
@@ -552,6 +557,12 @@ export function useBattle({
 					const isPlayer = parts[2].startsWith("p1a");
 					const isEnemy = parts[2].startsWith("p2a");
 
+					// Track the last move used by the player
+					if (isPlayer) {
+						const moveId = move.toLowerCase().replace(/[^a-z0-9]+/g, "");
+						lastMoveUsedRef.current = moveId;
+					}
+
 					messageQueueRef.current.push({
 						text: `${pkmn} used ${move}!`,
 						playerAttacking: isPlayer,
@@ -581,13 +592,33 @@ export function useBattle({
 				} else if (line.startsWith("|win|")) {
 					const winner = line.split("|")[2];
 					if (winner === "Player") {
-						messageQueueRef.current.push({
-							text: "VICTORY!",
-							onDisplay: () => {
-								setBattleEnded(true);
-								setBattleResult("win");
-							},
-						});
+						// Check if the battle ended due to catch or run
+						const lastMove = lastMoveUsedRef.current;
+						if (lastMove === "catch") {
+							messageQueueRef.current.push({
+								text: "Gotcha! The PubMon was caught!",
+								onDisplay: () => {
+									// Call the callback to trigger state machine transition
+									onCatchSuccess?.();
+								},
+							});
+						} else if (lastMove === "run") {
+							messageQueueRef.current.push({
+								text: "Got away safely!",
+								onDisplay: () => {
+									// Call the callback to trigger state machine transition
+									onRunSuccess?.();
+								},
+							});
+						} else {
+							messageQueueRef.current.push({
+								text: "VICTORY!",
+								onDisplay: () => {
+									setBattleEnded(true);
+									setBattleResult("win");
+								},
+							});
+						}
 					} else {
 						messageQueueRef.current.push({
 							text: "DEFEATED...",
@@ -683,10 +714,6 @@ export function useBattle({
 
 			if (!engineRef.current) {
 				console.error("engineRef.current is null!");
-				return;
-			}
-			if (isAnimating) {
-				console.log("Blocked by isAnimating");
 				return;
 			}
 
