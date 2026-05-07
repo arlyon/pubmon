@@ -1449,7 +1449,7 @@ export function generatePubMonModData(): ModData {
 
         if (canEscape) {
             this.add('|message|You escaped safely!');
-            this.win(null); // Ends the battle
+            this.win(source.side.name); // Ends the battle
             return null;
         } else {
             // This is the "Skip Turn" part
@@ -1482,7 +1482,7 @@ Moves['catch'] = {
         if (isCaught) {
             this.add('-activate', target, 'shake3'); // Visual indicator
             this.add('|message|Gotcha! ' + target.name + ' was caught!');
-            this.win(source.side.id); // P1 wins by catching
+            this.win(source.side.name); // P1 wins by catching
             return null;
         } else {
             this.add('-activate', target, 'shake1');

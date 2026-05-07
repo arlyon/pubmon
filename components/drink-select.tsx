@@ -240,7 +240,7 @@ export function DrinkSelect({
 								className="pt-4"
 								flipped
 							/>
-							<div
+							{/*<div
 								className="text-gba-[9] [font-palette:--emerald-blue] leading-none p-gba-[2] text-white"
 								style={{
 									position: "absolute",
@@ -254,7 +254,7 @@ export function DrinkSelect({
 								}}
 							>
 								LV.{player.level}
-							</div>
+							</div>*/}
 						</div>
 
 						{/* Stats */}

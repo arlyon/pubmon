@@ -23,9 +23,9 @@ import PixelTransition, {
 	circleWipeTransition,
 } from "./pixel/PixelTransition";
 import { PixelBox } from "./pixel-box";
-import { PlayerCreate, type PlayerInfo } from "./player-create";
+import { IntroSequence } from "./intro";
+import type { PlayerInfo } from "./player-create";
 import { Pokedex } from "./pokedex";
-import { StarterSelect } from "./starter-select";
 import { TrainerCard } from "./TrainerCard";
 import { TeamManagement } from "./team-management";
 import { TournamentBracketViewer } from "./tournament-bracket-viewer";
@@ -315,18 +315,12 @@ export function GameShell({
 
 			{/* Main content */}
 			<main className="flex-1 flex overflow-y-scroll bg-pixel-gray-light">
-				{isOnboarding && sessionId && !isStarter && (
-					<PlayerCreate
-						onComplete={handlePlayerCreate}
+				{isOnboarding && sessionId && (
+					<IntroSequence
 						socket={socket}
 						sessionId={sessionId}
-					/>
-				)}
-
-				{isStarter && context.playerInfo && (
-					<StarterSelect
-						onSelect={handleStarterSelect}
-						name={context.playerInfo.name}
+						onPlayerCreate={handlePlayerCreate}
+						onStarterSelect={handleStarterSelect}
 					/>
 				)}
 

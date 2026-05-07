@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Howl } from "howler";
+import { Howl, Howler } from "howler";
 
 type TrackId =
 	| "battle"
@@ -113,17 +113,27 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	const playSFX = (trackId: TrackId | string) => {
+	const playSFX = (trackId: TrackId | string, duck = false) => {
 		// Check if it's a predefined track ID
 		const path =
 			(trackId as TrackId) in AUDIO_PATHS
 				? AUDIO_PATHS[trackId as TrackId]
 				: `/audio/attacks/${trackId}.wav`;
 
+		// Duck the BGM while the SFX plays
+		if (duck && bgmRef.current) {
+			bgmRef.current.fade(bgmRef.current.volume(), volume * 0.25, 300);
+		}
+
 		const sound = new Howl({
 			src: [path],
 			loop: false,
 			volume: volume,
+			onend: () => {
+				if (duck && bgmRef.current) {
+					bgmRef.current.fade(bgmRef.current.volume(), volume, 600);
+				}
+			},
 		});
 
 		sound.play();
@@ -238,9 +248,31 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		}
 	};
 
-	// Pre-load battle music on mount
+	// Pre-load intro + battle audio on mount
 	useEffect(() => {
+		preloadTrack("title-screen");
+		preloadTrack("world-of-pokemon");
+		preloadTrack("pokemon-lab");
 		preloadTrack("battle");
+		preloadCry(29); // Mojitoad cry for intro
+
+		// Unlock AudioContext on first user gesture so audio plays freely after.
+		// In standalone PWA mode, Chrome/Safari are more lenient, but a gesture
+		// is still required on first cold start.
+		const unlock = () => {
+			const ctx = (Howler as any).ctx as AudioContext | undefined;
+			if (ctx?.state === "suspended") {
+				ctx.resume();
+			}
+			window.removeEventListener("pointerdown", unlock);
+			window.removeEventListener("keydown", unlock);
+		};
+		window.addEventListener("pointerdown", unlock, { once: true });
+		window.addEventListener("keydown", unlock, { once: true });
+		return () => {
+			window.removeEventListener("pointerdown", unlock);
+			window.removeEventListener("keydown", unlock);
+		};
 	}, []);
 
 	// Cleanup on unmount

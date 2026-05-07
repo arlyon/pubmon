@@ -25,9 +25,9 @@ const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 
 			// Calculate scale based on available width, capped at 640px (2x)
 			const availableWidth = Math.min(parent.clientWidth, 1280);
-			const newScale = Math.max(1, availableWidth / 320);
+			const newScale = Math.min(Math.max(1, availableWidth / 320), 2);
 
-			console.log("SCALE", newScale);
+			console.log(newScale);
 
 			setScale(newScale * 2);
 		};
@@ -49,7 +49,10 @@ const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 	// Don't render until we have calculated the initial scale
 	if (scale === null) {
 		return (
-			<div ref={containerRef} className="pixel-perfect w-full flex justify-center" />
+			<div
+				ref={containerRef}
+				className="pixel-perfect w-full flex justify-center"
+			/>
 		);
 	}
 
