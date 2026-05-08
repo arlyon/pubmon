@@ -58,6 +58,8 @@ export function useBattle({
 	const [playerHp, setPlayerHp] = useState(0);
 	const [isAnimating, setIsAnimating] = useState(false);
 	const [playerShake, setPlayerShake] = useState(false);
+	const [playerFlash, setPlayerFlash] = useState(false);
+	const [enemyFlash, setEnemyFlash] = useState(false);
 	const [enemyShake, setEnemyShake] = useState(false);
 	const [playerAttacking, setPlayerAttacking] = useState(false);
 	const [enemyAttacking, setEnemyAttacking] = useState(false);
@@ -68,6 +70,7 @@ export function useBattle({
 	const [battleEnded, setBattleEnded] = useState(false);
 	const [battleResult, setBattleResult] = useState<"win" | "loss" | null>(null);
 	const lastMoveUsedRef = useRef<string | null>(null);
+	const [battleLog, setBattleLog] = useState<{ dir: "in" | "out"; line: string; ts: number }[]>([]);
 
 	// Track PP usage for player's moves
 	const movePPUsage = useRef<Map<string, number>>(new Map());
@@ -77,7 +80,7 @@ export function useBattle({
 	const p2HpRef = useRef<{ hp: number; maxhp: number }>({ hp: 0, maxhp: 0 });
 
 	// Audio hook
-	const { playAttackSFX } = useAudio();
+	const { playAttackSFX, playSFX } = useAudio();
 
 	const battleRef = useRef<Battle | null>(null);
 	const engineRef = useRef<BattleEngine | null>(null);
@@ -91,6 +94,7 @@ export function useBattle({
 		playerAttacking?: boolean;
 		enemyAttacking?: boolean;
 		onDisplay?: () => void;
+		delay?: number; // ms to wait before showing this message
 	}
 
 	const messageQueueRef = useRef<QueuedMessage[]>([]);
@@ -208,6 +212,42 @@ export function useBattle({
 		return null;
 	}, []);
 
+	const showMessage = useCallback((msg: QueuedMessage) => {
+		setMessage(msg.text);
+
+		if (msg.playerHp !== undefined) {
+			setPlayerHp(msg.playerHp);
+		}
+		if (msg.enemyHp !== undefined) {
+			setEnemyHp(msg.enemyHp);
+		}
+		if (msg.playerShake) {
+			setPlayerShake(true);
+			setPlayerFlash(true);
+			playSFX("Scratch");
+			setTimeout(() => setPlayerShake(false), 400);
+			setTimeout(() => setPlayerFlash(false), 200);
+		}
+		if (msg.enemyShake) {
+			setEnemyShake(true);
+			setEnemyFlash(true);
+			playSFX("Scratch");
+			setTimeout(() => setEnemyShake(false), 400);
+			setTimeout(() => setEnemyFlash(false), 200);
+		}
+		if (msg.playerAttacking) {
+			setPlayerAttacking(true);
+			setTimeout(() => setPlayerAttacking(false), 300);
+		}
+		if (msg.enemyAttacking) {
+			setEnemyAttacking(true);
+			setTimeout(() => setEnemyAttacking(false), 300);
+		}
+		if (msg.onDisplay) {
+			msg.onDisplay();
+		}
+	}, [playSFX]);
+
 	const processMessageQueue = useCallback(() => {
 		if (processingRef.current) {
 			return;
@@ -225,39 +265,15 @@ export function useBattle({
 		setMenu("message");
 
 		const nextMsg = messageQueueRef.current.shift()!;
-		setMessage(nextMsg.text);
 
-		// Apply HP changes when message is displayed
-		if (nextMsg.playerHp !== undefined) {
-			setPlayerHp(nextMsg.playerHp);
-		}
-		if (nextMsg.enemyHp !== undefined) {
-			setEnemyHp(nextMsg.enemyHp);
-		}
-		if (nextMsg.playerShake) {
-			setPlayerShake(true);
-			setTimeout(() => setPlayerShake(false), 400);
-		}
-		if (nextMsg.enemyShake) {
-			setEnemyShake(true);
-			setTimeout(() => setEnemyShake(false), 400);
-		}
-		if (nextMsg.playerAttacking) {
-			setPlayerAttacking(true);
-			setTimeout(() => setPlayerAttacking(false), 300);
-		}
-		if (nextMsg.enemyAttacking) {
-			setEnemyAttacking(true);
-			setTimeout(() => setEnemyAttacking(false), 300);
-		}
-
-		// Execute callback when message is displayed
-		if (nextMsg.onDisplay) {
-			nextMsg.onDisplay();
+		if (nextMsg.delay) {
+			setTimeout(() => showMessage(nextMsg), nextMsg.delay);
+		} else {
+			showMessage(nextMsg);
 		}
 
 		// Don't auto-advance - wait for user to click
-	}, []);
+	}, [showMessage]);
 
 	const continueMessage = useCallback(() => {
 		processingRef.current = false;
@@ -363,6 +379,7 @@ export function useBattle({
 			for (const line of chunk.split("\n")) {
 				if (!line) continue;
 				console.debug("Processing line:", line);
+				setBattleLog(prev => [...prev, { dir: "in", line, ts: Date.now() }]);
 
 				let requestObj: Protocol.Request | undefined;
 				if (line.startsWith("|request|")) {
@@ -533,7 +550,37 @@ export function useBattle({
 					}
 				}
 
-				// First, check if this line should be translated to a themed status message
+				// --- Catch / Run handling (native, not via |win|/|tie|) ---
+
+				// Catch success: shake3 means the pokeball held
+				if (line.startsWith("|-activate|") && line.includes("shake3")) {
+					messageQueueRef.current.push({
+						text: "Gotcha! The PubMon was caught!",
+						onDisplay: () => onCatchSuccess?.(),
+					});
+					continue;
+				}
+				// Catch failure: shake1 means it broke free
+				if (line.startsWith("|-activate|") && line.includes("shake1")) {
+					messageQueueRef.current.push({
+						text: "Oh no! The PubMon broke free!",
+					});
+					continue;
+				}
+				// Skip sim-generated messages (we show our own)
+				if (line.startsWith("||message|") || line.startsWith("|message|")) {
+					continue;
+				}
+				// Skip |win|, |tie|, |faint| when caused by catch/run (not a real battle end)
+				if (
+					(line.startsWith("|win|") || line.startsWith("|tie") || line.startsWith("|faint|")) &&
+					(lastMoveUsedRef.current === "catch" || lastMoveUsedRef.current === "run")
+				) {
+					continue;
+				}
+
+				// --- Normal battle message handling ---
+
 				const translatedMessage = translateStatusMessage(line);
 				if (translatedMessage) {
 					messageQueueRef.current.push({ text: translatedMessage });
@@ -563,18 +610,30 @@ export function useBattle({
 						lastMoveUsedRef.current = moveId;
 					}
 
+					const moveId = move.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+					// Catch/Run: handle natively, skip "used X!" message
+					if (moveId === "catch") {
+						// Message will come from shake1/shake3 handler above
+						continue;
+					}
+					if (moveId === "run") {
+						messageQueueRef.current.push({
+							text: "Got away safely!",
+							onDisplay: () => onRunSuccess?.(),
+						});
+						continue;
+					}
+
 					messageQueueRef.current.push({
 						text: `${pkmn} used ${move}!`,
 						playerAttacking: isPlayer,
 						enemyAttacking: isEnemy,
 						onDisplay: () => {
-							// Trigger attack sound effect when message is displayed
-							const moveId = move.toLowerCase().replace(/[^a-z0-9]+/g, "");
 							const baseMoveId = getBaseMoveForAudio(moveId);
 							if (baseMoveId) {
 								playAttackSFX(baseMoveId);
 							} else {
-								// Fallback to Tackle if no mapping found
 								console.warn(
 									`No base move mapping found for '${move}', using Tackle`,
 								);
@@ -588,37 +647,17 @@ export function useBattle({
 					messageQueueRef.current.push({ text: "It's not very effective..." });
 				} else if (line.startsWith("|faint|")) {
 					const pkmn = line.split("|")[2].substring(4);
-					messageQueueRef.current.push({ text: `${pkmn} fainted!` });
+					messageQueueRef.current.push({ text: `${pkmn} fainted!`, delay: 600 });
 				} else if (line.startsWith("|win|")) {
 					const winner = line.split("|")[2];
 					if (winner === "Player") {
-						// Check if the battle ended due to catch or run
-						const lastMove = lastMoveUsedRef.current;
-						if (lastMove === "catch") {
-							messageQueueRef.current.push({
-								text: "Gotcha! The PubMon was caught!",
-								onDisplay: () => {
-									// Call the callback to trigger state machine transition
-									onCatchSuccess?.();
-								},
-							});
-						} else if (lastMove === "run") {
-							messageQueueRef.current.push({
-								text: "Got away safely!",
-								onDisplay: () => {
-									// Call the callback to trigger state machine transition
-									onRunSuccess?.();
-								},
-							});
-						} else {
-							messageQueueRef.current.push({
-								text: "VICTORY!",
-								onDisplay: () => {
-									setBattleEnded(true);
-									setBattleResult("win");
-								},
-							});
-						}
+						messageQueueRef.current.push({
+							text: "VICTORY!",
+							onDisplay: () => {
+								setBattleEnded(true);
+								setBattleResult("win");
+							},
+						});
 					} else {
 						messageQueueRef.current.push({
 							text: "DEFEATED...",
@@ -718,6 +757,7 @@ export function useBattle({
 			}
 
 			setIsAnimating(true);
+			setBattleLog(prev => [...prev, { dir: "out", line: `move ${moveIdx + 1}`, ts: Date.now() }]);
 
 			// Submit move through engine
 			engineRef.current.submitMove(moveIdx);
@@ -731,6 +771,7 @@ export function useBattle({
 			return;
 		}
 
+		setBattleLog(prev => [...prev, { dir: "out", line: "pass", ts: Date.now() }]);
 		engineRef.current.forfeitTurn();
 	}, []);
 
@@ -745,6 +786,8 @@ export function useBattle({
 		setIsAnimating,
 		playerShake,
 		enemyShake,
+		playerFlash,
+		enemyFlash,
 		playerAttacking,
 		enemyAttacking,
 		handleAttack,
@@ -755,5 +798,6 @@ export function useBattle({
 		continueMessage,
 		forfeitTurn,
 		protocolRequest: lastRequestRef.current,
+		battleLog,
 	};
 }

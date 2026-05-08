@@ -1,9 +1,17 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useBattle } from "@/hooks/use-battle";
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data";
+import { cn } from "@/lib/utils";
 import { useAudio } from "./audio-manager";
+import { pickBattleScene } from "./battle-scenes";
 import PixelBox from "./pixel/PixelBox";
 import PixelStatCard from "./pixel/PixelStatCard";
 import PixelTextBox from "./pixel/PixelTextBox";
@@ -58,6 +66,8 @@ export function BattleScreen({
 		setIsAnimating,
 		playerShake,
 		enemyShake,
+		playerFlash,
+		enemyFlash,
 		playerAttacking,
 		enemyAttacking,
 		handleAttack,
@@ -68,6 +78,7 @@ export function BattleScreen({
 		continueMessage,
 		forfeitTurn,
 		protocolRequest,
+		battleLog,
 	} = useBattle({
 		wildPokemon,
 		playerPokemon,
@@ -76,16 +87,26 @@ export function BattleScreen({
 		onRunSuccess: onRun,
 	});
 
-	console.log(playerActivePokemon);
-
 	const { playBGM, playCry, preloadCry } = useAudio();
 
 	const [slideFrame, setSlideFrame] = useState(0);
 	const [showMenu, setShowMenu] = useState(false);
 	const [selectedMove, setSelectedMove] = useState(0);
+	const [showDebug, setShowDebug] = useState(false);
+	const debugEndRef = useRef<HTMLDivElement>(null);
 	const [showCatchAnim, setShowCatchAnim] = useState(false);
 
 	const wildType = TYPE_INFO[wildPokemon.type];
+
+	// Pick a random scene once per battle based on both pokemon types
+	const SceneBg = useMemo(
+		() =>
+			pickBattleScene(
+				playerPokemon?.type ?? wildPokemon.type,
+				wildPokemon.type,
+			),
+		[playerPokemon?.type, wildPokemon.type],
+	);
 
 	// Pre-load Pokemon cries when battle starts
 	useEffect(() => {
@@ -148,7 +169,7 @@ export function BattleScreen({
 		if (isAnimating) return;
 		setIsAnimating(true);
 		setMenu("message");
-		setMessage("Not implemented yet!");
+		setMessage("Oi! No drugs allowed on the premises!");
 		setTimeout(() => {
 			setIsAnimating(false);
 			setMenu("main");
@@ -161,7 +182,7 @@ export function BattleScreen({
 
 		// Find the "run" move index
 		const runMoveIndex = protocolRequest.active[0].moves.findIndex(
-			(move) => move.id === "run"
+			(move) => move.id === "run",
 		);
 
 		if (runMoveIndex === -1) {
@@ -178,7 +199,7 @@ export function BattleScreen({
 
 		// Find the "catch" move index
 		const catchMoveIndex = protocolRequest.active[0].moves.findIndex(
-			(move) => move.id === "catch"
+			(move) => move.id === "catch",
 		);
 
 		if (catchMoveIndex === -1) {
@@ -197,52 +218,22 @@ export function BattleScreen({
 	const playerOffset = Math.round(((1 - eased) * 320) / 2) * 2;
 	const enemyOffset = Math.round(((1 - eased) * 320) / 2) * 2;
 
-	console.log("PROTOCOL", protocolRequest?.active);
-
 	return (
-		<div
-			className="w-full max-w-md mx-auto flex flex-col"
-			style={{ background: wildType.bgColor }}
-		>
+		<div className="w-full max-w-md mx-auto flex flex-col">
 			{/* Battle arena */}
 			<div className="relative aspect-[4/3] overflow-hidden">
-				{/* Background */}
+				{/* Scene background */}
+				<div className="absolute inset-0 overflow-hidden">
+					<SceneBg />
+				</div>
+				{/* Vignette */}
 				<div
-					className="absolute inset-0"
+					className="absolute inset-0 pointer-events-none z-[1]"
 					style={{
-						background: `linear-gradient(180deg, #1a1c2c 0%, ${wildType.bgColor} 40%, ${wildType.color}22 100%)`,
+						background:
+							"radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%)",
 					}}
 				/>
-
-				{/* Ground plane */}
-				<div className="absolute bottom-0 left-0 right-0 h-[40%]">
-					<svg
-						viewBox="0 0 100 40"
-						className="w-full h-full"
-						preserveAspectRatio="none"
-						style={{ imageRendering: "pixelated" }}
-					>
-						{/* Ground tiles */}
-						{Array.from({ length: 20 }).map((_, row) =>
-							Array.from({ length: 25 }).map((_, col) => (
-								<rect
-									key={`${row}-${col}`}
-									x={col * 4}
-									y={row * 2}
-									width={4}
-									height={2}
-									fill={
-										(row + col) % 2 === 0
-											? `${wildType.color}15`
-											: `${wildType.color}08`
-									}
-									stroke={`${wildType.color}10`}
-									strokeWidth={0.2}
-								/>
-							)),
-						)}
-					</svg>
-				</div>
 
 				{/* Enemy pokemon - top left with slide-in */}
 				<div
@@ -288,12 +279,32 @@ export function BattleScreen({
 							}}
 						/>
 					) : (
-						<PixelSprite
-							name={wildPokemon.sprite}
-							size={80}
-							animated
-							variant={wildPokemon.spriteVariant}
-						/>
+						<>
+							<div
+								style={{
+									filter: enemyFlash ? "brightness(3) saturate(0)" : undefined,
+									transition: "filter 0.1s steps(1)",
+								}}
+							>
+								<PixelSprite
+									name={wildPokemon.sprite}
+									size={80}
+									animated
+									variant={wildPokemon.spriteVariant}
+								/>
+							</div>
+							{/* Shadow */}
+							<div
+								style={{
+									width: "60%",
+									height: 6,
+									margin: "0 auto",
+									background:
+										"radial-gradient(ellipse, rgba(0,0,0,0.35) 0%, transparent 70%)",
+									borderRadius: "50%",
+								}}
+							/>
+						</>
 					)}
 				</div>
 
@@ -334,12 +345,30 @@ export function BattleScreen({
 									: undefined,
 							}}
 						>
-							<PixelSprite
-								name={playerPokemon.sprite}
-								size={128}
-								flipped
-								animated
-								variant={playerPokemon.spriteVariant}
+							<div
+								style={{
+									filter: playerFlash ? "brightness(3) saturate(0)" : undefined,
+									transition: "filter 0.1s steps(1)",
+								}}
+							>
+								<PixelSprite
+									name={playerPokemon.sprite}
+									size={128}
+									flipped
+									animated
+									variant={playerPokemon.spriteVariant}
+								/>
+							</div>
+							{/* Shadow */}
+							<div
+								style={{
+									width: "50%",
+									height: 8,
+									margin: "0 auto",
+									background:
+										"radial-gradient(ellipse, rgba(0,0,0,0.35) 0%, transparent 70%)",
+									borderRadius: "50%",
+								}}
 							/>
 						</div>
 					</>
@@ -389,26 +418,29 @@ export function BattleScreen({
 						<div className="grid grid-cols-2 gap-[2px]">
 							<button
 								onClick={() => setMenu("fight")}
-								disabled={!playerPokemon}
-								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light disabled:opacity-50"
+								disabled={!playerPokemon || isAnimating}
+								className="pix-btn font-pixel text-gba-[9]"
 							>
 								FIGHT
 							</button>
 							<button
 								onClick={handleCatch}
-								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								disabled={isAnimating}
+								className="pix-btn pix-btn--catch font-pixel text-gba-[9]"
 							>
 								CATCH
 							</button>
 							<button
 								onClick={handleBag}
-								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								disabled={isAnimating}
+								className="pix-btn font-pixel text-gba-[9]"
 							>
 								BAG
 							</button>
 							<button
 								onClick={handleRun}
-								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								disabled={isAnimating}
+								className="pix-btn pix-btn--run font-pixel text-gba-[9]"
 							>
 								RUN
 							</button>
@@ -446,9 +478,12 @@ export function BattleScreen({
 							<div className="grid grid-cols-2 gap-[2px] mb-[2px]">
 								{protocolRequest.active[0].moves
 									.map((move, originalIdx) => ({ move, originalIdx }))
-									.filter(({ move }) => move.id !== "run" && move.id !== "catch")
+									.filter(
+										({ move }) => move.id !== "run" && move.id !== "catch",
+									)
 									.map(({ move, originalIdx }) => {
-										const isDisabled = move.disabled || move.pp <= 0;
+										const isDisabled =
+											move.disabled || move.pp <= 0 || isAnimating;
 										return (
 											<button
 												type="button"
@@ -460,18 +495,15 @@ export function BattleScreen({
 													}
 												}}
 												disabled={isDisabled}
-												className={`pixel-box cursor-pointer font-pixel text-gba-[9] text-center py-[4px] border-none ${
-													isDisabled
-														? "bg-pixel-gray-light opacity-50 cursor-not-allowed"
-														: originalIdx === selectedMove
-															? "bg-pixel-gray-light"
-															: "bg-pixel-white hover:bg-pixel-gray-light"
-												}`}
+												className="pix-btn font-pixel text-gba-[9] text-left"
+												style={{
+													borderLeft: `4px solid ${TYPE_INFO[playerPokemon.type].color}`,
+												}}
 											>
-												<div className="flex flex-col items-center text-black">
+												<div className="flex items-center justify-between">
 													<span>{move.move.toUpperCase()}</span>
-													<span className="text-gba-[9] text-pixel-black/70">
-														PP: {move.pp}/{move.maxpp}
+													<span className="text-pixel-black/50">
+														{move.pp}/{move.maxpp}
 													</span>
 												</div>
 											</button>
@@ -480,7 +512,7 @@ export function BattleScreen({
 							</div>
 							<button
 								onClick={() => setMenu("main")}
-								className="w-full pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[4px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								className="w-full pix-btn font-pixel text-gba-[9]"
 							>
 								BACK
 							</button>
@@ -515,13 +547,15 @@ export function BattleScreen({
 						<div className="grid grid-cols-2 gap-[2px]">
 							<button
 								onClick={handleCatch}
-								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								disabled={isAnimating}
+								className="pix-btn pix-btn--catch font-pixel text-gba-[9]"
 							>
 								CATCH
 							</button>
 							<button
 								onClick={handleRun}
-								className="pixel-box cursor-pointer font-pixel text-gba-[9] text-pixel-black text-center py-[6px] border-none bg-pixel-white hover:bg-pixel-gray-light"
+								disabled={isAnimating}
+								className="pix-btn pix-btn--run font-pixel text-gba-[9]"
 							>
 								RUN
 							</button>
@@ -531,6 +565,45 @@ export function BattleScreen({
 			</div>
 
 			{/* Battle End Overlay - only for win/loss */}
+			{/* Debug log toggle */}
+			<div className="px-2">
+				<button
+					onClick={() => {
+						setShowDebug((d) => !d);
+						setTimeout(() => debugEndRef.current?.scrollIntoView(), 50);
+					}}
+					className="font-[ui-monospace] text-[10px] text-pixel-black/40 hover:text-pixel-black/70 cursor-pointer bg-transparent border-none p-0"
+				>
+					{showDebug ? "▼ hide debug" : "▶ debug log"}
+				</button>
+				{showDebug && (
+					<div className="mt-1 max-h-48 overflow-y-auto bg-black/90 rounded p-2 font-mono text-[10px] leading-tight">
+						{battleLog.map((entry, i) => (
+							<div
+								key={i}
+								className={cn(
+									entry.dir === "out" ? "text-green-400" : "text-gray-300",
+									"font-[ui-monospace]",
+								)}
+							>
+								<span className="text-gray-500 font-[ui-monospace]">
+									{String(entry.ts % 100000).padStart(5, "0")}{" "}
+								</span>
+								<span
+									className={
+										entry.dir === "out" ? "text-green-600" : "text-blue-400"
+									}
+								>
+									{entry.dir === "out" ? "→" : "←"}{" "}
+								</span>
+								{entry.line}
+							</div>
+						))}
+						<div ref={debugEndRef} />
+					</div>
+				)}
+			</div>
+
 			{battleEnded && battleResult && (
 				<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
 					<div className="w-full max-w-sm mx-4">
