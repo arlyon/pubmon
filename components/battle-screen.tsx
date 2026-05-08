@@ -83,6 +83,7 @@ export function BattleScreen({
 	const [slideFrame, setSlideFrame] = useState(0);
 	const [showMenu, setShowMenu] = useState(false);
 	const [selectedMove, setSelectedMove] = useState(0);
+	const [showCatchAnim, setShowCatchAnim] = useState(false);
 
 	const wildType = TYPE_INFO[wildPokemon.type];
 
@@ -93,6 +94,13 @@ export function BattleScreen({
 			preloadCry(playerPokemon.cry);
 		}
 	}, [wildPokemon.cry, playerPokemon, preloadCry]);
+
+	// Reset catch animation when enemy attacks (catch failed) or battle ends
+	useEffect(() => {
+		if (enemyAttacking || battleEnded) {
+			setShowCatchAnim(false);
+		}
+	}, [enemyAttacking, battleEnded]);
 
 	// Play victory music when battle is won
 	useEffect(() => {
@@ -179,6 +187,7 @@ export function BattleScreen({
 		}
 
 		// Use the battle engine's catch move
+		setShowCatchAnim(true);
 		handleAttack(catchMoveIndex);
 	}, [isAnimating, protocolRequest, handleAttack]);
 
