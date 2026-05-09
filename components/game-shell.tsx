@@ -28,6 +28,7 @@ import type { PlayerInfo } from "./player-create";
 import { Pokedex } from "./pokedex";
 import { TrainerCard } from "./TrainerCard";
 import { PostBattle } from "./post-battle";
+import { AnimatePresence } from "framer-motion";
 import { TeamManagement } from "./team-management";
 import { PlayCanvas } from "./play-canvas";
 import { TournamentBracketViewer } from "./tournament-bracket-viewer";
@@ -529,13 +530,16 @@ export function GameShell({
 			<DebugPanel state={state} context={context} />
 
 			{/* Play mode overlay - persists across navigation */}
-			{playingPubmon && (
-				<PlayCanvas
-					pubmon={playingPubmon}
-					onExit={handleExitPlay}
-					overlay={true}
-				/>
-			)}
+			<AnimatePresence>
+				{playingPubmon && (
+					<PlayCanvas
+						key="play-canvas"
+						pubmon={playingPubmon}
+						onExit={handleExitPlay}
+						overlay={true}
+					/>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 }

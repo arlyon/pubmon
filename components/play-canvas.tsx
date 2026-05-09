@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import Matter from "matter-js";
 import { useEffect, useRef, useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
@@ -906,49 +907,70 @@ export function PlayCanvas({
 	}, [pubmon, debugMode, overlay]);
 
 	return (
-		<div
-			style={{
-				position: "fixed",
-				top: 0,
-				left: 0,
-				width: "100vw",
-				height: "100vh",
-				zIndex: 9999,
-				backgroundColor: overlay ? "transparent" : "#000",
-				pointerEvents: "none",
-			}}
-		>
-			<canvas
-				ref={canvasRef}
+		<>
+			{/* White flash on deploy only */}
+			<motion.div
+				initial={{ opacity: 1 }}
+				animate={{ opacity: [1, 1, 0] }}
+				exit={{ opacity: 0 }}
+				transition={{ duration: 0.5, times: [0, 0.4, 1] }}
 				style={{
-					display: "block",
+					position: "fixed",
+					inset: 0,
+					backgroundColor: "#fff",
 					pointerEvents: "none",
+					zIndex: 10000,
 				}}
 			/>
-			{/* Interactive hit area that tracks the pubmon body */}
-			<div
-				ref={hitAreaRef}
+			<motion.div
+				initial={{ scale: 0, opacity: 0 }}
+				animate={{ scale: 1, opacity: 1 }}
+				exit={{ scale: 0, opacity: 0 }}
+				transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
 				style={{
-					position: "absolute",
+					position: "fixed",
 					top: 0,
 					left: 0,
-					pointerEvents: "auto",
-					cursor: "grab",
+					width: "100vw",
+					height: "100vh",
+					zIndex: 9999,
+					backgroundColor: overlay ? "transparent" : "#000",
+					pointerEvents: "none",
+					transformOrigin: "calc(100% - 44px) 44px",
 				}}
-			/>
-			{/* Pokeball click area */}
-			<div
-				style={{
-					position: "absolute",
-					top: 20,
-					right: 20,
-					width: POKEBALL_SIZE,
-					height: POKEBALL_SIZE,
-					pointerEvents: "auto",
-					cursor: "pointer",
-				}}
-				onClick={onExit}
-			/>
-		</div>
+			>
+				<canvas
+					ref={canvasRef}
+					style={{
+						display: "block",
+						pointerEvents: "none",
+					}}
+				/>
+				{/* Interactive hit area that tracks the pubmon body */}
+				<div
+					ref={hitAreaRef}
+					style={{
+						position: "absolute",
+						top: 0,
+						left: 0,
+						pointerEvents: "auto",
+						cursor: "grab",
+					}}
+				/>
+				{/* Pokeball click area */}
+				<div
+					style={{
+						position: "absolute",
+						top: 20,
+						right: 20,
+						width: POKEBALL_SIZE,
+						height: POKEBALL_SIZE,
+						pointerEvents: "auto",
+						cursor: "pointer",
+					}}
+					onClick={onExit}
+				/>
+			</motion.div>
+		</>
 	);
 }
