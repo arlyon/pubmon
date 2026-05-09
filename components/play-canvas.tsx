@@ -73,6 +73,7 @@ export function PlayCanvas({
 	overlay = false,
 }: PlayCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const hitAreaRef = useRef<HTMLDivElement>(null);
 	const engineRef = useRef<Matter.Engine | null>(null);
 	const pubmonBodyRef = useRef<Matter.Body | null>(null);
 	const mouseConstraintRef = useRef<Matter.MouseConstraint | null>(null);
@@ -105,6 +106,8 @@ export function PlayCanvas({
 		Math.floor(Math.random() * (SPEECH_COOLDOWN_MAX - SPEECH_COOLDOWN_MIN)) +
 			SPEECH_COOLDOWN_MIN,
 	);
+	const onExitRef = useRef(onExit);
+	onExitRef.current = onExit;
 
 	const updateState = (newState: PubMonState) => {
 		setState(newState);
@@ -281,7 +284,9 @@ export function PlayCanvas({
 				};
 			});
 
-		// Create mouse constraint for dragging
+		// Create mouse constraint for dragging.
+		// We attach Matter.Mouse to the canvas but manually forward events
+		// from the hit-area div so the canvas can stay pointer-events: none.
 		const mouse = Matter.Mouse.create(canvas);
 		const mouseConstraint = Matter.MouseConstraint.create(engine, {
 			mouse: mouse,
@@ -293,6 +298,36 @@ export function PlayCanvas({
 
 		mouseConstraintRef.current = mouseConstraint;
 		Matter.World.add(engine.world, mouseConstraint);
+
+		// Forward mouse/touch events from hit-area div → canvas so Matter.js
+		// receives them (canvas has pointer-events: none for click-through).
+		const hitArea = hitAreaRef.current;
+		const forwardMouse = (e: MouseEvent) => {
+			canvas.dispatchEvent(new MouseEvent(e.type, e));
+		};
+		const forwardTouch = (e: TouchEvent) => {
+			canvas.dispatchEvent(
+				new TouchEvent(e.type, {
+					touches: e.touches,
+					targetTouches: e.targetTouches,
+					changedTouches: e.changedTouches,
+					bubbles: true,
+				}),
+			);
+			e.preventDefault(); // prevent scroll while dragging pubmon
+		};
+		if (hitArea) {
+			hitArea.addEventListener("mousedown", forwardMouse);
+			hitArea.addEventListener("mousemove", forwardMouse);
+			hitArea.addEventListener("mouseup", forwardMouse);
+			hitArea.addEventListener("touchstart", forwardTouch, {
+				passive: false,
+			});
+			hitArea.addEventListener("touchmove", forwardTouch, {
+				passive: false,
+			});
+			hitArea.addEventListener("touchend", forwardTouch);
+		}
 
 		// Collision events for landing damping
 		Matter.Events.on(engine, "collisionStart", (event) => {
@@ -371,7 +406,7 @@ export function PlayCanvas({
 					const distance = Math.sqrt(dx ** 2 + dy ** 2);
 
 					if (distance < POKEBALL_RADIUS) {
-						onExit();
+						onExitRef.current();
 						return;
 					}
 
@@ -483,24 +518,20 @@ export function PlayCanvas({
 		const pokeballOpenImg = new Image();
 		pokeballOpenImg.src = "/sprites/POKEBALL_OPEN.png";
 
-		// Mouse move tracking for pokeball hover
-		const handleMouseMove = (e: MouseEvent) => {
+		// Track mouse position for pokeball hover detection
+		const handleDocumentMouseMove = (e: MouseEvent) => {
 			const rect = canvas.getBoundingClientRect();
-			const mouseX = e.clientX - rect.left;
-			const mouseY = e.clientY - rect.top;
-			mousePositionRef.current = { x: mouseX, y: mouseY };
+			const x = e.clientX - rect.left;
+			const y = e.clientY - rect.top;
+			mousePositionRef.current = { x, y };
 
-			// Check if hovering over pokeball (top right)
-			const pokeballX = canvas.width - POKEBALL_SIZE / 2 - 20;
-			const pokeballY = POKEBALL_SIZE / 2 + 20;
-			const dx = mouseX - pokeballX;
-			const dy = mouseY - pokeballY;
-			const distance = Math.sqrt(dx ** 2 + dy ** 2);
-
-			isPokeballHoveredRef.current = distance < POKEBALL_RADIUS;
+			const pkX = canvas.width - POKEBALL_SIZE / 2 - 20;
+			const pkY = POKEBALL_SIZE / 2 + 20;
+			isPokeballHoveredRef.current =
+				Math.hypot(x - pkX, y - pkY) < POKEBALL_RADIUS;
 		};
 
-		canvas.addEventListener("mousemove", handleMouseMove);
+		document.addEventListener("mousemove", handleDocumentMouseMove);
 
 		const render = () => {
 			if (!canvasRef.current || !ctx) return;
@@ -516,8 +547,27 @@ export function PlayCanvas({
 
 			ctx.restore();
 
-			// Draw PubMon
+			// Update hit-area div to track pubmon bounds
 			const body = pubmonBodyRef.current;
+			if (body && hitAreaRef.current) {
+				const ha = hitAreaRef.current;
+				if (stateRef.current === "grabbed") {
+					// Full-screen during drag so cursor can't escape
+					ha.style.left = "0px";
+					ha.style.top = "0px";
+					ha.style.width = "100vw";
+					ha.style.height = "100vh";
+				} else {
+					const pad = 20;
+					const b = body.bounds;
+					ha.style.left = `${b.min.x - pad}px`;
+					ha.style.top = `${b.min.y - pad}px`;
+					ha.style.width = `${b.max.x - b.min.x + pad * 2}px`;
+					ha.style.height = `${b.max.y - b.min.y + pad * 2}px`;
+				}
+			}
+
+			// Draw PubMon
 			if (body && spriteImg.complete) {
 				// Add bobbing animation when walking (square wave, 2 pixels up/down)
 				const bobOffset =
@@ -840,12 +890,20 @@ export function PlayCanvas({
 			Matter.Runner.stop(runner);
 			Matter.World.clear(engine.world, false);
 			Matter.Engine.clear(engine);
-			canvas.removeEventListener("mousemove", handleMouseMove);
+			document.removeEventListener("mousemove", handleDocumentMouseMove);
+			if (hitArea) {
+				hitArea.removeEventListener("mousedown", forwardMouse);
+				hitArea.removeEventListener("mousemove", forwardMouse);
+				hitArea.removeEventListener("mouseup", forwardMouse);
+				hitArea.removeEventListener("touchstart", forwardTouch);
+				hitArea.removeEventListener("touchmove", forwardTouch);
+				hitArea.removeEventListener("touchend", forwardTouch);
+			}
 			window.removeEventListener("deviceorientation", handleOrientation);
 			window.removeEventListener("devicemotion", handleMotion);
 			window.removeEventListener("resize", handleResize);
 		};
-	}, [pubmon, onExit, debugMode, overlay]);
+	}, [pubmon, debugMode, overlay]);
 
 	return (
 		<div
@@ -857,33 +915,40 @@ export function PlayCanvas({
 				height: "100vh",
 				zIndex: 9999,
 				backgroundColor: overlay ? "transparent" : "#000",
-				// pointerEvents: overlay ? "none" : "auto",
-				pointerEvents: "auto",
+				pointerEvents: "none",
 			}}
 		>
 			<canvas
 				ref={canvasRef}
 				style={{
 					display: "block",
-					// pointerEvents: overlay ? "none" : "auto",
-					pointerEvents: "auto",
+					pointerEvents: "none",
 				}}
 			/>
-			{/* Pokeball click area - always interactive */}
-			{overlay && (
-				<div
-					style={{
-						position: "absolute",
-						top: 20,
-						right: 20,
-						width: POKEBALL_SIZE,
-						height: POKEBALL_SIZE,
-						pointerEvents: "auto",
-						cursor: "pointer",
-					}}
-					onClick={onExit}
-				/>
-			)}
+			{/* Interactive hit area that tracks the pubmon body */}
+			<div
+				ref={hitAreaRef}
+				style={{
+					position: "absolute",
+					top: 0,
+					left: 0,
+					pointerEvents: "auto",
+					cursor: "grab",
+				}}
+			/>
+			{/* Pokeball click area */}
+			<div
+				style={{
+					position: "absolute",
+					top: 20,
+					right: 20,
+					width: POKEBALL_SIZE,
+					height: POKEBALL_SIZE,
+					pointerEvents: "auto",
+					cursor: "pointer",
+				}}
+				onClick={onExit}
+			/>
 		</div>
 	);
 }

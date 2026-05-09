@@ -56,7 +56,6 @@ export function GymHeader({
 					specialty: MASTER_TOURNAMENT.specialty,
 					leaderName: tournamentWinner || "???",
 					badgeName: "Champion Trophy",
-					pub: "Grand Pub League Arena",
 					address: "Elite District",
 				}
 			: GYMS.find((g) => g.id === currentGymId) || GYMS[0]!;
@@ -105,7 +104,7 @@ export function GymHeader({
 							<span>
 								{Number(effectiveGymId) === MASTER_TOURNAMENT.id
 									? null
-									: `GYM ${currentGym.id}/10`}
+									: `GYM ${currentGym.id}/${GYMS.length}`}
 							</span>
 						</div>
 
@@ -228,7 +227,7 @@ export function GymHeader({
 				>
 					<div style={{ color: "#f0e070" }}>🏠</div>
 					<div style={{ flex: 1, textAlign: "left" }}>
-						<div style={{ color: "#f8f8f8" }}>{currentGym.pub}</div>
+						<div style={{ color: "#f8f8f8" }}>{currentGym.name}</div>
 						<div style={{ color: "#78a8d8", marginTop: 2 }}>
 							{currentGym.address}
 						</div>

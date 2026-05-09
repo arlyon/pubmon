@@ -29,6 +29,7 @@ import { Pokedex } from "./pokedex";
 import { TrainerCard } from "./TrainerCard";
 import { PostBattle } from "./post-battle";
 import { TeamManagement } from "./team-management";
+import { PlayCanvas } from "./play-canvas";
 import { TournamentBracketViewer } from "./tournament-bracket-viewer";
 
 function generateUUID(): string {
@@ -61,6 +62,7 @@ export function GameShell({
 	const [sessionId, setSessionId] = useState<string>("");
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
+	const [playingPubmon, setPlayingPubmon] = useState<PubMon | null>(null);
 	const { playBGM, stopBGM, isMuted, toggleMute } = useAudio();
 
 	// Initialize XState machine
@@ -189,6 +191,10 @@ export function GameShell({
 		},
 		[send],
 	);
+
+	const handleExitPlay = useCallback(() => {
+		setPlayingPubmon(null);
+	}, []);
 
 	// Global WebSocket listener - feeds events to the state machine
 	useEffect(() => {
@@ -393,6 +399,7 @@ export function GameShell({
 						onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
 						onSetActive={handleSetActiveMon}
 						activeIndex={context.activeIndex}
+						onPlay={setPlayingPubmon}
 					/>
 				)}
 
@@ -520,6 +527,15 @@ export function GameShell({
 
 			{/* Debug Panel - only shows in development */}
 			<DebugPanel state={state} context={context} />
+
+			{/* Play mode overlay - persists across navigation */}
+			{playingPubmon && (
+				<PlayCanvas
+					pubmon={playingPubmon}
+					onExit={handleExitPlay}
+					overlay={true}
+				/>
+			)}
 		</div>
 	);
 }

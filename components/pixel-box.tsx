@@ -68,6 +68,13 @@ export function PixelButton({
 		type: "bg-accent text-accent-foreground hover:bg-muted",
 	};
 
+	const palettes = {
+		default: "font-palette-no-shadow",
+		primary: "font-palette-blue",
+		danger: "font-palette-red",
+		type: "font-palette-blue",
+	};
+
 	return (
 		<PixelBox
 			as="button"
@@ -80,6 +87,7 @@ export function PixelButton({
         transition-all cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${variants[variant]}
+        ${palettes[variant]}
         ${className}
       `}
 		>

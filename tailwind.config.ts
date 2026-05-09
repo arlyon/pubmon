@@ -38,8 +38,43 @@ export default plugin(function ({ matchUtilities }) {
 			borderWidth: `calc(${value} * 1px * var(--pixel-scale))`,
 		}),
 		"size-gba": value => ({
-		width:  `calc(${value} * 1px * var(--pixel-scale))`,
-		height:  `calc(${value} * 1px * var(--pixel-scale))`,
-		})
+			width:  `calc(${value} * 1px * var(--pixel-scale))`,
+			height:  `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"mb-gba": (value) => ({
+			marginBottom: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"ml-gba": (value) => ({
+			marginLeft: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"mx-gba": (value) => ({
+			marginLeft: `calc(${value} * 1px * var(--pixel-scale))`,
+			marginRight: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"top-gba": (value) => ({
+			top: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"right-gba": (value) => ({
+			right: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"bottom-gba": (value) => ({
+			bottom: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"left-gba": (value) => ({
+			left: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"min-h-gba": (value) => ({
+			minHeight: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"pt-gba": (value) => ({
+			paddingTop: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"border-t-gba": (value) => ({
+			borderTopWidth: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"my-gba": (value) => ({
+			marginTop: `calc(${value} * 1px * var(--pixel-scale))`,
+			marginBottom: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
 	});
 });

@@ -252,7 +252,7 @@ export function GymTrailInline({
 										disabled={!isAccessible}
 										className={`
                       relative flex flex-col items-center gap-1.5 cursor-pointer
-                      disabled:cursor-not-allowed group font-sans
+                      disabled:cursor-not-allowed group font-sans font-palette-blue
                     `}
 									>
 										{/* Current indicator */}

@@ -4,7 +4,9 @@
 			"Bash(grep:*)",
 			"Bash(pnpm add:*)",
 			"Bash(bun test:*)",
-			"Bash(ls:*)"
+			"Bash(ls:*)",
+			"Bash(npx tsc:*)",
+			"Bash(*)"
 		]
 	},
 	"enableAllProjectMcpServers": true,

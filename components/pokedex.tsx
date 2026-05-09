@@ -5,6 +5,7 @@ import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
+import { PubMonDetailPanel } from "./pubmon-detail";
 
 interface PokedexProps {
 	seenIds: Set<number>;
@@ -16,17 +17,16 @@ const TYPE_ORDER: PubType[] = ["beer", "shot", "wine", "water", "cocktail"];
 
 function PubBallIcon({
 	caught,
-	size = 12,
+	className = "",
 }: {
 	caught: boolean;
-	size?: number;
+	className?: string;
 }) {
 	return (
 		<svg
 			viewBox="0 0 10 10"
-			width={size}
-			height={size}
-			className="pixel-perfect"
+			className={`pixel-perfect ${className}`}
+			style={{ width: "100%", height: "100%" }}
 		>
 			<circle
 				cx={5}
@@ -95,42 +95,24 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			{/* Header */}
-			<div
-				style={{
-					background: "#f85858",
-					padding: "6px 8px",
-					borderBottom: "1px solid #181010",
-					display: "flex",
-					justifyContent: "space-between",
-					alignItems: "center",
-					fontFamily: "'Press Start 2P', monospace",
-				}}
-			>
+			<div className="bg-pixel-red px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-pixel">
 				<div>
-					<div style={{ fontSize: 9, color: "#f8f8f8" }}>PUBDEX</div>
-					<div style={{ fontSize: 6, color: "#f8d8d8", marginTop: 2 }}>
+					<div className="text-gba-[9] text-pixel-white">PUBDEX</div>
+					<div className="text-gba-[6] mt-gba-[2]" style={{ color: "#f8d8d8" }}>
 						PUBMON DIRECTORY
 					</div>
 				</div>
-				<div
-					style={{
-						background: "#181010",
-						padding: "3px 6px",
-						fontSize: 7,
-						color: "#f8b830",
-						border: "1px solid #f8f8f8",
-					}}
-				>
+				<div className="bg-pixel-black px-gba-[6] py-gba-[3] text-gba-[7] text-pixel-yellow border border-pixel-white font-pixel">
 					{totalCaught}/{totalPubMon}
 				</div>
 			</div>
 
 			{/* Type filter tabs */}
-			<div className="flex gap-[2px] flex-wrap my-1">
+			<div className="flex gap-gba-[2] flex-wrap my-gba-[4]">
 				<button
 					type="button"
 					onClick={() => setFilterType("all")}
-					className={`px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors ${
+					className={`px-gba-[4] py-gba-[2] font-pixel text-gba-[6] border-gba-[2] cursor-pointer transition-colors ${
 						filterType === "all"
 							? "border-pixel-black bg-pixel-white text-pixel-black"
 							: "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
@@ -145,7 +127,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 							key={type}
 							type="button"
 							onClick={() => setFilterType(type)}
-							className={`px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors
+							className={`px-gba-[4] py-gba-[2] font-pixel text-gba-[6] border-gba-[2] cursor-pointer transition-colors
                 ${
 									filterType === type
 										? "text-pixel-white"
@@ -167,10 +149,10 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 			</div>
 
 			{/* Pokemon grid */}
-			<div className="mb-[4px] flex-1 h-[150px]">
+			<div className="mb-gba-[4] flex-1 min-h-gba-[120]">
 				<PixelBox className="h-full flex flex-col">
 					<div className="overflow-y-auto pixel-scroll flex-1">
-						<div className="grid grid-cols-4 gap-[2px] p-[2px]">
+						<div className="grid grid-cols-4 gap-gba-[2] p-gba-[2]">
 							{filteredPubMon.map((mon) => {
 								const seen = allUnlocked || seenIds.has(mon.id);
 								const caught = allUnlocked || caughtIds.has(mon.id);
@@ -183,7 +165,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 										type="button"
 										onClick={() => setSelectedId(isSelected ? null : mon.id)}
 										className={`
-                    relative flex flex-col items-center gap-[1px] p-[2px] border-2 cursor-pointer transition-all font-pixel
+                    relative flex flex-col items-center gap-gba-[1] p-gba-[2] border-gba-[2] cursor-pointer transition-all font-pixel
                     ${
 											isSelected
 												? "border-pixel-black bg-pixel-yellow/50"
@@ -194,12 +176,12 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
                   `}
 									>
 										{/* Number */}
-										<span className="text-[5px] text-pixel-gray self-start">
+										<span className="text-gba-[5] text-pixel-gray self-start">
 											#{String(mon.id).padStart(3, "0")}
 										</span>
 
 										{/* Sprite or silhouette */}
-										<div className="w-[32px] h-[32px] flex items-center justify-center">
+										<div className="size-gba-[32] flex items-center justify-center">
 											{seen ? (
 												<div
 													className="opacity-100"
@@ -216,8 +198,8 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 													/>
 												</div>
 											) : (
-												<div className="w-[24px] h-[24px] flex items-center justify-center">
-													<span className="text-[12px] text-pixel-gray font-sans">
+												<div className="size-gba-[24] flex items-center justify-center">
+													<span className="text-gba-[12] font-sans font-palette-muted">
 														?
 													</span>
 												</div>
@@ -226,22 +208,28 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 										{/* Name */}
 										<span
-											className={`text-[4px] truncate w-full text-center ${seen ? "text-pixel-black" : "text-pixel-gray"}`}
+											className={`text-gba-[4] truncate w-full text-center ${seen ? "text-pixel-black" : "text-pixel-gray"}`}
 										>
 											{seen ? mon.name.toUpperCase() : "???"}
 										</span>
 
 										{/* Caught indicator */}
 										{caught && (
-											<div className="absolute top-[1px] right-[1px]">
-												<PubBallIcon caught size={5} />
+											<div
+												className="absolute size-gba-[5]"
+												style={{
+													top: "calc(1px * var(--pixel-scale, 1))",
+													right: "calc(1px * var(--pixel-scale, 1))",
+												}}
+											>
+												<PubBallIcon caught />
 											</div>
 										)}
 
 										{/* Type color bar at bottom */}
 										{seen && (
 											<div
-												className="absolute bottom-0 left-0 right-0 h-[2px]"
+												className="absolute bottom-0 left-0 right-0 h-gba-[2]"
 												style={{ backgroundColor: typeInfo.color }}
 											/>
 										)}
@@ -255,155 +243,72 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 			{/* Detail panel */}
 			{selected && isSeen && (
-				<div className="mb-[4px]">
-					<PixelBox variant="blue">
-						<div className="flex gap-[4px] relative">
-							{/* Sprite */}
-							<div
-								className="w-[48px] h-[48px] border-2 flex items-center justify-center shrink-0"
-								style={{
-									borderColor: "rgb(var(--pixel-white))",
-									background: TYPE_INFO[selected.type].color,
-								}}
-							>
-								<PixelSprite
-									name={selected.sprite}
-									size={64}
-									animated
-									variant={selected.spriteVariant}
-								/>
-							</div>
-
-							{/* Info */}
-							<div className="flex flex-col gap-[2px] flex-1 min-w-0">
-								<div className="flex items-center gap-[4px]">
-									<span className="font-pixel text-[6px] text-pixel-white">
-										#{String(selected.id).padStart(3, "0")}
-									</span>
-									<h3 className="font-pixel text-[8px] text-pixel-white m-0">
-										{selected.name.toUpperCase()}
-									</h3>
-									<button
-										type="button"
-										onClick={() => playPokemonCry(selected.id)}
-										className={`ml-auto px-[4px] py-[2px] font-pixel text-[6px] border-2 cursor-pointer transition-colors`}
-										title="Play cry"
-									>
-										🔊
-									</button>
-								</div>
-
-								<div className="flex items-center gap-[4px] mt-[2px]">
-									<TypeBadge type={selected.type} />
-									<span className="font-pixel text-[5px] text-pixel-white">
-										{TYPE_INFO[selected.type].element.toUpperCase()}
+				<div className="mb-gba-[4]">
+					<PubMonDetailPanel
+						mon={selected}
+						onCry={() => playPokemonCry(selected.id)}
+						stats={isCaught ? [
+							{ label: "HP", value: selected.maxHp },
+							{ label: "ATK", value: selected.attack },
+							{ label: "DEF", value: selected.defense },
+							{ label: "LVL", value: selected.level },
+						] : undefined}
+					>
+						<div className="flex items-center gap-gba-[4] mt-gba-[2]">
+							{isCaught ? (
+								<div className="flex items-center gap-gba-[2]">
+									<div className="size-gba-[6]">
+										<PubBallIcon caught />
+									</div>
+									<span className="font-sans font-palette-yellow text-gba-[5]">
+										CAUGHT
 									</span>
 								</div>
-
-								{/* Status */}
-								<div className="flex items-center gap-[4px] mt-[2px]">
-									{isCaught ? (
-										<div className="flex items-center gap-[2px]">
-											<PubBallIcon caught size={6} />
-											<span className="font-pixel text-[5px] text-pixel-yellow">
-												CAUGHT
-											</span>
-										</div>
-									) : (
-										<span className="font-pixel text-[5px] text-pixel-gray-light">
-											NOT CAUGHT
-										</span>
-									)}
-								</div>
-
-								{/* Description - only if caught */}
-								{isCaught && (
-									<p className="font-pixel text-[5px] text-pixel-white leading-tight mt-[2px]">
-										{selected.description}
-									</p>
-								)}
-							</div>
+							) : (
+								<span className="font-sans font-palette-muted text-gba-[5]">
+									NOT CAUGHT
+								</span>
+							)}
 						</div>
-
-						{/* Stats - only if caught */}
 						{isCaught && (
-							<div className="mt-[4px] pt-[4px] border-t-2 border-pixel-white/30">
-								<div className="grid grid-cols-4 gap-[2px]">
-									<div className="flex flex-col items-center">
-										<span className="font-pixel text-[5px] text-pixel-gray-light">
-											HP
-										</span>
-										<span className="font-pixel text-[6px] text-pixel-white">
-											{selected.maxHp}
-										</span>
-									</div>
-									<div className="flex flex-col items-center">
-										<span className="font-pixel text-[5px] text-pixel-gray-light">
-											ATK
-										</span>
-										<span className="font-pixel text-[6px] text-pixel-white">
-											{selected.attack}
-										</span>
-									</div>
-									<div className="flex flex-col items-center">
-										<span className="font-pixel text-[5px] text-pixel-gray-light">
-											DEF
-										</span>
-										<span className="font-pixel text-[6px] text-pixel-white">
-											{selected.defense}
-										</span>
-									</div>
-									<div className="flex flex-col items-center">
-										<span className="font-pixel text-[5px] text-pixel-gray-light">
-											LVL
-										</span>
-										<span className="font-pixel text-[6px] text-pixel-white">
-											{selected.level}
-										</span>
-									</div>
-								</div>
-
-								{/* Moves */}
-								<div className="mt-[4px]">
-									<span className="font-pixel text-[5px] text-pixel-gray-light mb-[2px] block">
-										MOVES
-									</span>
-									<div className="grid grid-cols-2 gap-[2px]">
-										{selected.moves.map((move) => (
-											<div
-												key={move}
-												className="bg-pixel-blue-dark border border-pixel-white/50 px-[2px] py-[2px] font-pixel text-[5px] text-pixel-white text-center"
-											>
-												{move.toUpperCase()}
-											</div>
-										))}
-									</div>
-								</div>
-							</div>
+							<p className="font-sans font-palette-blue text-gba-[5] leading-tight mt-gba-[2]">
+								{selected.description}
+							</p>
 						)}
-					</PixelBox>
+					</PubMonDetailPanel>
 				</div>
 			)}
 
 			{/* Detail panel for unseen */}
 			{selected && !isSeen && (
-				<div className="mb-[4px]">
+				<div className="mb-gba-[4]">
 					<PixelBox>
-						<div className="flex flex-col items-center gap-[2px] py-[8px]">
-							<span className="font-pixel text-[6px] text-pixel-gray">
-								#{String(selected.id).padStart(3, "0")}
-							</span>
-							<span className="font-sans text-[16px] text-pixel-gray opacity-50">
-								?
-							</span>
-							<p className="font-pixel text-[6px] text-pixel-gray">
-								NOT YET ENCOUNTERED
-							</p>
-							<p className="font-pixel text-[5px] text-pixel-gray leading-tight text-center mt-[2px]">
-								ORDER A DRINK OF THE RIGHT TYPE
-								<br />
-								TO ENCOUNTER THIS PUBMON!
-							</p>
+						<div className="flex gap-gba-[4]">
+							{/* Silhouette sprite */}
+							<div className="size-gba-[48] flex items-center justify-center shrink-0 bg-pixel-gray-light border-gba-[2] border-pixel-gray">
+								<div style={{ filter: "grayscale(100%) brightness(0) opacity(50%)" }}>
+									<PixelSprite
+										name={selected.sprite}
+										size={64}
+										variant={selected.spriteVariant}
+									/>
+								</div>
+							</div>
+
+							{/* Info */}
+							<div className="flex flex-col gap-gba-[2] justify-center">
+								<span className="font-pixel text-gba-[6] text-pixel-gray">
+									#{String(selected.id).padStart(3, "0")} ???
+								</span>
+								<p className="font-pixel text-gba-[5] text-pixel-gray">
+									NOT YET ENCOUNTERED
+								</p>
+								<p className="font-pixel text-gba-[5] text-pixel-gray leading-tight mt-gba-[2]">
+									ORDER A DRINK OF THE
+									<br />
+									RIGHT TYPE TO FIND!
+								</p>
+							</div>
 						</div>
 					</PixelBox>
 				</div>

@@ -87,7 +87,7 @@ export function PWAInstaller() {
 					}}
 				>
 					<div
-						className="font-sans text-gba-[8] leading-tight"
+						className="font-sans font-palette-blue text-gba-[8] leading-tight"
 						style={{
 							background: "#2038a0",
 							border: "2px solid #101828",
@@ -125,7 +125,7 @@ export function PWAInstaller() {
 								<button
 									type="button"
 									onClick={handleDismiss}
-									className="flex-1 py-2 px-4 text-gba-[8]"
+									className="flex-1 py-2 px-4 text-gba-[8] font-sans font-palette-blue"
 									style={{
 										background: "#182860",
 										color: "#a8c8f0",

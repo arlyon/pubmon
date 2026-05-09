@@ -295,7 +295,7 @@ export function DrinkSelect({
 								onClick={() => setSelectedIdx(idx)}
 								className={`
                 flex items-center gap-3 p-1 border-2 cursor-pointer
-                transition-all font-sans text-left
+                transition-all font-sans font-palette-default text-left
                 ${
 									idx === selectedIdx
 										? "border-primary bg-secondary"

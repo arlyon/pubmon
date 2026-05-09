@@ -35,8 +35,8 @@ export function PixelSprite({
 		<div
 			className={`${className}`}
 			style={{
-				width: size,
-				height: size,
+				width: `calc(${size}px * var(--pixel-scale, 1))`,
+				height: `calc(${size}px * var(--pixel-scale, 1))`,
 				animation: animated
 					? `pixel-bounce 1s steps(2, end) ${offset}s infinite`
 					: undefined,
@@ -72,7 +72,7 @@ export function TypeBadge({ type }: { type: PubType }) {
 
 	return (
 		<span
-			className={`leading-none px-gba-[3] py-gba-[1] text-gba-[9] ${info.bg}`}
+			className={`font-sans font-palette-white leading-none px-gba-[3] py-gba-[1] text-gba-[9] ${info.bg}`}
 		>
 			{info.label}
 		</span>

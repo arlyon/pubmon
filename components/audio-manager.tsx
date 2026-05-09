@@ -44,8 +44,15 @@ const AUDIO_PATHS: Record<TrackId, string> = {
 export function AudioProvider({ children }: { children: React.ReactNode }) {
 	const bgmRef = useRef<Howl | null>(null);
 	const currentTrackRef = useRef<TrackId | null>(null);
-	const [volume, setVolumeState] = useState(0.5);
-	const [isMuted, setIsMuted] = useState(false);
+	const [volume, setVolumeState] = useState(() => {
+		if (typeof window === "undefined") return 0.5;
+		const saved = localStorage.getItem("pubmon_volume");
+		return saved !== null ? parseFloat(saved) : 0.5;
+	});
+	const [isMuted, setIsMuted] = useState(() => {
+		if (typeof window === "undefined") return false;
+		return localStorage.getItem("pubmon_muted") === "true";
+	});
 
 	// Store pre-loaded tracks and cries
 	const preloadedTracksRef = useRef<Map<TrackId, Howl>>(new Map());
@@ -246,6 +253,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
 	const setVolume = (newVolume: number) => {
 		setVolumeState(newVolume);
+		localStorage.setItem("pubmon_volume", String(newVolume));
 		if (bgmRef.current) {
 			bgmRef.current.volume(newVolume);
 		}
@@ -254,8 +262,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 	const toggleMute = () => {
 		const next = !isMuted;
 		setIsMuted(next);
+		localStorage.setItem("pubmon_muted", String(next));
 		Howler.mute(next);
 	};
+
+	// Apply persisted mute state on mount
+	useEffect(() => {
+		Howler.mute(isMuted);
+	}, []);
 
 	// Pre-load intro + battle audio on mount
 	useEffect(() => {
