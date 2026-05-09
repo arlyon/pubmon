@@ -41,8 +41,10 @@ function NavButton({
 
 interface GameNavbarProps {
 	isHidden: boolean;
-	activeTab: "crawl" | "pokedex" | "team" | "league";
-	onNavigate: (phase: "crawl" | "pokedex" | "team" | "league") => void;
+	activeTab: "crawl" | "pokedex" | "team" | "league" | "settings";
+	onNavigate: (
+		phase: "crawl" | "pokedex" | "team" | "league" | "settings",
+	) => void;
 }
 
 export function GameNavbar({
@@ -55,11 +57,13 @@ export function GameNavbar({
 	return (
 		<nav
 			className="border-t-4 border-pixel-black bg-pixel-white text-gba-[9]"
-			style={{
-				paddingBottom: "max(8px, var(--safe-area-inset-bottom, 0px))",
-			}}
+			style={
+				{
+					// paddingBottom: "max(8px, var(--safe-area-inset-bottom, 0px))",
+				}
+			}
 		>
-			<div className="max-w-md mx-auto flex items-stretch">
+			<div className="flex items-stretch w-full">
 				<NavButton
 					icon={
 						<svg viewBox="0 0 8 8" className="pixel-perfect size-gba-[12]">
@@ -76,7 +80,7 @@ export function GameNavbar({
 					activeFontPalette="--emerald-blue"
 				/>
 
-				<div className="w-[2px] bg-pixel-gray/30" />
+				<div className="w-[1px] bg-pixel-gray/30" />
 
 				<NavButton
 					icon={
@@ -123,7 +127,7 @@ export function GameNavbar({
 					activeFontPalette="--emerald-red"
 				/>
 
-				<div className="w-[2px] bg-pixel-gray/30" />
+				<div className="w-[1px] bg-pixel-gray/30" />
 
 				<NavButton
 					icon={
@@ -148,7 +152,7 @@ export function GameNavbar({
 					activeFontPalette="--emerald-blue"
 				/>
 
-				<div className="w-[2px] bg-pixel-gray/30" />
+				<div className="w-[1px] bg-pixel-gray/30" />
 
 				<NavButton
 					icon={
@@ -165,6 +169,47 @@ export function GameNavbar({
 					onClick={() => onNavigate("league")}
 					activeColorClass="bg-pixel-yellow text-pixel-black"
 					activeFontPalette="--emerald-yellow"
+				/>
+
+				<div className="w-[1px] bg-pixel-gray/30" />
+
+				<NavButton
+					icon={
+						<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
+							<title>Settings icon</title>
+							<circle cx={6} cy={6} r={2} fill="currentColor" />
+							<rect x={5} y={0} width={2} height={2} fill="currentColor" />
+							<rect x={5} y={10} width={2} height={2} fill="currentColor" />
+							<rect x={0} y={5} width={2} height={2} fill="currentColor" />
+							<rect x={10} y={5} width={2} height={2} fill="currentColor" />
+							<rect
+								x={1.5}
+								y={1.5}
+								width={1.5}
+								height={1.5}
+								fill="currentColor"
+							/>
+							<rect
+								x={9}
+								y={1.5}
+								width={1.5}
+								height={1.5}
+								fill="currentColor"
+							/>
+							<rect
+								x={1.5}
+								y={9}
+								width={1.5}
+								height={1.5}
+								fill="currentColor"
+							/>
+							<rect x={9} y={9} width={1.5} height={1.5} fill="currentColor" />
+						</svg>
+					}
+					label="OPTS"
+					isActive={activeTab === "settings"}
+					onClick={() => onNavigate("settings")}
+					activeColorClass="bg-pixel-gray text-pixel-white"
 				/>
 			</div>
 		</nav>

@@ -76,7 +76,6 @@ export function BattleScreen({
 		battleEnded,
 		battleResult,
 		continueMessage,
-		forfeitTurn,
 		protocolRequest,
 		battleLog,
 	} = useBattle({
@@ -129,6 +128,13 @@ export function BattleScreen({
 			playBGM("victory");
 		}
 	}, [battleEnded, battleResult, playBGM]);
+
+	// Auto-transition to post-battle after message has time to display
+	useEffect(() => {
+		if (!battleEnded || !battleResult) return;
+		const id = setTimeout(() => onBattleEnd?.(battleResult), 1500);
+		return () => clearTimeout(id);
+	}, [battleEnded, battleResult, onBattleEnd]);
 
 	// Frame-based slide-in animation for battle start
 	useEffect(() => {
@@ -604,30 +610,6 @@ export function BattleScreen({
 				)}
 			</div>
 
-			{battleEnded && battleResult && (
-				<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-					<div className="w-full max-w-sm mx-4">
-						<PixelBox className="bg-pixel-white">
-							<div className="flex flex-col items-center gap-4 py-6">
-								<h2 className="font-pixel text-gba-[9] font-palette-default">
-									{battleResult === "win" ? "VICTORY!" : "DEFEATED..."}
-								</h2>
-								<p className="font-pixel text-gba-[9] font-palette-muted text-center">
-									{battleResult === "win"
-										? `You defeated the wild ${wildPokemon.name}!`
-										: `You were defeated by the wild ${wildPokemon.name}!`}
-								</p>
-								<button
-									onClick={() => onBattleEnd?.(battleResult)}
-									className="pixel-box cursor-pointer font-pixel text-gba-[9] font-palette-blue text-center px-8 py-3 border-none bg-primary hover:brightness-110"
-								>
-									CONTINUE
-								</button>
-							</div>
-						</PixelBox>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }

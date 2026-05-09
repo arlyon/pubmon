@@ -1,7 +1,7 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface BeforeInstallPromptEvent extends Event {
 	prompt: () => Promise<void>;
@@ -15,16 +15,16 @@ export function PWAInstaller() {
 
 	useEffect(() => {
 		// Register service worker
-		if ("serviceWorker" in navigator) {
-			navigator.serviceWorker
-				.register("/sw.js")
-				.then((registration) => {
-					console.log("Service Worker registered:", registration);
-				})
-				.catch((error) => {
-					console.log("Service Worker registration failed:", error);
-				});
-		}
+		// if ("serviceWorker" in navigator) {
+		// 	navigator.serviceWorker
+		// 		.register("/sw.js")
+		// 		.then((registration) => {
+		// 			console.log("Service Worker registered:", registration);
+		// 		})
+		// 		.catch((error) => {
+		// 			console.log("Service Worker registration failed:", error);
+		// 		});
+		// }
 
 		// Listen for install prompt
 		const handleBeforeInstallPrompt = (e: Event) => {

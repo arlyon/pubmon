@@ -55,6 +55,8 @@ export interface GameContext {
 	xpGained: number;
 	caughtPokemon: PubMon | null;
 	awardedBadgeId: number | null;
+	ranFromPubmon: PubMon | null;
+	ranBattleTurns: number;
 }
 
 export type GameEvent =
@@ -575,6 +577,8 @@ export const pubmonMachine = setup({
 		xpGained: 0,
 		caughtPokemon: null,
 		awardedBadgeId: null,
+		ranFromPubmon: null,
+		ranBattleTurns: 0,
 	}),
 
 	states: {
@@ -998,8 +1002,20 @@ export const pubmonMachine = setup({
 										context.activeEncounter.battleStartTime || Date.now(),
 								}),
 								onDone: {
-									target: "crawl",
-									actions: "clearEncounter",
+									target: "celebration.ran",
+									actions: assign({
+										ranFromPubmon: ({ context }) =>
+											context.activeEncounter.wildPubmon,
+										ranBattleTurns: ({ context }) => {
+											const start =
+												context.activeEncounter.battleStartTime ||
+												Date.now();
+											return Math.max(
+												1,
+												Math.floor((Date.now() - start) / 5000),
+											);
+										},
+									}),
 								},
 								onError: "standardBattle",
 							},
@@ -1085,6 +1101,21 @@ export const pubmonMachine = setup({
 										CONTINUE: {
 											target: "xpGain",
 											actions: assign({ awardedBadgeId: null }),
+										},
+									},
+								},
+
+								ran: {
+									on: {
+										CONTINUE: {
+											target: "#pubmon.view.mainLoop.crawl",
+											actions: [
+												"clearEncounter",
+												assign({
+													ranFromPubmon: null,
+													ranBattleTurns: 0,
+												}),
+											],
 										},
 									},
 								},

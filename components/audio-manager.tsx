@@ -23,6 +23,8 @@ interface AudioContextType {
 	preloadTrack: (trackId: TrackId) => void;
 	preloadCry: (cryNumber: number) => void;
 	setVolume: (volume: number) => void;
+	isMuted: boolean;
+	toggleMute: () => void;
 }
 
 const AudioContext = createContext<AudioContextType | null>(null);
@@ -43,6 +45,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 	const bgmRef = useRef<Howl | null>(null);
 	const currentTrackRef = useRef<TrackId | null>(null);
 	const [volume, setVolumeState] = useState(0.5);
+	const [isMuted, setIsMuted] = useState(false);
 
 	// Store pre-loaded tracks and cries
 	const preloadedTracksRef = useRef<Map<TrackId, Howl>>(new Map());
@@ -248,6 +251,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		}
 	};
 
+	const toggleMute = () => {
+		const next = !isMuted;
+		setIsMuted(next);
+		Howler.mute(next);
+	};
+
 	// Pre-load intro + battle audio on mount
 	useEffect(() => {
 		preloadTrack("title-screen");
@@ -339,6 +348,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 				preloadTrack,
 				preloadCry,
 				setVolume,
+				isMuted,
+				toggleMute,
 			}}
 		>
 			{children}

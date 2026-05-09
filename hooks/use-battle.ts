@@ -562,6 +562,7 @@ export function useBattle({
 				}
 				// Catch failure: shake1 means it broke free
 				if (line.startsWith("|-activate|") && line.includes("shake1")) {
+					lastMoveUsedRef.current = null; // Reset so faint/win aren't suppressed
 					messageQueueRef.current.push({
 						text: "Oh no! The PubMon broke free!",
 					});

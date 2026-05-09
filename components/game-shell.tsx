@@ -27,6 +27,7 @@ import { IntroSequence } from "./intro";
 import type { PlayerInfo } from "./player-create";
 import { Pokedex } from "./pokedex";
 import { TrainerCard } from "./TrainerCard";
+import { PostBattle } from "./post-battle";
 import { TeamManagement } from "./team-management";
 import { TournamentBracketViewer } from "./tournament-bracket-viewer";
 
@@ -59,7 +60,8 @@ export function GameShell({
 }: GameShellProps) {
 	const [sessionId, setSessionId] = useState<string>("");
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
-	const { playBGM, stopBGM } = useAudio();
+	const [showSettings, setShowSettings] = useState(false);
+	const { playBGM, stopBGM, isMuted, toggleMute } = useAudio();
 
 	// Initialize XState machine
 	const [state, send] = useMachine(pubmonMachine, {
@@ -281,6 +283,7 @@ export function GameShell({
 	const isXP = stateValue.view?.mainLoop?.celebration === "xpGain";
 	const isBadgeReward =
 		stateValue.view?.mainLoop?.celebration === "badgeReward";
+	const isRan = stateValue.view?.mainLoop?.celebration === "ran";
 
 	// Determine active tab for navbar
 	const getActiveTab = ():
@@ -288,7 +291,9 @@ export function GameShell({
 		| "pokedex"
 		| "team"
 		| "league"
+		| "settings"
 		| undefined => {
+		if (showSettings) return "settings";
 		if (isCrawl) return "crawl";
 		if (isPokedex) return "pokedex";
 		if (isTeam) return "team";
@@ -324,7 +329,7 @@ export function GameShell({
 					/>
 				)}
 
-				{isCrawl && (
+				{!showSettings && isCrawl && (
 					<DrinkSelect
 						onSelect={handleDrinkSelect}
 						onSelectGym={(gymId) =>
@@ -382,7 +387,7 @@ export function GameShell({
 						/>
 					)}
 
-				{isTeam && (
+				{!showSettings && isTeam && (
 					<TeamManagement
 						team={context.party}
 						onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
@@ -391,7 +396,7 @@ export function GameShell({
 					/>
 				)}
 
-				{isPokedex && (
+				{!showSettings && isPokedex && (
 					<Pokedex
 						seenIds={seenIds}
 						caughtIds={caughtIds}
@@ -399,7 +404,7 @@ export function GameShell({
 					/>
 				)}
 
-				{isLeague && context.playerInfo && (
+				{!showSettings && isLeague && context.playerInfo && (
 					<LeaguePage
 						socket={socket}
 						sessionId={sessionId}
@@ -426,84 +431,49 @@ export function GameShell({
 					<HallOfFameViewer socket={socket} sessionId={sessionId} />
 				)}
 
-				{isCaught && context.caughtPokemon && (
-					<div className="max-w-md mx-auto flex flex-col items-center gap-4 pt-8">
-						<PixelBox variant="battle" className="w-full">
-							<div className="flex flex-col items-center gap-4 py-4">
-								<div
-									className="w-24 h-24 border-2 flex items-center justify-center"
-									style={{
-										borderColor: `var(--type-${context.caughtPokemon.type})`,
-										background: `var(--type-${context.caughtPokemon.type})22`,
-									}}
-								>
-									<div
-										style={{
-											animation: "pixel-bounce 1s ease-in-out infinite",
-										}}
-									>
-										<svg
-											viewBox="0 0 10 10"
-											width={48}
-											height={48}
-											style={{ imageRendering: "pixelated" }}
-										>
-											<circle cx={5} cy={5} r={4.5} fill="#e43b44" />
-											<rect
-												x={0.5}
-												y={4.5}
-												width={9}
-												height={1}
-												fill="#1a1c2c"
-											/>
-											<circle
-												cx={5}
-												cy={5}
-												r={4.5}
-												fill="none"
-												stroke="#1a1c2c"
-												strokeWidth={0.5}
-											/>
-											<rect
-												x={0.5}
-												y={5}
-												width={9}
-												height={4.5}
-												rx={4.5}
-												fill="#f4f4f4"
-											/>
-											<circle
-												cx={5}
-												cy={5}
-												r={1.2}
-												fill="#f4f4f4"
-												stroke="#1a1c2c"
-												strokeWidth={0.4}
-											/>
-											<circle cx={5} cy={5} r={0.6} fill="#1a1c2c" />
-										</svg>
-									</div>
-								</div>
-								<p className="text-gba-[9] font-pixel font-palette-default text-center">GOTCHA!</p>
-								<p className="text-gba-[9] font-sans font-palette-default text-center">
-									{context.caughtPokemon.name} was caught!
-								</p>
-								<p className="text-gba-[9] font-sans font-palette-muted text-center leading-relaxed">
-									{context.caughtPokemon.description}
-								</p>
-								<p className="text-gba-[9] font-sans font-palette-default">
-									{context.caughtPokemon.name} was added to your team!
-								</p>
-							</div>
-						</PixelBox>
+				{showSettings && (
+					<div className="flex-1 flex flex-col items-center justify-center gap-gba-[16] p-gba-[16]">
+						<h2 className="text-gba-[12] font-bold text-pixel-black uppercase tracking-widest">Options</h2>
 						<button
 							type="button"
-							onClick={() => send({ type: "CONTINUE" })}
-							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-gba-[9] font-sans font-palette-blue shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
+							onClick={toggleMute}
+							className={`flex items-center gap-gba-[8] px-gba-[16] py-gba-[8] border-4 border-pixel-black text-gba-[9] font-bold uppercase transition-colors cursor-pointer ${
+								isMuted
+									? "bg-pixel-red text-pixel-white"
+									: "bg-pixel-white text-pixel-black hover:bg-pixel-gray-light"
+							}`}
 						>
-							CONTINUE CRAWL
+							{isMuted ? (
+								<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
+									<title>Muted</title>
+									<rect x={0} y={4} width={3} height={4} fill="currentColor" />
+									<polygon points="3,4 7,1 7,11 3,8" fill="currentColor" />
+									<rect x={9} y={2} width={1.5} height={1.5} fill="currentColor" />
+									<rect x={10.5} y={3.5} width={1.5} height={1.5} fill="currentColor" />
+									<rect x={9} y={5} width={1.5} height={1.5} fill="currentColor" />
+									<rect x={10.5} y={6.5} width={1.5} height={1.5} fill="currentColor" />
+									<rect x={9} y={8} width={1.5} height={1.5} fill="currentColor" />
+								</svg>
+							) : (
+								<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
+									<title>Sound on</title>
+									<rect x={0} y={4} width={3} height={4} fill="currentColor" />
+									<polygon points="3,4 7,1 7,11 3,8" fill="currentColor" />
+									<rect x={8} y={3} width={1.5} height={6} fill="currentColor" />
+									<rect x={10} y={1} width={1.5} height={10} fill="currentColor" />
+								</svg>
+							)}
+							{isMuted ? "UNMUTE" : "MUTE"}
 						</button>
 					</div>
+				)}
+
+				{isCaught && context.caughtPokemon && (
+					<PostBattle
+						variant="caught"
+						onContinue={() => send({ type: "CONTINUE" })}
+						caughtPokemon={context.caughtPokemon}
+					/>
 				)}
 
 				{isBadgeReward && context.awardedBadgeId && (
@@ -514,34 +484,23 @@ export function GameShell({
 				)}
 
 				{isXP && (
-					<div className="max-w-md mx-auto flex flex-col items-center gap-4 pt-8">
-						<PixelBox variant="battle" className="w-full">
-							<div className="flex flex-col items-center gap-4 py-4">
-								<p className="text-gba-[9] font-pixel font-palette-default text-center">VICTORY!</p>
-								<p className="text-gba-[9] font-sans font-palette-default text-center">
-									You defeated the wild{" "}
-									{context.activeEncounter.wildPubmon?.name}!
-								</p>
-								<div className="border-2 border-primary/30 px-4 py-2">
-									<p className="text-gba-[9] font-sans font-palette-default">
-										+{context.xpGained} XP
-									</p>
-								</div>
-								{activePokemon && (
-									<p className="text-gba-[9] font-sans font-palette-muted text-center">
-										{activePokemon.name} gained experience!
-									</p>
-								)}
-							</div>
-						</PixelBox>
-						<button
-							onClick={() => send({ type: "CONTINUE" })}
-							type="button"
-							className="border-4 border-foreground bg-primary text-primary-foreground px-6 py-3 text-gba-[9] font-sans font-palette-blue shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)] cursor-pointer active:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] hover:brightness-110 transition-all w-full max-w-xs"
-						>
-							CONTINUE CRAWL
-						</button>
-					</div>
+					<PostBattle
+						variant="xpGain"
+						onContinue={() => send({ type: "CONTINUE" })}
+						xpGained={context.xpGained}
+						activePokemon={activePokemon ?? null}
+						defeatedPokemon={context.activeEncounter.wildPubmon}
+					/>
+				)}
+
+				{isRan && context.ranFromPubmon && (
+					<PostBattle
+						variant="ran"
+						onContinue={() => send({ type: "CONTINUE" })}
+						ranFromPubmon={context.ranFromPubmon}
+						ranBattleTurns={context.ranBattleTurns}
+						playerPokemon={activePokemon ?? null}
+					/>
 				)}
 			</main>
 
@@ -549,7 +508,14 @@ export function GameShell({
 			<GameNavbar
 				isHidden={isStarter || isOnboarding || isBattle}
 				activeTab={getActiveTab() || "crawl"}
-				onNavigate={(phase) => send({ type: "NAVIGATE", phase })}
+				onNavigate={(phase) => {
+					if (phase === "settings") {
+						setShowSettings(true);
+					} else {
+						setShowSettings(false);
+						send({ type: "NAVIGATE", phase });
+					}
+				}}
 			/>
 
 			{/* Debug Panel - only shows in development */}

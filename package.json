@@ -9,7 +9,9 @@
 		"lint": "eslint .",
 		"server:dev": "wrangler dev src/index.ts --ip 192.168.1.209",
 		"server:deploy": "wrangler deploy src/index.ts",
-		"server:tail": "wrangler tail"
+		"server:tail": "wrangler tail",
+		"test": "bun test",
+		"test:watch": "bun test --watch"
 	},
 	"dependencies": {
 		"@cloudflare/workers-types": "^4.20260228.0",
