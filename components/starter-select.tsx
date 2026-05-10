@@ -237,21 +237,21 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 											</div>
 											<div className="flex-1 overflow-hidden">
 												<div className="flex items-center gap-[4px] mb-[2px]">
-													<span className="font-pixel text-[8px] text-pixel-black">
+													<span className=" text-[8px] text-pixel-black">
 														{info.label.toUpperCase()}
 													</span>
 													<span
-														className="font-pixel text-[5px] px-[2px] py-[1px] text-pixel-white"
+														className=" text-[5px] px-[2px] py-[1px] text-pixel-white"
 														style={{ backgroundColor: info.color }}
 													>
 														{info.element.toUpperCase()}
 													</span>
 												</div>
-												<p className="font-pixel text-[6px] text-pixel-black m-0">
+												<p className=" text-[6px] text-pixel-black m-0">
 													{starterName.toUpperCase()}
 												</p>
 											</div>
-											<span className="font-pixel text-[8px] opacity-0 group-hover:opacity-100">
+											<span className=" text-[8px] opacity-0 group-hover:opacity-100">
 												&gt;
 											</span>
 										</button>
@@ -283,13 +283,13 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 									/>
 								</div>
 
-								<span className="font-pixel text-pixel-sm text-pixel-black mb-[2px]">
+								<span className=" text-pixel-sm text-pixel-black mb-[2px]">
 									{selectedPokemon.name.toUpperCase()}
 								</span>
 								<TypeBadge type={selectedType} />
 
 								<div className="w-full border-t-2 border-pixel-gray-light mt-[4px] pt-[2px]">
-									<p className="font-pixel text-[6px] text-pixel-black text-center m-0 leading-tight">
+									<p className=" text-[6px] text-pixel-black text-center m-0 leading-tight">
 										{selectedPokemon.description}
 									</p>
 								</div>

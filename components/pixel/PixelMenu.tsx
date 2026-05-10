@@ -31,7 +31,7 @@ const PixelMenu: React.FC<PixelMenuProps> = ({
 					<li
 						key={i}
 						onClick={() => handleClick(i)}
-						className={`relative cursor-pointer font-pixel text-[6px] py-[2px] pl-[4px] pr-[1px] ${textColor} ${
+						className={`relative cursor-pointer  text-[6px] py-[2px] pl-[4px] pr-[1px] ${textColor} ${
 							i === selected ? "pixel-cursor" : ""
 						}`}
 					>

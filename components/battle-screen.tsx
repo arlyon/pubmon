@@ -294,7 +294,7 @@ export function BattleScreen({
 							>
 								<PixelSprite
 									name={wildPokemon.sprite}
-									size={80}
+									size={48}
 									animated
 									variant={wildPokemon.spriteVariant}
 								/>
@@ -359,7 +359,7 @@ export function BattleScreen({
 							>
 								<PixelSprite
 									name={playerPokemon.sprite}
-									size={128}
+									size={56}
 									flipped
 									animated
 									variant={playerPokemon.spriteVariant}
@@ -405,7 +405,7 @@ export function BattleScreen({
 							}}
 						>
 							<div className="py-2 px-3 text-center">
-								<p className="font-pixel text-gba-[9] text-pixel-black">
+								<p className=" text-gba-[9] text-pixel-black">
 									What will{" "}
 									{playerPokemon ? (
 										<span
@@ -425,28 +425,28 @@ export function BattleScreen({
 							<button
 								onClick={() => setMenu("fight")}
 								disabled={!playerPokemon || isAnimating}
-								className="pix-btn font-pixel text-gba-[9]"
+								className="pix-btn  text-gba-[9]"
 							>
 								FIGHT
 							</button>
 							<button
 								onClick={handleCatch}
 								disabled={isAnimating}
-								className="pix-btn pix-btn--catch font-pixel text-gba-[9]"
+								className="pix-btn pix-btn--catch  text-gba-[9]"
 							>
 								CATCH
 							</button>
 							<button
 								onClick={handleBag}
 								disabled={isAnimating}
-								className="pix-btn font-pixel text-gba-[9]"
+								className="pix-btn  text-gba-[9]"
 							>
 								BAG
 							</button>
 							<button
 								onClick={handleRun}
 								disabled={isAnimating}
-								className="pix-btn pix-btn--run font-pixel text-gba-[9]"
+								className="pix-btn pix-btn--run  text-gba-[9]"
 							>
 								RUN
 							</button>
@@ -469,7 +469,7 @@ export function BattleScreen({
 								}}
 							>
 								<div className="py-2 px-3 text-center">
-									<p className="font-pixel text-gba-[9] text-pixel-black">
+									<p className=" text-gba-[9] text-pixel-black">
 										What will{" "}
 										<span
 											className="font-bold"
@@ -501,7 +501,7 @@ export function BattleScreen({
 													}
 												}}
 												disabled={isDisabled}
-												className="pix-btn font-pixel text-gba-[9] text-left"
+												className="pix-btn  text-gba-[9] text-left"
 												style={{
 													borderLeft: `4px solid ${TYPE_INFO[playerPokemon.type].color}`,
 												}}
@@ -518,7 +518,7 @@ export function BattleScreen({
 							</div>
 							<button
 								onClick={() => setMenu("main")}
-								className="w-full pix-btn font-pixel text-gba-[9]"
+								className="w-full pix-btn  text-gba-[9]"
 							>
 								BACK
 							</button>
@@ -537,7 +537,7 @@ export function BattleScreen({
 							}}
 						>
 							<div className="py-2 px-3 text-center">
-								<p className="font-pixel text-gba-[9] text-pixel-black">
+								<p className=" text-gba-[9] text-pixel-black">
 									What will{" "}
 									<span className="font-bold text-pixel-black/70">YOU</span> do?
 								</p>
@@ -554,14 +554,14 @@ export function BattleScreen({
 							<button
 								onClick={handleCatch}
 								disabled={isAnimating}
-								className="pix-btn pix-btn--catch font-pixel text-gba-[9]"
+								className="pix-btn pix-btn--catch  text-gba-[9]"
 							>
 								CATCH
 							</button>
 							<button
 								onClick={handleRun}
 								disabled={isAnimating}
-								className="pix-btn pix-btn--run font-pixel text-gba-[9]"
+								className="pix-btn pix-btn--run  text-gba-[9]"
 							>
 								RUN
 							</button>
@@ -609,7 +609,6 @@ export function BattleScreen({
 					</div>
 				)}
 			</div>
-
 		</div>
 	);
 }

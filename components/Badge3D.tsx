@@ -51,7 +51,7 @@ export function Badge3D({ badgeId, onContinue }: Badge3DProps) {
 				{/* Badge Info */}
 				<div className="flex flex-col items-center gap-2 text-center">
 					<p
-						className="text-gba-[9] font-pixel font-palette-white"
+						className="text-gba-[9]  font-palette-white"
 						style={{
 							animation: "pixel-bounce 1s ease-in-out infinite",
 						}}

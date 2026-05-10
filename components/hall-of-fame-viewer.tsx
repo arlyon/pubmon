@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { PartySocket } from "partysocket";
-import { PixelBox } from "./pixel-box";
 import Image from "next/image";
+import type { PartySocket } from "partysocket";
+import { useEffect, useState } from "react";
+import { PixelBox } from "./pixel-box";
 
 interface PlayerWithRibbons {
 	sessionId: string;
@@ -72,7 +72,7 @@ export function HallOfFameViewer({ socket, sessionId }: HallOfFameViewerProps) {
 	return (
 		<div className="max-w-2xl mx-auto flex flex-col gap-4 p-4">
 			<div className="text-center py-6">
-				<h1 className="text-[20px] font-pixel text-primary mb-2 animate-pulse">
+				<h1 className="text-[20px]  text-primary mb-2 animate-pulse">
 					★ HALL OF FAME ★
 				</h1>
 				<p className="text-[10px] text-muted-foreground">

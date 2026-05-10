@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 
 interface PixelHeaderProps {
 	title: string;
@@ -15,7 +15,7 @@ const PixelHeader: React.FC<PixelHeaderProps> = ({
 
 	return (
 		<div className={`${bg} border-2 ${border} px-[8px] py-[4px]`}>
-			<span className="font-pixel text-pixel-sm text-pixel-white">{title}</span>
+			<span className=" text-pixel-sm text-pixel-white">{title}</span>
 		</div>
 	);
 };

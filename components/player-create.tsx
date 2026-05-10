@@ -272,11 +272,11 @@ export function PlayerCreate({
 										placeholder="YOUR NAME"
 										maxLength={10}
 										autoFocus
-										className="w-full bg-transparent font-pixel text-pixel-xs text-pixel-black text-center outline-none uppercase"
+										className="w-full bg-transparent  text-pixel-xs text-pixel-black text-center outline-none uppercase"
 									/>
 								</div>
 								<div className="flex justify-between">
-									<span className="font-pixel text-[6px] text-pixel-gray">
+									<span className=" text-[6px] text-pixel-gray">
 										{name.length}/10
 									</span>
 								</div>
@@ -284,7 +284,7 @@ export function PlayerCreate({
 								<div className="flex justify-between mt-[2px] items-end">
 									<button
 										onClick={handleBack}
-										className="border-none bg-transparent cursor-pointer font-pixel text-[6px] text-pixel-gray underline hover:text-pixel-black"
+										className="border-none bg-transparent cursor-pointer  text-[6px] text-pixel-gray underline hover:text-pixel-black"
 									>
 										BACK
 									</button>

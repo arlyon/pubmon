@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PixelBox } from "./pixel-box";
+import { GYMS } from "@/lib/gym-data";
 
 interface DebugPanelProps {
 	state: any;
@@ -101,7 +102,7 @@ export function DebugPanel({ state, context }: DebugPanelProps) {
 
 									<div className="text-muted-foreground">Badges:</div>
 									<div className="font-bold">
-										{context.badges?.size || 0}/10
+										{context.badges?.size || 0}/{GYMS.length}
 									</div>
 
 									<div className="text-muted-foreground">Tournament:</div>

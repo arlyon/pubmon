@@ -18,13 +18,13 @@ const PixelTextBox: React.FC<PixelTextBoxProps> = ({
 			className="relative"
 			style={rows ? { minHeight: `${rows * 24}px` } : undefined}
 		>
-			<p className="font-pixel text-gba-[9] text-pixel-black m-0 leading-[14px] whitespace-pre-line">
+			<p className=" text-gba-[9] text-pixel-black m-0 leading-[14px] whitespace-pre-line">
 				{text}
 			</p>
 			{showContinue && (
 				<div className="absolute right-2 bottom-1">
 					<span
-						className="font-pixel text-gba-[9] text-pixel-black"
+						className=" text-gba-[9] text-pixel-black"
 						style={{ animation: "cursor-blink 0.8s step-end infinite" }}
 					>
 						▼

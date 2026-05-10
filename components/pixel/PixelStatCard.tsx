@@ -22,7 +22,7 @@ function StatusBadge({ status }: { status: string | null }) {
 
 	return (
 		<span
-			className="font-pixel leading-none text-gba-[9] px-gba-[3] py-gba-[1]"
+			className=" leading-none text-gba-[9] px-gba-[3] py-gba-[1]"
 			style={{ backgroundColor: statusInfo.bg, color: statusInfo.text }}
 		>
 			{statusInfo.label}
@@ -51,9 +51,9 @@ export default function PixelStatCard({
 	const actualLevel = level ?? pokemon.level;
 
 	return (
-		<PixelBox className="bg-transparent leading-none flex flex-col gap-gba-[2]">
-			<div className="flex items-center gap-gba-[10]">
-				<span className="font-pixel text-gba-[9] text-pixel-black">
+		<PixelBox className="bg-transparent leading-none flex flex-col gap-gba-[0]">
+			<div className="flex items-center gap-gba-[2]">
+				<span className=" text-gba-[9] text-pixel-black">
 					{pokemon.name.toUpperCase()}
 				</span>
 				<div className="flex gap-gba-[2]">
@@ -62,11 +62,9 @@ export default function PixelStatCard({
 				</div>
 			</div>
 			<div className="flex items-center gap-2 justify-between">
-				<span className="font-pixel text-gba-[9] text-pixel-black">
-					Lv{actualLevel}
-				</span>
+				<span className=" text-gba-[9] text-pixel-black">Lv{actualLevel}</span>
 				{showHpNumbers && (
-					<span className="font-pixel text-gba-[9] text-pixel-black">
+					<span className=" text-gba-[9] text-pixel-black">
 						{currentHp}/{actualMaxHp}
 					</span>
 				)}

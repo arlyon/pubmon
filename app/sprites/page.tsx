@@ -11,10 +11,10 @@ export default function SpritesPage() {
 
 	return (
 		<div className="min-h-screen bg-[#1a1c2c] p-8">
-			<h1 className="text-gba-[24] font-pixel text-white mb-4 text-center">
+			<h1 className="text-gba-[24]  text-white mb-4 text-center">
 				Trainer Sprites
 			</h1>
-			<p className="text-sm font-pixel text-white/70 mb-8 text-center">
+			<p className="text-sm  text-white/70 mb-8 text-center">
 				{spriteFiles.length} sprites
 			</p>
 
@@ -39,7 +39,7 @@ export default function SpritesPage() {
 									unoptimized
 								/>
 							</div>
-							<p className="text-xs text-white text-center font-pixel break-words max-w-[100px]">
+							<p className="text-xs text-white text-center  break-words max-w-[100px]">
 								{displayName}
 							</p>
 						</div>

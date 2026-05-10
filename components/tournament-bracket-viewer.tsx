@@ -1,7 +1,7 @@
 "use client";
 
+import type { PartySocket } from "partysocket";
 import { useEffect, useState } from "react";
-import { PartySocket } from "partysocket";
 import type {
 	TournamentBracket,
 	TournamentMatch,
@@ -100,9 +100,7 @@ export function TournamentBracketViewer({
 	return (
 		<div className="max-w-md mx-auto flex flex-col gap-4 p-4">
 			<div className="text-center">
-				<h1 className="text-[14px] font-pixel text-primary">
-					MASTER LEAGUE TOURNAMENT
-				</h1>
+				<h1 className="text-[14px]  text-primary">MASTER LEAGUE TOURNAMENT</h1>
 				<p className="text-[8px] text-muted-foreground">
 					Round {bracket.round}
 				</p>

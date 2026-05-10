@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getPubMonSprite, type PubMon } from "@/lib/pokemon-data";
 import { PixelBox, PixelButton } from "./pixel-box";
-import { TypeBadge, PixelSprite } from "./pixel-sprite";
+import { PixelSprite, TypeBadge } from "./pixel-sprite";
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 
@@ -11,12 +11,16 @@ function StatRow({
 	label,
 	value,
 	accent,
-}: { label: string; value: string; accent?: string }) {
+}: {
+	label: string;
+	value: string;
+	accent?: string;
+}) {
 	return (
 		<div className="flex justify-between items-baseline border-b border-dashed border-foreground/20 py-gba-[4] px-gba-[2]">
-			<span className="font-pixel text-gba-[8] text-foreground/50">{label}</span>
+			<span className=" text-gba-[8] text-foreground/50">{label}</span>
 			<span
-				className="font-pixel text-gba-[8]"
+				className=" text-gba-[8]"
 				style={accent ? { color: accent } : undefined}
 			>
 				{value}
@@ -29,7 +33,11 @@ function XPBar({
 	from,
 	to,
 	color = "#3878f8",
-}: { from: number; to: number; color?: string }) {
+}: {
+	from: number;
+	to: number;
+	color?: string;
+}) {
 	const [width, setWidth] = useState(from);
 	useEffect(() => {
 		const id = setTimeout(() => setWidth(to), 250);
@@ -56,7 +64,11 @@ const PokeBall = ({
 	size = 24,
 	animated = false,
 	style,
-}: { size?: number; animated?: boolean; style?: React.CSSProperties }) => (
+}: {
+	size?: number;
+	animated?: boolean;
+	style?: React.CSSProperties;
+}) => (
 	<svg
 		viewBox="0 0 10 10"
 		width={size}
@@ -70,9 +82,23 @@ const PokeBall = ({
 	>
 		<circle cx={5} cy={5} r={4.5} fill="#e43b44" />
 		<rect x={0.5} y={4.5} width={9} height={1} fill="#1a1c2c" />
-		<circle cx={5} cy={5} r={4.5} fill="none" stroke="#1a1c2c" strokeWidth={0.5} />
+		<circle
+			cx={5}
+			cy={5}
+			r={4.5}
+			fill="none"
+			stroke="#1a1c2c"
+			strokeWidth={0.5}
+		/>
 		<rect x={0.5} y={5} width={9} height={4.5} rx={4.5} fill="#f4f4f4" />
-		<circle cx={5} cy={5} r={1.2} fill="#f4f4f4" stroke="#1a1c2c" strokeWidth={0.4} />
+		<circle
+			cx={5}
+			cy={5}
+			r={1.2}
+			fill="#f4f4f4"
+			stroke="#1a1c2c"
+			strokeWidth={0.4}
+		/>
 		<circle cx={5} cy={5} r={0.6} fill="#1a1c2c" />
 	</svg>
 );
@@ -90,9 +116,7 @@ function RunScreen({
 	playerPokemon: PubMon | null;
 	onContinue: () => void;
 }) {
-	const hpTaken = playerPokemon
-		? playerPokemon.maxHp - playerPokemon.hp
-		: null;
+	const hpTaken = playerPokemon ? playerPokemon.maxHp - playerPokemon.hp : null;
 
 	return (
 		<div
@@ -113,35 +137,52 @@ function RunScreen({
 				}}
 			>
 				<div
-					className="font-pixel text-gba-[9] text-center pb-gba-[6] mb-gba-[8]"
+					className=" text-gba-[9] text-center pb-gba-[6] mb-gba-[8]"
 					style={{ borderBottom: "2px dashed #282828" }}
 				>
 					THE LEAKY TAP
 					<br />
-					<span className="font-pixel text-gba-[7]" style={{ color: "#586878" }}>
+					<span className=" text-gba-[7]" style={{ color: "#586878" }}>
 						— TAB SUMMARY —
 					</span>
 				</div>
 
 				<div>
-					<div className="flex justify-between items-baseline py-gba-[4] px-gba-[2]" style={{ borderBottom: "1px dashed #c8c8c8" }}>
-						<span className="font-pixel text-gba-[8]" style={{ color: "#586878" }}>OPPONENT</span>
-						<span className="font-pixel text-gba-[8]">{ranFromPubmon.name.toUpperCase()}</span>
+					<div
+						className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
+						style={{ borderBottom: "1px dashed #c8c8c8" }}
+					>
+						<span className=" text-gba-[8]" style={{ color: "#586878" }}>
+							OPPONENT
+						</span>
+						<span className=" text-gba-[8]">
+							{ranFromPubmon.name.toUpperCase()}
+						</span>
 					</div>
-					<div className="flex justify-between items-baseline py-gba-[4] px-gba-[2]" style={{ borderBottom: "1px dashed #c8c8c8" }}>
-						<span className="font-pixel text-gba-[8]" style={{ color: "#586878" }}>TURNS</span>
-						<span className="font-pixel text-gba-[8]">{ranBattleTurns}</span>
+					<div
+						className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
+						style={{ borderBottom: "1px dashed #c8c8c8" }}
+					>
+						<span className=" text-gba-[8]" style={{ color: "#586878" }}>
+							TURNS
+						</span>
+						<span className=" text-gba-[8]">{ranBattleTurns}</span>
 					</div>
 					{hpTaken !== null && (
-						<div className="flex justify-between items-baseline py-gba-[4] px-gba-[2]" style={{ borderBottom: "1px dashed #c8c8c8" }}>
-							<span className="font-pixel text-gba-[8]" style={{ color: "#586878" }}>HP TAKEN</span>
-							<span className="font-pixel text-gba-[8]">{hpTaken}</span>
+						<div
+							className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
+							style={{ borderBottom: "1px dashed #c8c8c8" }}
+						>
+							<span className=" text-gba-[8]" style={{ color: "#586878" }}>
+								HP TAKEN
+							</span>
+							<span className=" text-gba-[8]">{hpTaken}</span>
 						</div>
 					)}
 				</div>
 
 				<div
-					className="mt-gba-[8] p-gba-[6] text-center font-pixel text-gba-[8]"
+					className="mt-gba-[8] p-gba-[6] text-center  text-gba-[8]"
 					style={{ border: "2px solid #282828", background: "#f0e0a0" }}
 				>
 					STATUS: TAB DODGED ✗
@@ -162,13 +203,13 @@ function RunScreen({
 			</div>
 
 			<p
-				className="font-pixel text-gba-[10] text-center"
+				className=" text-gba-[10] text-center"
 				style={{ color: "#f8d030", lineHeight: 1.6 }}
 			>
 				GOT AWAY SAFELY!
 			</p>
 			<p
-				className="font-pixel text-gba-[7] text-center"
+				className=" text-gba-[7] text-center"
 				style={{ color: "#a8b0b8", lineHeight: 1.7 }}
 			>
 				Slipped out the back before
@@ -197,10 +238,12 @@ function CatchScreen({
 		caughtPokemon.spriteVariant ?? 1,
 	);
 	const entryNumber = String(caughtPokemon.id).padStart(4, "0");
-	const today = new Date().toLocaleDateString("en-GB", {
-		day: "numeric",
-		month: "short",
-	}).toUpperCase();
+	const today = new Date()
+		.toLocaleDateString("en-GB", {
+			day: "numeric",
+			month: "short",
+		})
+		.toUpperCase();
 
 	return (
 		<div
@@ -209,7 +252,7 @@ function CatchScreen({
 		>
 			{/* PUBDEX +1 header */}
 			<div
-				className="text-center font-pixel text-gba-[11]"
+				className="text-center  text-gba-[11]"
 				style={{
 					color: "#f8d030",
 					textShadow: "2px 2px 0 #a82828",
@@ -232,7 +275,7 @@ function CatchScreen({
 			>
 				{/* Blue header strip */}
 				<div
-					className="font-pixel text-gba-[8] mb-gba-[8] flex justify-between"
+					className=" text-gba-[8] mb-gba-[8] flex justify-between"
 					style={{
 						background: "#4878d0",
 						color: "#f8f8f8",
@@ -266,14 +309,14 @@ function CatchScreen({
 					</div>
 
 					<div className="flex flex-col gap-gba-[4] flex-1">
-						<div className="font-pixel text-gba-[11]" style={{ color: "#282828" }}>
+						<div className=" text-gba-[11]" style={{ color: "#282828" }}>
 							{caughtPokemon.name.toUpperCase()}
 						</div>
 						<div className="flex gap-gba-[4]">
 							<TypeBadge type={caughtPokemon.type} />
 						</div>
 						<div
-							className="font-pixel text-gba-[7]"
+							className=" text-gba-[7]"
 							style={{ color: "#586878", lineHeight: 1.5 }}
 						>
 							{caughtPokemon.description.slice(0, 40).toUpperCase()}
@@ -286,23 +329,37 @@ function CatchScreen({
 					className="mt-gba-[10] pt-gba-[8]"
 					style={{ borderTop: "2px dashed #a8b0b8" }}
 				>
-					<div className="flex justify-between items-baseline py-gba-[4] px-gba-[2]" style={{ borderBottom: "1px dashed #c8c8c8" }}>
-						<span className="font-pixel text-gba-[8]" style={{ color: "#586878" }}>LEVEL</span>
-						<span className="font-pixel text-gba-[8]">LV.{caughtPokemon.level}</span>
+					<div
+						className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
+						style={{ borderBottom: "1px dashed #c8c8c8" }}
+					>
+						<span className=" text-gba-[8]" style={{ color: "#586878" }}>
+							LEVEL
+						</span>
+						<span className=" text-gba-[8]">LV.{caughtPokemon.level}</span>
 					</div>
-					<div className="flex justify-between items-baseline py-gba-[4] px-gba-[2]" style={{ borderBottom: "1px dashed #c8c8c8" }}>
-						<span className="font-pixel text-gba-[8]" style={{ color: "#586878" }}>HP</span>
-						<span className="font-pixel text-gba-[8]">{caughtPokemon.hp} / {caughtPokemon.maxHp}</span>
+					<div
+						className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
+						style={{ borderBottom: "1px dashed #c8c8c8" }}
+					>
+						<span className=" text-gba-[8]" style={{ color: "#586878" }}>
+							HP
+						</span>
+						<span className=" text-gba-[8]">
+							{caughtPokemon.hp} / {caughtPokemon.maxHp}
+						</span>
 					</div>
 					<div className="flex justify-between items-baseline py-gba-[4] px-gba-[2]">
-						<span className="font-pixel text-gba-[8]" style={{ color: "#586878" }}>DATE</span>
-						<span className="font-pixel text-gba-[8]">{today}</span>
+						<span className=" text-gba-[8]" style={{ color: "#586878" }}>
+							DATE
+						</span>
+						<span className=" text-gba-[8]">{today}</span>
 					</div>
 				</div>
 
 				{/* REGISTERED stamp */}
 				<div
-					className="font-pixel text-gba-[9] absolute"
+					className=" text-gba-[9] absolute"
 					style={{
 						right: -6,
 						bottom: 14,
@@ -355,7 +412,10 @@ function WinScreen({
 		: [];
 
 	return (
-		<div className="flex flex-col gap-gba-[10] px-gba-[12] py-gba-[12]" style={{ minHeight: "100%" }}>
+		<div
+			className="flex flex-col gap-gba-[10] px-gba-[12] py-gba-[12]"
+			style={{ minHeight: "100%" }}
+		>
 			{/* Victory banner */}
 			<div
 				className="text-center border-gba-[1] border-foreground px-gba-[10] py-gba-[8]"
@@ -366,11 +426,17 @@ function WinScreen({
 					animation: "banner-flash 1.4s steps(3,end) infinite",
 				}}
 			>
-				<div className="font-pixel text-gba-[14]" style={{ color: "#181010", letterSpacing: 1.5 }}>
+				<div
+					className=" text-gba-[14]"
+					style={{ color: "#181010", letterSpacing: 1.5 }}
+				>
 					VICTORY!
 				</div>
 				{defeatedPokemon && (
-					<div className="font-pixel text-gba-[8] mt-gba-[4]" style={{ color: "#5a4818" }}>
+					<div
+						className=" text-gba-[8] mt-gba-[4]"
+						style={{ color: "#5a4818" }}
+					>
 						{defeatedPokemon.name.toUpperCase()} WAS DEFEATED
 					</div>
 				)}
@@ -397,11 +463,11 @@ function WinScreen({
 							/>
 						</div>
 						<div className="flex-1">
-							<div className="font-pixel text-gba-[8] text-foreground/60 mb-gba-[4]">
+							<div className=" text-gba-[8] text-foreground/60 mb-gba-[4]">
 								EXP TO NEXT
 							</div>
 							<XPBar from={xpFrom} to={xpTo} />
-							<div className="flex justify-between font-pixel text-gba-[7] text-foreground/60 mt-gba-[4]">
+							<div className="flex justify-between  text-gba-[7] text-foreground/60 mt-gba-[4]">
 								<span>+{xpGained} XP</span>
 								<span>{activePokemon.xp} XP</span>
 							</div>
@@ -413,15 +479,16 @@ function WinScreen({
 			{/* Stat display */}
 			{stats.length > 0 && (
 				<PixelBox className="p-gba-[8]">
-					<div className="font-pixel text-gba-[8] text-foreground/60 mb-gba-[6]">
+					<div className=" text-gba-[8] text-foreground/60 mb-gba-[6]">
 						STATS
 					</div>
 					{stats.map((s, i) => (
 						<div
 							key={s.label}
-							className="flex items-center gap-gba-[6] py-gba-[3] font-pixel text-gba-[8]"
+							className="flex items-center gap-gba-[6] py-gba-[3]  text-gba-[8]"
 							style={{
-								borderBottom: i < stats.length - 1 ? "1px dashed #a8b0b8" : "none",
+								borderBottom:
+									i < stats.length - 1 ? "1px dashed #a8b0b8" : "none",
 							}}
 						>
 							<span className="text-foreground/50" style={{ width: 36 }}>

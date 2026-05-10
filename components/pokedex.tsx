@@ -95,14 +95,14 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			{/* Header */}
-			<div className="bg-pixel-red px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-pixel">
+			<div className="bg-pixel-red px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-sans font-palette-red">
 				<div>
-					<div className="text-gba-[9] text-pixel-white">PUBDEX</div>
-					<div className="text-gba-[6] mt-gba-[2]" style={{ color: "#f8d8d8" }}>
+					<div className="text-gba-[9]">PUBDEX</div>
+					<div className="text-gba-[6] mt-gba-[2] font-palette-white">
 						PUBMON DIRECTORY
 					</div>
 				</div>
-				<div className="bg-pixel-black px-gba-[6] py-gba-[3] text-gba-[7] text-pixel-yellow border border-pixel-white font-pixel">
+				<div className="bg-pixel-black px-gba-[6] py-gba-[3] text-gba-[7] border border-pixel-white font-palette-yellow">
 					{totalCaught}/{totalPubMon}
 				</div>
 			</div>
@@ -112,7 +112,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 				<button
 					type="button"
 					onClick={() => setFilterType("all")}
-					className={`px-gba-[4] py-gba-[2] font-pixel text-gba-[6] border-gba-[2] cursor-pointer transition-colors ${
+					className={`px-gba-[4] py-gba-[2]  text-gba-[6] border-gba-[2] cursor-pointer transition-colors ${
 						filterType === "all"
 							? "border-pixel-black bg-pixel-white text-pixel-black"
 							: "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
@@ -127,7 +127,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 							key={type}
 							type="button"
 							onClick={() => setFilterType(type)}
-							className={`px-gba-[4] py-gba-[2] font-pixel text-gba-[6] border-gba-[2] cursor-pointer transition-colors
+							className={`px-gba-[4] py-gba-[2]  text-gba-[6] border-gba-[2] cursor-pointer transition-colors
                 ${
 									filterType === type
 										? "text-pixel-white"
@@ -165,7 +165,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 										type="button"
 										onClick={() => setSelectedId(isSelected ? null : mon.id)}
 										className={`
-                    relative flex flex-col items-center gap-gba-[1] p-gba-[2] border-gba-[2] cursor-pointer transition-all font-pixel
+                    relative flex flex-col items-center gap-gba-[1] p-gba-[2] border-gba-[2] cursor-pointer transition-all
                     ${
 											isSelected
 												? "border-pixel-black bg-pixel-yellow/50"
@@ -247,12 +247,16 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 					<PubMonDetailPanel
 						mon={selected}
 						onCry={() => playPokemonCry(selected.id)}
-						stats={isCaught ? [
-							{ label: "HP", value: selected.maxHp },
-							{ label: "ATK", value: selected.attack },
-							{ label: "DEF", value: selected.defense },
-							{ label: "LVL", value: selected.level },
-						] : undefined}
+						stats={
+							isCaught
+								? [
+										{ label: "HP", value: selected.maxHp },
+										{ label: "ATK", value: selected.attack },
+										{ label: "DEF", value: selected.defense },
+										{ label: "LVL", value: selected.level },
+									]
+								: undefined
+						}
 					>
 						<div className="flex items-center gap-gba-[4] mt-gba-[2]">
 							{isCaught ? (
@@ -286,7 +290,11 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 						<div className="flex gap-gba-[4]">
 							{/* Silhouette sprite */}
 							<div className="size-gba-[48] flex items-center justify-center shrink-0 bg-pixel-gray-light border-gba-[2] border-pixel-gray">
-								<div style={{ filter: "grayscale(100%) brightness(0) opacity(50%)" }}>
+								<div
+									style={{
+										filter: "grayscale(100%) brightness(0) opacity(50%)",
+									}}
+								>
 									<PixelSprite
 										name={selected.sprite}
 										size={64}
@@ -297,13 +305,13 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 							{/* Info */}
 							<div className="flex flex-col gap-gba-[2] justify-center">
-								<span className="font-pixel text-gba-[6] text-pixel-gray">
+								<span className=" text-gba-[6] text-pixel-gray">
 									#{String(selected.id).padStart(3, "0")} ???
 								</span>
-								<p className="font-pixel text-gba-[5] text-pixel-gray">
+								<p className=" text-gba-[5] text-pixel-gray">
 									NOT YET ENCOUNTERED
 								</p>
-								<p className="font-pixel text-gba-[5] text-pixel-gray leading-tight mt-gba-[2]">
+								<p className=" text-gba-[5] text-pixel-gray leading-tight mt-gba-[2]">
 									ORDER A DRINK OF THE
 									<br />
 									RIGHT TYPE TO FIND!

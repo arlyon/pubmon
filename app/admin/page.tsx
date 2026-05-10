@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { PartySocket } from "partysocket";
+import { useEffect, useState } from "react";
 import { PixelBox } from "@/components/pixel-box";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,14 +21,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { GYMS } from "@/lib/gym-data";
 
 interface PlayerStats {
@@ -257,7 +257,7 @@ export default function AdminPage() {
 		<div className="min-h-screen bg-background p-6">
 			<div className="max-w-6xl mx-auto space-y-6">
 				<div className="flex items-center justify-between">
-					<h1 className="text-4xl font-bold font-pixel text-primary">
+					<h1 className="text-4xl font-bold  text-primary">
 						PubMon Admin Dashboard
 					</h1>
 					<Badge variant={isConnected ? "default" : "destructive"}>
@@ -334,7 +334,7 @@ export default function AdminPage() {
 						<div className="grid grid-cols-2 gap-4">
 							<div className="border rounded-lg p-4">
 								<p className="text-sm text-muted-foreground mb-1">Game Phase</p>
-								<p className="text-2xl font-pixel font-bold capitalize">
+								<p className="text-2xl  font-bold capitalize">
 									{gamePhase === "hall-of-fame" ? "Hall of Fame" : gamePhase}
 								</p>
 							</div>
@@ -342,7 +342,7 @@ export default function AdminPage() {
 								<p className="text-sm text-muted-foreground mb-1">
 									Opted In Players
 								</p>
-								<p className="text-2xl font-pixel font-bold">
+								<p className="text-2xl  font-bold">
 									{players.filter((p) => p.tournamentOptIn).length} /{" "}
 									{players.length}
 								</p>
@@ -355,7 +355,7 @@ export default function AdminPage() {
 									<p className="text-sm text-muted-foreground mb-1">
 										Current Round
 									</p>
-									<p className="text-2xl font-pixel font-bold">
+									<p className="text-2xl  font-bold">
 										{tournamentBracket.round}
 									</p>
 								</div>
@@ -363,7 +363,7 @@ export default function AdminPage() {
 									<p className="text-sm text-muted-foreground mb-1">
 										Active Matches
 									</p>
-									<p className="text-2xl font-pixel font-bold">
+									<p className="text-2xl  font-bold">
 										{
 											tournamentBracket.matches.filter(
 												(m) => m.status === "in_progress",
@@ -375,7 +375,7 @@ export default function AdminPage() {
 									<p className="text-sm text-muted-foreground mb-1">
 										Completed Matches
 									</p>
-									<p className="text-2xl font-pixel font-bold">
+									<p className="text-2xl  font-bold">
 										{
 											tournamentBracket.matches.filter(
 												(m) => m.status === "completed",
@@ -612,14 +612,10 @@ export default function AdminPage() {
 											className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
 										>
 											<div className="flex items-center gap-4">
-												<span className="font-pixel text-lg font-bold">
-													{idx + 1}.
-												</span>
+												<span className=" text-lg font-bold">{idx + 1}.</span>
 												<div>
 													<div className="flex items-center gap-2">
-														<p className="font-pixel font-bold">
-															{player.name}
-														</p>
+														<p className=" font-bold">{player.name}</p>
 														{player.tournamentOptIn && (
 															<Badge variant="secondary" className="text-xs">
 																Tournament

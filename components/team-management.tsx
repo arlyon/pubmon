@@ -31,16 +31,18 @@ export function TeamManagement({
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			{/* Header */}
-			<div className="bg-[#384080] px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-pixel">
+			<div className="bg-[#384080] px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-sans font-palette-blue">
 				<div>
-					<div className="text-gba-[9] text-pixel-white">PUBMON</div>
-					<div className="text-gba-[6] mt-gba-[2] text-[#a0b8f0]">
+					<div className="text-gba-[9]">PUBMON</div>
+					<div className="text-gba-[6] mt-gba-[2] font-palette-white">
 						YOUR PARTY
 					</div>
 				</div>
 				<div className="text-right">
-					<div className="text-gba-[6] text-[#a0b8f0]">SIZE</div>
-					<div className="text-gba-[10] text-pixel-yellow">{team.length}/6</div>
+					<div className="text-gba-[6] font-palette-white">SIZE</div>
+					<div className="text-gba-[10] font-palette-yellow">
+						{team.length}/6
+					</div>
 				</div>
 			</div>
 
@@ -87,10 +89,10 @@ export function TeamManagement({
 								/>
 								<circle cx={5} cy={5} r={0.6} fill="rgb(var(--pixel-black))" />
 							</svg>
-							<p className="font-pixel text-gba-[6] text-pixel-gray mt-gba-[8]">
+							<p className=" text-gba-[6] text-pixel-gray mt-gba-[8]">
 								NO PUBMON CAUGHT YET!
 							</p>
-							<p className="font-pixel text-gba-[5] text-pixel-gray mt-gba-[4]">
+							<p className=" text-gba-[5] text-pixel-gray mt-gba-[4]">
 								ORDER A DRINK TO ENCOUNTER ONE
 							</p>
 						</div>
@@ -112,7 +114,7 @@ export function TeamManagement({
 										}}
 										className={`
                     flex items-center gap-gba-[4] p-gba-[4] border-gba-[2] cursor-pointer
-                    transition-all font-pixel text-left w-full
+                    transition-all  text-left w-full
                     ${isSelected ? "border-pixel-black bg-pixel-yellow/50" : "border-pixel-gray bg-pixel-gray-light hover:border-pixel-black"}
                   `}
 									>
@@ -167,7 +169,7 @@ export function TeamManagement({
 													}}
 												/>
 											</div>
-											<span className="font-pixel text-gba-[4] text-pixel-gray text-right block mt-gba-[1]">
+											<span className=" text-gba-[4] text-pixel-gray text-right block mt-gba-[1]">
 												{mon.hp}/{mon.maxHp}
 											</span>
 										</div>
@@ -182,7 +184,7 @@ export function TeamManagement({
 										key={`empty-${i}`}
 										className="flex items-center justify-center p-gba-[8] border-gba-[2] border-dashed border-pixel-gray-light h-gba-[40]"
 									>
-										<span className="font-pixel text-gba-[5] text-pixel-gray/30">
+										<span className=" text-gba-[5] text-pixel-gray/30">
 											-- EMPTY --
 										</span>
 									</div>
@@ -195,47 +197,46 @@ export function TeamManagement({
 
 			{/* Selected pokemon detail */}
 			{selected && selectedIdx !== null && (
-  <div className="mb-gba-[4]">
-    <PubMonDetailPanel
-      mon={selected}
-      onCry={() => playPokemonCry(selected.id)}
-      stats={[
-        { label: "HP", value: selected.maxHp },
-        { label: "ATK", value: selected.attack },
-        { label: "DEF", value: selected.defense },
-        { label: "XP", value: selected.xp },
-      ]}
-      actions={
-        <>
-          {selectedIdx !== activeIndex && (
-            <button
-              onClick={() => onSetActive(selectedIdx)}
-              className="mt-gba-[4] w-full px-gba-[4] py-gba-[2] font-sans font-palette-blue text-gba-[6] border-gba-[2] border-pixel-white bg-pixel-blue-dark hover:bg-pixel-yellow hover:font-palette-default hover:border-pixel-black cursor-pointer transition-colors"
-            >
-              SET AS LEAD
-            </button>
-          )}
-          <button
-            onClick={() => selected && onPlay(selected)}
-            className="mt-gba-[4] w-full px-gba-[4] py-gba-[2] font-sans font-palette-green text-gba-[6] border-gba-[2] border-pixel-green bg-pixel-green-dark hover:bg-pixel-green hover:font-palette-default hover:border-pixel-black cursor-pointer transition-colors"
-          >
-            PLAY!
-          </button>
-        </>
-      }
-    >
-      <div className="flex items-center gap-gba-[4] mt-gba-[2]">
-        <span className="font-sans font-palette-muted text-gba-[5]">
-          LV {selected.level}
-        </span>
-      </div>
-      <p className="font-sans font-palette-blue text-gba-[5] leading-tight mt-gba-[2]">
-        {selected.description}
-      </p>
-    </PubMonDetailPanel>
-  </div>
-)}
-
+				<div className="mb-gba-[4]">
+					<PubMonDetailPanel
+						mon={selected}
+						onCry={() => playPokemonCry(selected.id)}
+						stats={[
+							{ label: "HP", value: selected.maxHp },
+							{ label: "ATK", value: selected.attack },
+							{ label: "DEF", value: selected.defense },
+							{ label: "XP", value: selected.xp },
+						]}
+						actions={
+							<>
+								{selectedIdx !== activeIndex && (
+									<button
+										onClick={() => onSetActive(selectedIdx)}
+										className="mt-gba-[4] w-full px-gba-[4] py-gba-[2] font-sans font-palette-blue text-gba-[6] border-gba-[2] border-pixel-white bg-pixel-blue-dark hover:bg-pixel-yellow hover:font-palette-default hover:border-pixel-black cursor-pointer transition-colors"
+									>
+										SET AS LEAD
+									</button>
+								)}
+								<button
+									onClick={() => selected && onPlay(selected)}
+									className="mt-gba-[4] w-full px-gba-[4] py-gba-[2] font-sans font-palette-green text-gba-[6] border-gba-[2] border-pixel-green bg-pixel-green-dark hover:bg-pixel-green hover:font-palette-default hover:border-pixel-black cursor-pointer transition-colors"
+								>
+									PLAY!
+								</button>
+							</>
+						}
+					>
+						<div className="flex items-center gap-gba-[4] mt-gba-[2]">
+							<span className="font-sans font-palette-muted text-gba-[5]">
+								LV {selected.level}
+							</span>
+						</div>
+						<p className="font-sans font-palette-blue text-gba-[5] leading-tight mt-gba-[2]">
+							{selected.description}
+						</p>
+					</PubMonDetailPanel>
+				</div>
+			)}
 		</div>
 	);
 }

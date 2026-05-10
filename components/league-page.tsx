@@ -129,11 +129,11 @@ export function LeaguePage({
 						className="w-full bg-[#f85858] animate-pulse"
 					>
 						<div className="p-[8px] flex flex-col gap-[4px]">
-							<div className="font-pixel text-[8px] text-pixel-white text-center">
+							<div className=" text-[8px] text-pixel-white text-center">
 								⚔ ACTIVE BATTLE ⚔
 							</div>
 							<div
-								className="font-pixel text-pixel-white text-center"
+								className=" text-pixel-white text-center"
 								style={{ fontSize: 6, opacity: 0.9 }}
 							>
 								VS {activeBattle.opponentName}
@@ -141,7 +141,7 @@ export function LeaguePage({
 							<button
 								type="button"
 								onClick={onReturnToBattle}
-								className="mt-[4px] font-pixel text-[7px] bg-pixel-yellow text-pixel-black px-[8px] py-[4px] border-2 border-pixel-white hover:bg-pixel-white transition-colors"
+								className="mt-[4px]  text-[7px] bg-pixel-yellow text-pixel-black px-[8px] py-[4px] border-2 border-pixel-white hover:bg-pixel-white transition-colors"
 							>
 								→ RETURN TO BATTLE
 							</button>
@@ -159,11 +159,11 @@ export function LeaguePage({
 						className="w-full flex items-center justify-between p-[8px]"
 					>
 						<div className="text-left">
-							<div className="font-pixel text-[8px] text-foreground">
+							<div className=" text-[8px] text-foreground">
 								MASTER TOURNAMENT
 							</div>
 							<div
-								className="font-pixel text-foreground"
+								className=" text-foreground"
 								style={{ fontSize: 5, opacity: 0.8 }}
 							>
 								{optedIn ? "YOU ARE REGISTERED!" : "Opt in to compete"}
@@ -183,7 +183,7 @@ export function LeaguePage({
 					</button>
 					{optedIn && (
 						<div
-							className="mt-[4px] pb-[4px] text-center font-pixel animate-pulse"
+							className="mt-[4px] pb-[4px] text-center  animate-pulse"
 							style={{ fontSize: 5, color: "#f8b830" }}
 						>
 							★ READY FOR THE ULTIMATE CHALLENGE ★
@@ -198,7 +198,7 @@ export function LeaguePage({
 					{sortedLeaderboard.length === 0 ? (
 						<PixelBox>
 							<p
-								className="font-pixel text-pixel-gray text-center py-[16px]"
+								className=" text-pixel-gray text-center py-[16px]"
 								style={{ fontSize: 6 }}
 							>
 								No players yet
@@ -229,11 +229,11 @@ export function LeaguePage({
 										{/* Rank + Name row */}
 										<div className="flex items-center justify-between mb-[4px]">
 											<div className="flex items-center gap-[8px]">
-												<span className="font-pixel text-[8px] w-[16px] text-center">
+												<span className=" text-[8px] w-[16px] text-center">
 													{trophy ? trophy.icon : `#${rank + 1}`}
 												</span>
 												<span
-													className={`font-pixel text-[9px] ${
+													className={` text-[9px] ${
 														isYou || trophy
 															? "text-pixel-white"
 															: "text-pixel-black"
@@ -243,7 +243,7 @@ export function LeaguePage({
 												</span>
 												{isYou && (
 													<span
-														className="font-pixel text-pixel-yellow"
+														className=" text-pixel-yellow"
 														style={{ fontSize: 5 }}
 													>
 														(YOU)
@@ -251,7 +251,7 @@ export function LeaguePage({
 												)}
 											</div>
 											<span
-												className={`font-pixel text-[8px] ${
+												className={` text-[8px] ${
 													isYou || trophy
 														? "text-pixel-white"
 														: "text-pixel-gray"
@@ -265,7 +265,7 @@ export function LeaguePage({
 										<div className="grid grid-cols-4 gap-[4px]">
 											<div className="text-center">
 												<div
-													className={`font-pixel text-[8px] ${
+													className={` text-[8px] ${
 														isYou || trophy
 															? "text-pixel-yellow"
 															: "text-pixel-black"
@@ -275,7 +275,7 @@ export function LeaguePage({
 												</div>
 												<div
 													style={{ fontSize: 4 }}
-													className={`font-pixel ${
+													className={` ${
 														isYou || trophy
 															? "text-pixel-white opacity-70"
 															: "text-pixel-gray"
@@ -286,7 +286,7 @@ export function LeaguePage({
 											</div>
 											<div className="text-center">
 												<div
-													className={`font-pixel text-[8px] ${
+													className={` text-[8px] ${
 														isYou || trophy
 															? "text-pixel-white"
 															: "text-pixel-black"
@@ -296,7 +296,7 @@ export function LeaguePage({
 												</div>
 												<div
 													style={{ fontSize: 4 }}
-													className={`font-pixel ${
+													className={` ${
 														isYou || trophy
 															? "text-pixel-white opacity-70"
 															: "text-pixel-gray"
@@ -307,7 +307,7 @@ export function LeaguePage({
 											</div>
 											<div className="text-center">
 												<div
-													className={`font-pixel text-[8px] ${
+													className={` text-[8px] ${
 														isYou || trophy
 															? "text-pixel-white"
 															: "text-pixel-black"
@@ -317,7 +317,7 @@ export function LeaguePage({
 												</div>
 												<div
 													style={{ fontSize: 4 }}
-													className={`font-pixel ${
+													className={` ${
 														isYou || trophy
 															? "text-pixel-white opacity-70"
 															: "text-pixel-gray"
@@ -328,7 +328,7 @@ export function LeaguePage({
 											</div>
 											<div className="text-center">
 												<div
-													className={`font-pixel text-[8px] ${
+													className={` text-[8px] ${
 														isYou || trophy
 															? "text-pixel-yellow"
 															: "text-pixel-black"
@@ -338,7 +338,7 @@ export function LeaguePage({
 												</div>
 												<div
 													style={{ fontSize: 4 }}
-													className={`font-pixel ${
+													className={` ${
 														isYou || trophy
 															? "text-pixel-white opacity-70"
 															: "text-pixel-gray"
@@ -352,7 +352,7 @@ export function LeaguePage({
 										{/* Trophy bar for top 3 */}
 										{trophy && (
 											<div
-												className="mt-[4px] text-center font-pixel text-pixel-white"
+												className="mt-[4px] text-center  text-pixel-white"
 												style={{ fontSize: 5 }}
 											>
 												{"═".repeat(8)} {trophy.label} PLACE {"═".repeat(8)}
