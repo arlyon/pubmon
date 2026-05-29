@@ -170,6 +170,8 @@ export const MOVE_MAPPINGS: Record<string, string> = {
 	cocoadust: "sleeppowder",
 	soothingmoo: "growl",
 	thickcoat: "harden",
+	coffeevenom: "toxic",
+	caffeinerattle: "supersonic",
 
 	// ==========================================
 	// WINE (Fairy / Psychic / Status)
@@ -218,6 +220,8 @@ export const MOVE_MAPPINGS: Record<string, string> = {
 	bearhug: "bind",
 	fermentsting: "twineedle",
 	goldenbuzz: "supersonic",
+	tonicthrash: "thrash",
+	citrusscreech: "screech",
 
 	// ==========================================
 	// WATER (Water / Ice)
@@ -266,6 +270,7 @@ export const MOVE_MAPPINGS: Record<string, string> = {
 	crispcut: "slash",
 	clearglide: "agility",
 	refreshingwind: "gust",
+	stickyhooves: "stomp",
 
 	// ==========================================
 	// COCKTAIL (Grass / Flying)
@@ -303,6 +308,10 @@ export const MOVE_MAPPINGS: Record<string, string> = {
 	agavewhip: "vinewhip",
 	limeflutter: "gust",
 	sunbathe: "growth",
+	neonflare: "flamethrower",
+	caffeinerush: "agility",
+	taurinetail: "slam",
+	blueraspburn: "ember",
 };
 
 /**

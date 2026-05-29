@@ -1,6 +1,10 @@
-import { Server, type Connection } from "partyserver";
+import { Server, getServerByName, type Connection } from "partyserver";
 import type { PubMon } from "../../lib/pokemon-data";
-import type { BattleState, BattlePlayer } from "../types/game-state";
+import type {
+	BattleState,
+	BattlePlayer,
+	SerializablePlayerState,
+} from "../types/game-state";
 import type {
 	BattleClientMessage,
 	BattleServerMessage,
@@ -30,7 +34,11 @@ export class BattleServer extends Server {
 	private p1Stream: BattleStreams.BattlePlayer | null = null;
 	private p2Stream: BattleStreams.BattlePlayer | null = null;
 	private eventLog: string[] = []; // Full canonical event log
+	// Latest per-side `|request|` line, replayed to a reconnecting client so its
+	// move menu is restored (these are not part of the omniscient eventLog).
+	private lastRequest: { player1?: string; player2?: string } = {};
 	private startTime: number = 0;
+	private lastMoveAt: number = 0;
 
 	constructor(ctx: DurableObjectState, env: any) {
 		super(ctx, env);
@@ -42,6 +50,30 @@ export class BattleServer extends Server {
 
 	async onConnect(connection: Connection) {
 		console.log(`[BattleServer] Client connected: ${connection.id}`);
+
+		// Bring late joiners / spectators (e.g. the admin console) up to speed
+		// with the current battle state, including timing, so they can render
+		// total/idle timers immediately.
+		if (this.battleState && this.battleState.status === "active") {
+			this.sendBattleStateTo(connection);
+		}
+	}
+
+	/** Force the battle to end and notify both players (Main->Battle RPC). */
+	async onRequest(request: Request): Promise<Response> {
+		const url = new URL(request.url);
+		if (
+			request.method === "POST" &&
+			url.pathname.endsWith("/rpc/end-battle")
+		) {
+			const body = await request.json<{
+				winnerId: string | null;
+				reason: "admin" | "void";
+			}>();
+			await this.forceEnd(body.winnerId, body.reason);
+			return Response.json({ success: true });
+		}
+		return new Response("Not found", { status: 404 });
 	}
 
 	async onMessage(connection: Connection, message: string | ArrayBuffer) {
@@ -75,28 +107,27 @@ export class BattleServer extends Server {
 	async onClose(connection: Connection) {
 		console.log(`[BattleServer] Client disconnected: ${connection.id}`);
 
-		// Mark player as disconnected
-		if (this.battleState) {
-			if (this.battleState.player1.sessionId === connection.id) {
-				this.battleState.player1.connected = false;
-			} else if (this.battleState.player2.sessionId === connection.id) {
-				this.battleState.player2.connected = false;
-			}
+		if (!this.battleState) return;
 
-			// Auto-forfeit if player disconnects
-			const disconnectedPlayer = !this.battleState.player1.connected
-				? this.battleState.player1
-				: !this.battleState.player2.connected
-					? this.battleState.player2
-					: null;
-
-			if (disconnectedPlayer && this.battleState.status === "active") {
-				const winnerId =
-					disconnectedPlayer === this.battleState.player1
-						? this.battleState.player2.sessionId
-						: this.battleState.player1.sessionId;
-				await this.endBattle(winnerId);
+		// Map the closing connection back to its session. (connection.id is the
+		// transport id, NOT the player's sessionId, so we look it up.)
+		let sessionId: string | undefined;
+		for (const [sid, conn] of this.connectionMap) {
+			if (conn === connection) {
+				sessionId = sid;
+				break;
 			}
+		}
+		if (!sessionId) return;
+
+		// Grace period: mark the player disconnected but DON'T auto-forfeit. They
+		// may reconnect and resume (e.g. a page reload / dev StrictMode remount).
+		// Forfeits/voids are handled explicitly by the admin; there is no move
+		// timeout.
+		if (this.battleState.player1.sessionId === sessionId) {
+			this.battleState.player1.connected = false;
+		} else if (this.battleState.player2.sessionId === sessionId) {
+			this.battleState.player2.connected = false;
 		}
 	}
 
@@ -108,6 +139,65 @@ export class BattleServer extends Server {
 		msg: Extract<BattleClientMessage, { type: "battle_join" }>,
 		connection: Connection,
 	) {
+		// Reconnection: this session is already a participant. Restore its
+		// connection and replay the battle from the start so the client can
+		// rebuild HP / log / move-menu state. (Also covers the dev StrictMode
+		// remount, which tears down and recreates the client engine.)
+		if (this.battleState) {
+			const slot =
+				this.battleState.player1.sessionId === msg.sessionId
+					? "player1"
+					: this.battleState.player2.sessionId === msg.sessionId
+						? "player2"
+						: null;
+			if (slot) {
+				const player = this.battleState[slot];
+				player.connected = true;
+				this.connectionMap.set(msg.sessionId, connection);
+
+				// Replay the full canonical protocol from |start|.
+				if (this.eventLog.length > 0) {
+					connection.send(
+						JSON.stringify({
+							type: "battle_update",
+							events: [...this.eventLog],
+						}),
+					);
+				}
+				// Restore the move menu.
+				const req = this.lastRequest[slot];
+				if (req) {
+					connection.send(
+						JSON.stringify({ type: "battle_update", events: [req] }),
+					);
+				}
+				// Current snapshot (timing etc.) for spectator-style fields.
+				this.sendBattleStateTo(connection);
+
+				// If the battle already finished, tell the reconnecting client.
+				if (
+					this.battleState.status === "completed" &&
+					this.battleState.winnerId
+				) {
+					connection.send(
+						JSON.stringify({
+							type: "battle_end",
+							winnerId: this.battleState.winnerId,
+							winnerName:
+								this.battleState.player1.sessionId ===
+								this.battleState.winnerId
+									? this.battleState.player1.name
+									: this.battleState.player2.name,
+							reason: "natural",
+						}),
+					);
+				}
+
+				console.log(`[BattleServer] ${player.name} reconnected to ${this.name}`);
+				return;
+			}
+		}
+
 		// Fetch player data from MainEventServer
 		const playerData = await this.fetchPlayerData(msg.sessionId);
 		if (!playerData) {
@@ -213,6 +303,10 @@ export class BattleServer extends Server {
 		);
 		playerStream.write(command);
 
+		// Record activity for the idle timer and push fresh timing to spectators.
+		this.lastMoveAt = Date.now();
+		await this.broadcastBattleState();
+
 		// Engine will handle the rest via handleEngineChunk
 	}
 
@@ -250,6 +344,7 @@ export class BattleServer extends Server {
 		this.battleState.currentTurn =
 			this.battleState.currentTurn === "player1" ? "player2" : "player1";
 		this.battleState.turnCount++;
+		this.lastMoveAt = Date.now();
 
 		await this.broadcastBattleState();
 	}
@@ -279,6 +374,7 @@ export class BattleServer extends Server {
 		if (!this.battleState) return;
 
 		this.startTime = Date.now();
+		this.lastMoveAt = this.startTime;
 
 		const customDex = Dex.mod("pubmon" as ID, generatePubMonModData() as any);
 		const stream = new BattleStreams.BattleStream(
@@ -291,7 +387,7 @@ export class BattleServer extends Server {
 		this.p1Stream = streams.p1;
 		this.p2Stream = streams.p2;
 
-		// Listen to omniscient stream
+		// Listen to omniscient stream (full battle log -> both players).
 		(async () => {
 			try {
 				for await (const chunk of streams.omniscient) {
@@ -301,6 +397,39 @@ export class BattleServer extends Server {
 				console.error("[BattleServer] Error in omniscient stream:", error);
 			}
 		})();
+
+		// The omniscient stream does NOT carry per-side `|request|` messages —
+		// those tell each client which moves are choosable and drive the move
+		// menu. Forward each player stream's `|request|` lines to that player.
+		const pipeRequests = (
+			stream: AsyncIterable<string>,
+			slot: "player1" | "player2",
+		) => {
+			void (async () => {
+				try {
+					for await (const chunk of stream) {
+						const lines = chunk
+							.split("\n")
+							.filter((line) => line.startsWith("|request|"));
+						if (lines.length === 0) continue;
+						// Remember the latest request so we can restore the move menu
+						// for a reconnecting client.
+						this.lastRequest[slot] = lines[lines.length - 1];
+						const sid = this.battleState?.[slot].sessionId;
+						const conn = sid ? this.connectionMap.get(sid) : undefined;
+						if (conn) {
+							conn.send(
+								JSON.stringify({ type: "battle_update", events: lines }),
+							);
+						}
+					}
+				} catch (error) {
+					console.error("[BattleServer] Error in player stream:", error);
+				}
+			})();
+		};
+		pipeRequests(streams.p1, "player1");
+		pipeRequests(streams.p2, "player2");
 
 		// Create team format helper
 		const formatId = (name: string) =>
@@ -370,7 +499,10 @@ export class BattleServer extends Server {
 	// Battle Utilities
 	// ============================================================================
 
-	private async endBattle(winnerId: string) {
+	private async endBattle(
+		winnerId: string,
+		reason: "natural" | "forfeit" = "natural",
+	) {
 		if (!this.battleState) return;
 
 		this.battleState.status = "completed";
@@ -381,11 +513,12 @@ export class BattleServer extends Server {
 				? this.battleState.player1
 				: this.battleState.player2;
 
-		// Broadcast battle end
+		// Broadcast battle end (threads through to each client's battle hook).
 		this.broadcastMessage({
 			type: "battle_end",
 			winnerId,
-			winnerName: winner.name,
+			winnerName: winner?.name ?? "",
+			reason,
 		});
 
 		// Report result back to MainEventServer
@@ -398,17 +531,48 @@ export class BattleServer extends Server {
 		}, 3000);
 	}
 
-	private async broadcastBattleState() {
+	/**
+	 * Force the battle to end on the MainEventServer's authority (admin resolve
+	 * / void). Notifies both players via battle_end. Does NOT report back to the
+	 * MainEventServer — it already owns the decision.
+	 */
+	private async forceEnd(winnerId: string | null, reason: "admin" | "void") {
 		if (!this.battleState) return;
+		if (this.battleState.status === "completed") return; // idempotent
+
+		this.battleState.status = "completed";
+		this.battleState.winnerId = winnerId ?? undefined;
+
+		const winnerName = winnerId
+			? this.battleState.player1.sessionId === winnerId
+				? this.battleState.player1.name
+				: this.battleState.player2.name
+			: "";
+
+		this.broadcastMessage({
+			type: "battle_end",
+			winnerId: winnerId ?? "",
+			winnerName,
+			reason,
+		});
+
+		setTimeout(() => {
+			this.broadcast("BATTLE_COMPLETE");
+		}, 3000);
+	}
+
+	/** Build the current battle_state message, or null if not renderable yet. */
+	private buildBattleState(): BattleServerMessage | null {
+		if (!this.battleState) return null;
 
 		const player1Mon =
 			this.battleState.player1.party[this.battleState.player1.activeIndex];
 		const player2Mon =
 			this.battleState.player2.party[this.battleState.player2.activeIndex];
 
-		if (!player1Mon || !player2Mon) return;
+		if (!player1Mon || !player2Mon) return null;
 
-		this.broadcastMessage({
+		return {
 			type: "battle_state",
 			battleId: this.battleState.battleId,
 			player1: {
@@ -425,24 +589,52 @@ export class BattleServer extends Server {
 			},
 			currentTurn: this.battleState.currentTurn,
 			turnCount: this.battleState.turnCount,
-		});
+			startedAt: this.startTime,
+			lastMoveAt: this.lastMoveAt,
+			serverNow: Date.now(),
+		};
+	}
+
+	private async broadcastBattleState() {
+		const state = this.buildBattleState();
+		if (state) this.broadcastMessage(state);
+	}
+
+	private sendBattleStateTo(connection: Connection) {
+		const state = this.buildBattleState();
+		if (state) connection.send(JSON.stringify(state));
 	}
 
 	// ============================================================================
 	// Communication with MainEventServer
 	// ============================================================================
 
+	/** Get a stub for the global MainEventServer durable object. */
+	private async mainEventServer() {
+		return getServerByName(this.env.MAIN_EVENT_SERVER, "global");
+	}
+
 	private async fetchPlayerData(
 		sessionId: string,
 	): Promise<{ name: string; party: PubMon[]; activeIndex: number } | null> {
 		try {
-			// Fetch player data from MainEventServer via RPC
-			const mainServerUrl = `${this.env.PARTYKIT_URL}/parties/main/global`;
-			const response = await fetch(`${mainServerUrl}/rpc/player/${sessionId}`);
+			// Fetch player data directly from the MainEventServer DO (no network
+			// hop / PARTYKIT_URL needed — both live in the same worker).
+			const stub = await this.mainEventServer();
+			const response = await stub.fetch(
+				`https://do/parties/main/global/rpc/player/${sessionId}`,
+			);
 
 			if (!response.ok) return null;
 
-			return await response.json();
+			// The RPC returns the full serialized player state; extract the
+			// battle slice we need.
+			const data = (await response.json()) as SerializablePlayerState;
+			return {
+				name: data.info.name,
+				party: data.party,
+				activeIndex: data.activeIndex,
+			};
 		} catch (error) {
 			console.error("[BattleServer] Failed to fetch player data:", error);
 			return null;
@@ -451,8 +643,8 @@ export class BattleServer extends Server {
 
 	private async reportBattleResult(winnerId: string) {
 		try {
-			const mainServerUrl = `${this.env.PARTYKIT_URL}/parties/main/global`;
-			await fetch(`${mainServerUrl}/rpc/battle-complete`, {
+			const stub = await this.mainEventServer();
+			await stub.fetch(`https://do/parties/main/global/rpc/battle-complete`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({

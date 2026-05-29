@@ -1,6 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { IconCrawl } from "./images/IconCrawl";
+import { IconLeague } from "./images/IconLeague";
+import { IconPubdex } from "./images/IconPubdex";
+import { IconPubmon } from "./images/IconPubmon";
+import { IconSettings } from "./images/IconSettings";
 
 interface NavButtonProps {
 	icon: ReactNode;
@@ -65,14 +70,7 @@ export function GameNavbar({
 		>
 			<div className="flex items-stretch w-full">
 				<NavButton
-					icon={
-						<svg viewBox="0 0 8 8" className="pixel-perfect size-gba-[12]">
-							<title>Crawl icon</title>
-							<rect x={2} y={0} width={4} height={1} fill="currentColor" />
-							<rect x={1} y={1} width={6} height={5} fill="currentColor" />
-							<rect x={3} y={6} width={2} height={2} fill="currentColor" />
-						</svg>
-					}
+					icon={<IconCrawl />}
 					label="CRAWL"
 					isActive={activeTab === "crawl"}
 					onClick={() => onNavigate("crawl")}
@@ -83,43 +81,7 @@ export function GameNavbar({
 				<div className="w-[1px] bg-pixel-gray/30" />
 
 				<NavButton
-					icon={
-						<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
-							<title>Pubdex icon</title>
-							<rect
-								x={0}
-								y={0}
-								width={12}
-								height={12}
-								rx={1}
-								fill="currentColor"
-							/>
-							<rect
-								x={1}
-								y={1}
-								width={10}
-								height={10}
-								rx={1}
-								fill="rgb(var(--pixel-white))"
-							/>
-							<rect
-								x={2}
-								y={2}
-								width={8}
-								height={5}
-								fill="currentColor"
-								opacity={0.3}
-							/>
-							<rect
-								x={3}
-								y={8}
-								width={6}
-								height={1}
-								fill="currentColor"
-								opacity={0.3}
-							/>
-						</svg>
-					}
+					icon={<IconPubdex />}
 					label="PUBDEX"
 					isActive={activeTab === "pokedex"}
 					onClick={() => onNavigate("pokedex")}
@@ -130,21 +92,7 @@ export function GameNavbar({
 				<div className="w-[1px] bg-pixel-gray/30" />
 
 				<NavButton
-					icon={
-						<svg viewBox="0 0 10 10" className="pixel-perfect size-gba-[12]">
-							<title>Pubmon icon</title>
-							<circle
-								cx={5}
-								cy={5}
-								r={4.5}
-								fill="none"
-								stroke="currentColor"
-								strokeWidth={1}
-							/>
-							<rect x={0.5} y={4.5} width={9} height={1} fill="currentColor" />
-							<circle cx={5} cy={5} r={1.5} fill="currentColor" />
-						</svg>
-					}
+					icon={<IconPubmon />}
 					label="PUBMON"
 					isActive={activeTab === "team"}
 					onClick={() => onNavigate("team")}
@@ -155,15 +103,7 @@ export function GameNavbar({
 				<div className="w-[1px] bg-pixel-gray/30" />
 
 				<NavButton
-					icon={
-						<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
-							<title>League icon</title>
-							<polygon
-								points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9 3,11 3.5,7.5 1,5 4.5,4.5"
-								fill="currentColor"
-							/>
-						</svg>
-					}
+					icon={<IconLeague />}
 					label="LEAGUE"
 					isActive={activeTab === "league"}
 					onClick={() => onNavigate("league")}
@@ -174,38 +114,7 @@ export function GameNavbar({
 				<div className="w-[1px] bg-pixel-gray/30" />
 
 				<NavButton
-					icon={
-						<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
-							<title>Settings icon</title>
-							<circle cx={6} cy={6} r={2} fill="currentColor" />
-							<rect x={5} y={0} width={2} height={2} fill="currentColor" />
-							<rect x={5} y={10} width={2} height={2} fill="currentColor" />
-							<rect x={0} y={5} width={2} height={2} fill="currentColor" />
-							<rect x={10} y={5} width={2} height={2} fill="currentColor" />
-							<rect
-								x={1.5}
-								y={1.5}
-								width={1.5}
-								height={1.5}
-								fill="currentColor"
-							/>
-							<rect
-								x={9}
-								y={1.5}
-								width={1.5}
-								height={1.5}
-								fill="currentColor"
-							/>
-							<rect
-								x={1.5}
-								y={9}
-								width={1.5}
-								height={1.5}
-								fill="currentColor"
-							/>
-							<rect x={9} y={9} width={1.5} height={1.5} fill="currentColor" />
-						</svg>
-					}
+					icon={<IconSettings />}
 					label="OPTS"
 					isActive={activeTab === "settings"}
 					onClick={() => onNavigate("settings")}

@@ -30,65 +30,30 @@ export function TeamManagement({
 
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
-			{/* Header */}
-			<div className="bg-[#384080] px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-sans font-palette-blue">
-				<div>
-					<div className="text-gba-[9]">PUBMON</div>
-					<div className="text-gba-[6] mt-gba-[2] font-palette-white">
-						YOUR PARTY
+			<PixelHeader
+				title="PUBMON"
+				subtitle="YOUR PARTY"
+				variant="blue"
+				right={
+					<div className="text-right">
+						<div className="text-gba-[6] font-palette-white">SIZE</div>
+						<div className="text-gba-[10] font-palette-yellow">
+							{team.length}/6
+						</div>
 					</div>
-				</div>
-				<div className="text-right">
-					<div className="text-gba-[6] font-palette-white">SIZE</div>
-					<div className="text-gba-[10] font-palette-yellow">
-						{team.length}/6
-					</div>
-				</div>
-			</div>
+				}
+			/>
 
 			{/* Party list */}
 			<div className="mt-gba-[1] flex-1 overflow-y-auto pixel-scroll min-h-gba-[120]">
 				<PixelBox>
 					{team.length === 0 ? (
 						<div className="flex flex-col items-center justify-center py-gba-[16]">
-							<svg
-								viewBox="0 0 10 10"
+							<img
+								src="/sprites/POKEBALL.png"
+								alt="pokeball"
 								className="pixel-perfect opacity-30 size-gba-[32]"
-							>
-								<circle cx={5} cy={5} r={4.5} fill="rgb(var(--pixel-red))" />
-								<rect
-									x={0.5}
-									y={4.5}
-									width={9}
-									height={1}
-									fill="rgb(var(--pixel-black))"
-								/>
-								<circle
-									cx={5}
-									cy={5}
-									r={4.5}
-									fill="none"
-									stroke="rgb(var(--pixel-black))"
-									strokeWidth={0.5}
-								/>
-								<rect
-									x={0.5}
-									y={5}
-									width={9}
-									height={4.5}
-									rx={4.5}
-									fill="rgb(var(--pixel-white))"
-								/>
-								<circle
-									cx={5}
-									cy={5}
-									r={1.2}
-									fill="rgb(var(--pixel-white))"
-									stroke="rgb(var(--pixel-black))"
-									strokeWidth={0.4}
-								/>
-								<circle cx={5} cy={5} r={0.6} fill="rgb(var(--pixel-black))" />
-							</svg>
+							/>
 							<p className=" text-gba-[6] text-pixel-gray mt-gba-[8]">
 								NO PUBMON CAUGHT YET!
 							</p>

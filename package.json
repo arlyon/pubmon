@@ -7,11 +7,13 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint .",
-		"server:dev": "wrangler dev src/index.ts --ip 192.168.1.209",
+		"server:dev": "wrangler dev src/index.ts --ip 0.0.0.0",
 		"server:deploy": "wrangler deploy src/index.ts",
 		"server:tail": "wrangler tail",
 		"test": "bun test",
-		"test:watch": "bun test --watch"
+		"test:watch": "bun test --watch",
+		"storybook": "storybook dev -p 6006",
+		"build-storybook": "storybook build"
 	},
 	"dependencies": {
 		"@cloudflare/workers-types": "^4.20260228.0",
@@ -93,6 +95,18 @@
 		"tailwindcss": "^4.2.0",
 		"tw-animate-css": "1.3.3",
 		"typescript": "5.7.3",
-		"wrangler": "^4.90.0"
+		"wrangler": "^4.90.0",
+		"storybook": "^10.3.6",
+		"@storybook/nextjs-vite": "^10.3.6",
+		"@chromatic-com/storybook": "^5.1.2",
+		"@storybook/addon-vitest": "^10.3.6",
+		"@storybook/addon-a11y": "^10.3.6",
+		"@storybook/addon-docs": "^10.3.6",
+		"@storybook/addon-onboarding": "^10.3.6",
+		"vite": "^8.0.11",
+		"vitest": "^4.1.5",
+		"playwright": "^1.59.1",
+		"@vitest/browser-playwright": "^4.1.5",
+		"@vitest/coverage-v8": "^4.1.5"
 	}
 }

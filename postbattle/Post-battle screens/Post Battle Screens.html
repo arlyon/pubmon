@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PubMon · Post-Battle Screens</title>
+<link rel="stylesheet" href="design-system/colors_and_type.css">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; min-height: 100vh; }
+  body { font-family: "Emerald", "Press Start 2P", monospace; }
+  .pixel-perfect, .pixel-perfect * {
+    image-rendering: pixelated;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    font-smooth: never;
+  }
+  @keyframes cursor-blink { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+  @keyframes pixel-bounce { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+  @keyframes spark-pop {
+    0%   { opacity: 0; transform: translate(0,0) scale(0.6); }
+    30%  { opacity: 1; }
+    100% { opacity: 0; transform: var(--end, translate(0,0)) scale(1.1); }
+  }
+  @keyframes dust-puff {
+    0%   { transform: translateY(0) scale(0.5); opacity: 0; }
+    50%  { opacity: 1; }
+    100% { transform: translateY(-6px) scale(1); opacity: 0; }
+  }
+  @keyframes loot-pop {
+    0%   { transform: translateY(8px) scale(0.6); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  @keyframes banner-flash {
+    0%, 100% { background: #f8d030; }
+    50%      { background: #ffe870; }
+  }
+  button { font-family: "Press Start 2P", monospace; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="Pixel.jsx"></script>
+  <script type="text/babel" src="PostBattle.jsx"></script>
+
+  <script type="text/babel">
+    const ARTBOARD_W = 320;
+    const ARTBOARD_H = 568;
+
+    const App = () => (
+      <DesignCanvas>
+        <DCSection id="run" title="Run away" subtitle="Player flees the encounter — cost-aware, on-brand pub humor.">
+          <DCArtboard id="run-a" label="A · Classic — Got away safely" width={ARTBOARD_W} height={ARTBOARD_H}><RunA /></DCArtboard>
+          <DCArtboard id="run-b" label="B · Pub receipt — Tab dodged" width={ARTBOARD_W} height={ARTBOARD_H}><RunB /></DCArtboard>
+          <DCArtboard id="run-c" label="C · Cost summary" width={ARTBOARD_W} height={ARTBOARD_H}><RunC /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="catch" title="Capture" subtitle="GOTCHA! — adding a wild PubMon to your team.">
+          <DCArtboard id="catch-a" label="A · Faithful to source" width={ARTBOARD_W} height={ARTBOARD_H}><CatchA /></DCArtboard>
+          <DCArtboard id="catch-b" label="B · PUBDEX entry" width={ARTBOARD_W} height={ARTBOARD_H}><CatchB /></DCArtboard>
+          <DCArtboard id="catch-c" label="C · Celebration + nickname" width={ARTBOARD_W} height={ARTBOARD_H}><CatchC /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="win" title="Victory" subtitle="Wild PubMon defeated — XP awarded.">
+          <DCArtboard id="win-a" label="A · Faithful to source" width={ARTBOARD_W} height={ARTBOARD_H}><WinA /></DCArtboard>
+          <DCArtboard id="win-b" label="B · Loot drop — spoils grid" width={ARTBOARD_W} height={ARTBOARD_H}><WinB /></DCArtboard>
+          <DCArtboard id="win-c" label="C · Level up + stat gains" width={ARTBOARD_W} height={ARTBOARD_H}><WinC /></DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

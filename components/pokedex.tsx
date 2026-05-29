@@ -5,6 +5,7 @@ import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
 import PixelBox from "./pixel/PixelBox";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
+import PixelHeader from "./pixel/PixelHeader";
 import { PubMonDetailPanel } from "./pubmon-detail";
 
 interface PokedexProps {
@@ -23,50 +24,16 @@ function PubBallIcon({
 	className?: string;
 }) {
 	return (
-		<svg
-			viewBox="0 0 10 10"
+		<img
+			src="/sprites/POKEBALL.png"
+			alt="pokeball"
 			className={`pixel-perfect ${className}`}
-			style={{ width: "100%", height: "100%" }}
-		>
-			<circle
-				cx={5}
-				cy={5}
-				r={4.5}
-				fill={caught ? "rgb(var(--pixel-red))" : "rgb(var(--pixel-gray))"}
-			/>
-			<rect
-				x={0.5}
-				y={4.5}
-				width={9}
-				height={1}
-				fill="rgb(var(--pixel-black))"
-			/>
-			<circle
-				cx={5}
-				cy={5}
-				r={4.5}
-				fill="none"
-				stroke="rgb(var(--pixel-black))"
-				strokeWidth={0.5}
-			/>
-			<rect
-				x={0.5}
-				y={5}
-				width={9}
-				height={4.5}
-				rx={4.5}
-				fill={caught ? "rgb(var(--pixel-white))" : "rgb(var(--pixel-gray))"}
-			/>
-			<circle
-				cx={5}
-				cy={5}
-				r={1.2}
-				fill={caught ? "rgb(var(--pixel-white))" : "rgb(var(--pixel-gray))"}
-				stroke="rgb(var(--pixel-black))"
-				strokeWidth={0.4}
-			/>
-			<circle cx={5} cy={5} r={0.6} fill="rgb(var(--pixel-black))" />
-		</svg>
+			style={{
+				width: "100%",
+				height: "100%",
+				filter: caught ? undefined : "grayscale(1) opacity(0.5)",
+			}}
+		/>
 	);
 }
 
@@ -94,18 +61,16 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
-			{/* Header */}
-			<div className="bg-pixel-red px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-sans font-palette-red">
-				<div>
-					<div className="text-gba-[9]">PUBDEX</div>
-					<div className="text-gba-[6] mt-gba-[2] font-palette-white">
-						PUBMON DIRECTORY
+			<PixelHeader
+				title="PUBDEX"
+				subtitle="PUBMON DIRECTORY"
+				variant="red"
+				right={
+					<div className="bg-pixel-black px-gba-[6] py-gba-[3] text-gba-[7] border border-pixel-white font-palette-yellow">
+						{totalCaught}/{totalPubMon}
 					</div>
-				</div>
-				<div className="bg-pixel-black px-gba-[6] py-gba-[3] text-gba-[7] border border-pixel-white font-palette-yellow">
-					{totalCaught}/{totalPubMon}
-				</div>
-			</div>
+				}
+			/>
 
 			{/* Type filter tabs */}
 			<div className="flex gap-gba-[2] flex-wrap my-gba-[4]">

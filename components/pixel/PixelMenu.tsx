@@ -21,8 +21,8 @@ const PixelMenu: React.FC<PixelMenuProps> = ({
 		onSelect?.(index);
 	};
 
-	const textColor =
-		variant === "default" ? "text-pixel-black" : "text-pixel-white";
+	const palette =
+		variant === "default" ? "font-palette-no-shadow" : variant === "blue" ? "font-palette-blue" : "font-palette-red";
 
 	return (
 		<PixelBox variant={variant}>
@@ -31,7 +31,7 @@ const PixelMenu: React.FC<PixelMenuProps> = ({
 					<li
 						key={i}
 						onClick={() => handleClick(i)}
-						className={`relative cursor-pointer  text-[6px] py-[2px] pl-[4px] pr-[1px] ${textColor} ${
+						className={`relative cursor-pointer font-sans text-gba-[9] py-gba-[2] pl-gba-[4] pr-gba-[1] ${palette} ${
 							i === selected ? "pixel-cursor" : ""
 						}`}
 					>

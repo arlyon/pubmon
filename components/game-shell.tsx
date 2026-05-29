@@ -1,7 +1,7 @@
 "use client";
 
 import { useMachine } from "@xstate/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
 	ALL_PUBMON,
 	getRandomPubMon,
@@ -28,10 +28,10 @@ import type { PlayerInfo } from "./player-create";
 import { Pokedex } from "./pokedex";
 import { TrainerCard } from "./TrainerCard";
 import { PostBattle } from "./post-battle";
+import { SettingsPanel } from "./settings-panel";
 import { AnimatePresence } from "framer-motion";
 import { TeamManagement } from "./team-management";
 import { PlayCanvas } from "./play-canvas";
-import { TournamentBracketViewer } from "./tournament-bracket-viewer";
 
 function generateUUID(): string {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -64,7 +64,18 @@ export function GameShell({
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const [playingPubmon, setPlayingPubmon] = useState<PubMon | null>(null);
+	const [uiScale, setUiScale] = useState<number>(() => {
+		if (typeof window === "undefined") return 1;
+		const stored = localStorage.getItem("pubmon_ui_scale");
+		const parsed = stored ? Number(stored) : 1;
+		return Number.isFinite(parsed) && parsed >= 0.5 && parsed <= 2 ? parsed : 1;
+	});
 	const { playBGM, stopBGM, isMuted, toggleMute } = useAudio();
+
+	const handleScaleChange = useCallback((scale: number) => {
+		setUiScale(scale);
+		localStorage.setItem("pubmon_ui_scale", String(scale));
+	}, []);
 
 	// Initialize XState machine
 	const [state, send] = useMachine(pubmonMachine, {
@@ -128,10 +139,18 @@ export function GameShell({
 		const inCrawl = state.matches({ view: { mainLoop: "crawl" } });
 		const inTeam = state.matches({ view: { mainLoop: "team" } });
 		const inPokedex = state.matches({ view: { mainLoop: "pokedex" } });
+		const inLeague =
+			state.matches({ view: { mainLoop: "league" } }) ||
+			state.matches({ view: { mainLoop: { tournament: "bracketView" } } });
+		const inVictory =
+			state.matches({ view: { mainLoop: { celebration: "xpGain" } } }) ||
+			state.matches({ view: { mainLoop: { celebration: "badgeReward" } } });
 
 		if (showBattleTransition || inBattle) {
 			playBGM("battle");
-		} else if (inCrawl || inPokedex || inTeam) {
+		} else if (inVictory) {
+			playBGM("victory");
+		} else if (inCrawl || inPokedex || inTeam || inLeague) {
 			playBGM("route-1");
 		} else {
 			stopBGM();
@@ -213,19 +232,9 @@ export function GameShell({
 			}
 
 			if (msg.type === "player_state" && msg.playerState) {
+				// PLAYER_STATE_UPDATE also syncs activeBattle from the persisted
+				// activeBattleId, so reconnects restore the battle notification.
 				send({ type: "PLAYER_STATE_UPDATE", playerState: msg.playerState });
-
-				// Check if player has an active battle (reconnection scenario)
-				if (
-					msg.playerState.activeBattleId &&
-					msg.playerState.activeBattleOpponent
-				) {
-					send({
-						type: "MATCH_STARTED",
-						battleId: msg.playerState.activeBattleId,
-						opponentName: msg.playerState.activeBattleOpponent,
-					});
-				}
 			}
 
 			if (msg.type === "tournament_start") {
@@ -237,11 +246,21 @@ export function GameShell({
 			}
 
 			if (msg.type === "match_start") {
-				send({
-					type: "MATCH_STARTED",
-					battleId: msg.battleId,
-					opponentName: msg.opponentName,
-				});
+				// The broadcast goes to everyone; only react if this client is one
+				// of the two combatants, and resolve the opponent's name by side.
+				const amP1 = msg.player1SessionId === sessionId;
+				const amP2 = msg.player2SessionId === sessionId;
+				if (amP1 || amP2) {
+					send({
+						type: "MATCH_STARTED",
+						battleId: msg.battleId,
+						opponentName: amP1 ? msg.player2Name : msg.player1Name,
+					});
+				}
+			}
+
+			if (msg.type === "match_complete") {
+				send({ type: "MATCH_COMPLETED", battleId: msg.battleId });
 			}
 
 			if (msg.type === "hall_of_fame_ready") {
@@ -258,7 +277,7 @@ export function GameShell({
 		return () => {
 			socket.removeEventListener("message", handleMessage);
 		};
-	}, [send]);
+	}, [send, sessionId]);
 
 	// Helper functions to check machine state
 	const stateValue = state.value as any;
@@ -282,9 +301,6 @@ export function GameShell({
 		stateValue.view?.mainLoop === "settingActiveMon";
 	const isPokedex = stateValue.view?.mainLoop === "pokedex";
 	const isLeague = stateValue.view?.mainLoop === "league";
-	const isTournament =
-		typeof stateValue.view?.mainLoop === "object" &&
-		"tournament" in stateValue.view.mainLoop;
 	const isHallOfFame = stateValue.view?.mainLoop === "hallOfFame";
 	const isCaught = stateValue.view?.mainLoop?.celebration === "caught";
 	const isXP = stateValue.view?.mainLoop?.celebration === "xpGain";
@@ -308,8 +324,44 @@ export function GameShell({
 		return undefined;
 	};
 
+	// Robust, always-visible alert when the player has an active tournament
+	// match and isn't already in the battle screen. Tracked globally in the
+	// machine's sync region, so it survives navigation and reconnects.
+	const activeBattle = context.tournamentState.activeBattle;
+	const showBattleAlert =
+		!!activeBattle &&
+		!isTournamentBattle &&
+		!showBattleTransition &&
+		!isOnboarding &&
+		!isStarter;
+
 	return (
-		<div className="flex flex-col relative h-screen bg-pixel-gray-light">
+		<div
+			className="flex flex-col relative h-screen bg-pixel-gray-light"
+			style={{ "--pixel-scale": uiScale } as CSSProperties}
+		>
+			{/* Active tournament battle notification */}
+			{showBattleAlert && activeBattle && (
+				<button
+					type="button"
+					onClick={() => send({ type: "JOIN_BATTLE" })}
+					className="fixed top-0 inset-x-0 z-[900] font-heading text-pixel-white flex items-center justify-between gap-gba-[8] px-gba-[10] py-gba-[6] border-b-[3px] border-pixel-black"
+					style={{
+						background: "#d03838",
+						boxShadow:
+							"inset 2px 2px 0 rgba(255,255,255,0.25), inset -2px -2px 0 rgba(0,0,0,0.3)",
+					}}
+				>
+					<span className="flex items-center gap-gba-[6] text-gba-[8]">
+						<span style={{ animation: "pixel-blink 1s step-end infinite" }}>
+							●
+						</span>
+						MATCH READY · VS {activeBattle.opponentName}
+					</span>
+					<span className="text-gba-[8]">JOIN →</span>
+				</button>
+			)}
+
 			{/* Battle transition overlay */}
 			<div
 				className="fixed inset-0 pointer-events-none"
@@ -412,68 +464,34 @@ export function GameShell({
 					/>
 				)}
 
-				{!showSettings && isLeague && context.playerInfo && (
-					<LeaguePage
-						socket={socket}
-						sessionId={sessionId}
-						playerName={context.playerInfo.name}
-						tournamentOptIn={context.tournamentState.isOptedIn}
-						leaderboard={context.leaderboard}
-						activeBattle={context.tournamentState.activeBattle}
-						onReturnToBattle={() =>
-							send({ type: "NAVIGATE", phase: "tournament" })
-						}
-						onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
-					/>
-				)}
-
-				{isTournamentBracket && (
-					<TournamentBracketViewer
-						socket={socket}
-						sessionId={sessionId}
-						initialBracket={context.tournamentState.bracket || undefined}
-					/>
-				)}
+				{!showSettings &&
+					(isLeague || isTournamentBracket) &&
+					context.playerInfo && (
+						<LeaguePage
+							socket={socket}
+							sessionId={sessionId}
+							playerName={context.playerInfo.name}
+							tournamentOptIn={context.tournamentState.isOptedIn}
+							leaderboard={context.leaderboard}
+							activeBattle={context.tournamentState.activeBattle}
+							gamePhase={context.gamePhase}
+							bracket={context.tournamentState.bracket}
+							onReturnToBattle={() => send({ type: "JOIN_BATTLE" })}
+							onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
+						/>
+					)}
 
 				{isHallOfFame && (
 					<HallOfFameViewer socket={socket} sessionId={sessionId} />
 				)}
 
 				{showSettings && (
-					<div className="flex-1 flex flex-col items-center justify-center gap-gba-[16] p-gba-[16]">
-						<h2 className="text-gba-[12] font-bold text-pixel-black uppercase tracking-widest">Options</h2>
-						<button
-							type="button"
-							onClick={toggleMute}
-							className={`flex items-center gap-gba-[8] px-gba-[16] py-gba-[8] border-4 border-pixel-black text-gba-[9] font-bold uppercase transition-colors cursor-pointer ${
-								isMuted
-									? "bg-pixel-red text-pixel-white"
-									: "bg-pixel-white text-pixel-black hover:bg-pixel-gray-light"
-							}`}
-						>
-							{isMuted ? (
-								<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
-									<title>Muted</title>
-									<rect x={0} y={4} width={3} height={4} fill="currentColor" />
-									<polygon points="3,4 7,1 7,11 3,8" fill="currentColor" />
-									<rect x={9} y={2} width={1.5} height={1.5} fill="currentColor" />
-									<rect x={10.5} y={3.5} width={1.5} height={1.5} fill="currentColor" />
-									<rect x={9} y={5} width={1.5} height={1.5} fill="currentColor" />
-									<rect x={10.5} y={6.5} width={1.5} height={1.5} fill="currentColor" />
-									<rect x={9} y={8} width={1.5} height={1.5} fill="currentColor" />
-								</svg>
-							) : (
-								<svg viewBox="0 0 12 12" className="pixel-perfect size-gba-[12]">
-									<title>Sound on</title>
-									<rect x={0} y={4} width={3} height={4} fill="currentColor" />
-									<polygon points="3,4 7,1 7,11 3,8" fill="currentColor" />
-									<rect x={8} y={3} width={1.5} height={6} fill="currentColor" />
-									<rect x={10} y={1} width={1.5} height={10} fill="currentColor" />
-								</svg>
-							)}
-							{isMuted ? "UNMUTE" : "MUTE"}
-						</button>
-					</div>
+					<SettingsPanel
+						isMuted={isMuted}
+						onToggleMute={toggleMute}
+						uiScale={uiScale}
+						onScaleChange={handleScaleChange}
+					/>
 				)}
 
 				{isCaught && context.caughtPokemon && (

@@ -954,9 +954,19 @@ const SCENE_MAP: Record<string, React.FC> = {
 
 const VENUE_SCENES: React.FC[] = [BarScene, PubScene, ClubScene];
 
+/** Stable string hash (djb2) for deterministic scene selection. */
+function hashSeed(seed: string): number {
+	let h = 5381;
+	for (let i = 0; i < seed.length; i++) {
+		h = (h * 33) ^ seed.charCodeAt(i);
+	}
+	return h >>> 0;
+}
+
 export function pickBattleScene(
 	playerType: string,
 	wildType: string,
+	seed?: string | number,
 ): React.FC {
 	const candidates: React.FC[] = [];
 
@@ -968,5 +978,14 @@ export function pickBattleScene(
 
 	candidates.push(...VENUE_SCENES);
 
-	return candidates[Math.floor(Math.random() * candidates.length)];
+	if (candidates.length === 0) return BarScene;
+
+	// Deterministic when a seed is given (e.g. battleId) so both clients in a
+	// P2P battle render the same arena and it stays stable across re-renders.
+	const index =
+		seed !== undefined
+			? hashSeed(String(seed)) % candidates.length
+			: Math.floor(Math.random() * candidates.length);
+
+	return candidates[index];
 }

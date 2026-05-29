@@ -40,7 +40,14 @@ export interface ActivePokemon {
 interface UseBattleProps {
 	wildPokemon: PubMon;
 	playerPokemon: PubMon | null;
-	engine?: BattleEngine; // Optional: if not provided, creates LocalBattleEngine
+	/**
+	 * Optional factory for the battle engine. Called INSIDE the mount effect so
+	 * a fresh engine is created on every (re)mount — this is what makes the P2P
+	 * RemoteBattleEngine survive React StrictMode's mount/unmount/remount in dev
+	 * (a memoized engine would be destroyed on the first cleanup and reused dead
+	 * on the remount). If omitted, a LocalBattleEngine is used (wild battles).
+	 */
+	createEngine?: () => BattleEngine;
 	onCatchSuccess?: () => void; // Called when catch succeeds in sim
 	onRunSuccess?: () => void; // Called when run succeeds in sim
 }
@@ -48,7 +55,7 @@ interface UseBattleProps {
 export function useBattle({
 	wildPokemon,
 	playerPokemon,
-	engine,
+	createEngine,
 	onCatchSuccess,
 	onRunSuccess,
 }: UseBattleProps) {
@@ -78,6 +85,14 @@ export function useBattle({
 	// Track HP from protocol messages
 	const p1HpRef = useRef<{ hp: number; maxhp: number }>({ hp: 0, maxhp: 0 });
 	const p2HpRef = useRef<{ hp: number; maxhp: number }>({ hp: 0, maxhp: 0 });
+
+	// Latest pokemon, read via refs inside handleEngineChunk / the mount effect so
+	// those callbacks stay stable and don't tear the engine down mid-battle when
+	// a parent re-render hands us new object references.
+	const playerPokemonRef = useRef(playerPokemon);
+	const wildPokemonRef = useRef(wildPokemon);
+	playerPokemonRef.current = playerPokemon;
+	wildPokemonRef.current = wildPokemon;
 
 	// Audio hook
 	const { playAttackSFX, playSFX } = useAudio();
@@ -525,7 +540,7 @@ export function useBattle({
 						const p1State = extractPokemonState(
 							p1Pokemon,
 							"p1",
-							playerPokemon?.moves,
+							playerPokemonRef.current?.moves,
 						);
 						if (p1State) {
 							console.log("Setting p1 state:", p1State);
@@ -541,7 +556,7 @@ export function useBattle({
 						const p2State = extractPokemonState(
 							p2Pokemon,
 							"p2",
-							wildPokemon.moves,
+							wildPokemonRef.current?.moves,
 						);
 						if (p2State) {
 							console.log("Setting p2 state:", p2State);
@@ -688,26 +703,47 @@ export function useBattle({
 		[
 			processMessageQueue,
 			extractPokemonState,
-			playerPokemon,
-			wildPokemon,
 			translateStatusMessage,
 			playAttackSFX,
 			parseHpFromProtocol,
 		],
 	);
 
+	const hasPlayerPokemon = !!playerPokemon;
 	useEffect(() => {
-		if (!playerPokemon) return;
+		if (!playerPokemonRef.current) return;
 
 		// Initialize Battle client
 		battleRef.current = new Battle(gens);
 
-		// Create or use provided engine
-		const battleEngine = engine || new LocalBattleEngine();
+		// Create the engine HERE (not in a parent useMemo) so each (re)mount gets
+		// a fresh one — required for the self-connecting RemoteBattleEngine to
+		// survive React StrictMode. Falls back to a local engine for wild battles.
+		const battleEngine: BattleEngine = createEngine
+			? createEngine()
+			: new LocalBattleEngine();
 		engineRef.current = battleEngine;
 
 		// Set up engine chunk handler
 		battleEngine.onChunk(handleEngineChunk);
+
+		// Authoritative end from the server (forfeit / admin resolve / void).
+		// Threads through to the battle UI even if no |win| chunk arrives.
+		battleEngine.onEnd?.(({ outcome, reason }) => {
+			messageQueueRef.current.push({
+				text:
+					reason === "void"
+						? "MATCH VOIDED"
+						: outcome === "win"
+							? "VICTORY!"
+							: "DEFEATED...",
+				onDisplay: () => {
+					setBattleEnded(true);
+					setBattleResult(outcome);
+				},
+			});
+			processMessageQueue();
+		});
 
 		// Create teams
 		const formatId = (name: string) =>
@@ -729,8 +765,8 @@ export function useBattle({
 				} as any,
 			]);
 
-		const p1Team = createTeam("Player", playerPokemon, true, true);
-		const p2Team = createTeam("Wild PubMon", wildPokemon);
+		const p1Team = createTeam("Player", playerPokemonRef.current, true, true);
+		const p2Team = createTeam("Wild PubMon", wildPokemonRef.current);
 
 		// Start battle
 		battleEngine.start(p1Team, p2Team);
@@ -742,7 +778,10 @@ export function useBattle({
 				engineRef.current = null;
 			}
 		};
-	}, [playerPokemon, wildPokemon, engine, handleEngineChunk]);
+		// Deps are intentionally limited to the engine factory + "player ready"
+		// edge: playerPokemon/wildPokemon are read via refs so a parent re-render
+		// (new object refs) never tears down and rejoins an in-flight battle.
+	}, [createEngine, hasPlayerPokemon, handleEngineChunk]);
 
 	const handleAttack = useCallback(
 		(moveIdx: number) => {

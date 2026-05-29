@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GYMS, type Gym, MASTER_TOURNAMENT } from "@/lib/gym-data";
+import { IconStar } from "./images/IconStar";
 
 interface GymTrailProps {
 	currentGymId: number;
@@ -10,32 +11,15 @@ interface GymTrailProps {
 	onClose: () => void;
 }
 
-// Pokéball SVG icon
 function Pokeball({ size = 10 }: { size?: number }) {
 	return (
-		<svg
-			viewBox="0 0 8 8"
+		<img
+			src="/sprites/POKEBALL.png"
 			width={size}
 			height={size}
-			shapeRendering="crispEdges"
-			style={{ display: "block" }}
-		>
-			<rect x="2" y="0" width="4" height="1" fill="#282828" />
-			<rect x="1" y="1" width="6" height="1" fill="#282828" />
-			<rect x="0" y="2" width="1" height="4" fill="#282828" />
-			<rect x="7" y="2" width="1" height="4" fill="#282828" />
-			<rect x="1" y="6" width="6" height="1" fill="#282828" />
-			<rect x="2" y="7" width="4" height="1" fill="#282828" />
-			<rect x="2" y="1" width="4" height="1" fill="#d03838" />
-			<rect x="1" y="2" width="6" height="1" fill="#d03838" />
-			<rect x="1" y="3" width="2" height="1" fill="#d03838" />
-			<rect x="5" y="3" width="2" height="1" fill="#d03838" />
-			<rect x="1" y="4" width="2" height="1" fill="#f8f8f8" />
-			<rect x="5" y="4" width="2" height="1" fill="#f8f8f8" />
-			<rect x="1" y="5" width="6" height="1" fill="#f8f8f8" />
-			<rect x="3" y="3" width="2" height="2" fill="#f8f8f8" />
-			<rect x="3" y="3" width="2" height="1" fill="#282828" />
-		</svg>
+			alt="pokeball"
+			style={{ imageRendering: "pixelated", display: "block" }}
+		/>
 	);
 }
 
@@ -106,6 +90,7 @@ function BadgeModal({
 			>
 				{/* title bar */}
 				<div
+					className="text-gba-[8] font-palette-default"
 					style={{
 						background: "#f8d030",
 						borderBottom: "3px solid #282828",
@@ -113,23 +98,19 @@ function BadgeModal({
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
-						fontFamily: "var(--)",
-						fontSize: 8,
-						color: "#282828",
 					}}
 				>
-					<span>★ BADGE EARNED ★</span>
+					<span> BADGE EARNED </span>
 					<button
 						type="button"
 						onClick={onClose}
+						className="text-gba-[8] font-palette-no-shadow"
 						style={{
 							border: "2px solid #282828",
 							background: "#f8f8f8",
 							color: "#282828",
 							width: 16,
 							height: 16,
-							fontFamily: "var(--)",
-							fontSize: 8,
 							cursor: "pointer",
 							padding: 0,
 							lineHeight: 1,
@@ -182,17 +163,22 @@ function BadgeModal({
 
 				{/* info */}
 				<div
+					className="font-palette-default"
 					style={{
 						padding: 10,
 						display: "flex",
 						flexDirection: "column",
 						gap: 5,
 						textAlign: "center",
-						fontFamily: "var(--)",
 					}}
 				>
-					<div style={{ fontSize: 10, color: "#4878d0" }}>{gym.badgeName}</div>
-					<div style={{ fontSize: 7, color: "#686868", lineHeight: 1.6 }}>
+					<div className="text-gba-[10] font-palette-default">
+						{gym.badgeName}
+					</div>
+					<div
+						className="text-gba-[7] font-palette-muted"
+						style={{ lineHeight: 1.6 }}
+					>
 						AWARDED BY {gym.leaderName.toUpperCase()}
 						<br />
 						AT {gym.name.toUpperCase()}
@@ -200,14 +186,12 @@ function BadgeModal({
 					<button
 						type="button"
 						onClick={onNavigate}
+						className="text-gba-[8] font-palette-white"
 						style={{
 							marginTop: 4,
-							fontFamily: "var(--)",
-							fontSize: 8,
 							padding: "7px 10px",
 							border: "3px solid #305098",
 							background: "#4878d0",
-							color: "#f8f8f8",
 							cursor: "pointer",
 							boxShadow: "2px 2px 0 0 rgba(0,0,0,0.3)",
 						}}
@@ -217,13 +201,11 @@ function BadgeModal({
 					<button
 						type="button"
 						onClick={onClose}
+						className="text-gba-[7] font-palette-default"
 						style={{
-							fontFamily: "var(--)",
-							fontSize: 7,
 							padding: "5px 10px",
 							border: "2px solid #282828",
 							background: "#e8e8e8",
-							color: "#282828",
 							cursor: "pointer",
 						}}
 					>
@@ -273,30 +255,27 @@ function UnearnedBadgeModal({
 			>
 				{/* title bar — dark/locked style */}
 				<div
+					className="text-gba-[8] font-palette-default"
 					style={{
-						background: "#383028",
+						background: "#b0b8c0",
 						borderBottom: "3px solid #282828",
 						padding: "5px 8px",
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
-						fontFamily: "var(--)",
-						fontSize: 8,
-						color: "#a8a090",
 					}}
 				>
 					<span>? ? ? LOCKED ? ? ?</span>
 					<button
 						type="button"
 						onClick={onClose}
+						className="text-gba-[8] font-palette-no-shadow"
 						style={{
 							border: "2px solid #282828",
-							background: "#5a4838",
-							color: "#a8a090",
+							background: "#f8f8f8",
+							color: "#282828",
 							width: 16,
 							height: 16,
-							fontFamily: "var(--)",
-							fontSize: 8,
 							cursor: "pointer",
 							padding: 0,
 							lineHeight: 1,
@@ -320,26 +299,22 @@ function UnearnedBadgeModal({
 				>
 					{/* question mark sparkles */}
 					<div
+						className="text-gba-[10] font-palette-muted"
 						style={{
 							position: "absolute",
 							top: 8,
 							left: 24,
-							color: "#5a4838",
-							fontFamily: "var(--)",
-							fontSize: 10,
 							animation: "case-flash 1s steps(2,end) infinite",
 						}}
 					>
 						?
 					</div>
 					<div
+						className="text-gba-[10] font-palette-muted"
 						style={{
 							position: "absolute",
 							bottom: 10,
 							right: 28,
-							color: "#5a4838",
-							fontFamily: "var(--)",
-							fontSize: 10,
 							animation: "case-flash 1s steps(2,end) 0.3s infinite",
 						}}
 					>
@@ -375,52 +350,36 @@ function UnearnedBadgeModal({
 
 				{/* info */}
 				<div
+					className="font-palette-default"
 					style={{
 						padding: 10,
 						display: "flex",
 						flexDirection: "column",
 						gap: 5,
 						textAlign: "center",
-						fontFamily: "var(--)",
 					}}
 				>
 					<div
-						style={{
-							fontSize: 9,
-							color: "#a82828",
-							animation: "pixel-bounce 1s steps(2,end) infinite",
-						}}
+						className="text-gba-[7] font-palette-muted"
+						style={{ lineHeight: 1.2 }}
 					>
-						BADGE LOCKED!
-					</div>
-					<div style={{ fontSize: 7, color: "#686868", lineHeight: 1.8 }}>
 						ORDER A DRINK AT
 						<br />
-						<span style={{ color: "#282828" }}>{gym.name.toUpperCase()}</span>
+						<span className="font-palette-default text-gba-[11]">
+							{gym.name.toUpperCase()}
+						</span>
 						<br />
 						TO EARN THIS BADGE
-					</div>
-					<div
-						style={{
-							fontSize: 7,
-							color: "#a8a090",
-							marginTop: 2,
-						}}
-					>
-						{gym.requiredDrinks} DRINK{gym.requiredDrinks !== 1 ? "S" : ""}{" "}
-						REQUIRED
 					</div>
 					<button
 						type="button"
 						onClick={onNavigate}
+						className="text-gba-[8] font-palette-white"
 						style={{
 							marginTop: 4,
-							fontFamily: "var(--)",
-							fontSize: 8,
 							padding: "7px 10px",
 							border: "3px solid #a82828",
 							background: "#d03838",
-							color: "#f8f8f8",
 							cursor: "pointer",
 							boxShadow: "2px 2px 0 0 rgba(0,0,0,0.3)",
 						}}
@@ -430,13 +389,11 @@ function UnearnedBadgeModal({
 					<button
 						type="button"
 						onClick={onClose}
+						className="text-gba-[7] font-palette-default"
 						style={{
-							fontFamily: "var(--)",
-							fontSize: 7,
 							padding: "5px 10px",
 							border: "2px solid #282828",
 							background: "#e8e8e8",
-							color: "#282828",
 							cursor: "pointer",
 						}}
 					>
@@ -498,14 +455,12 @@ function GridSlot({
 			>
 				{/* Slot number tag */}
 				<div
+					className="text-gba-[6] font-palette-yellow"
 					style={{
 						position: "absolute",
 						top: -2,
 						left: -2,
 						background: "#282828",
-						color: "#f0e070",
-						fontFamily: "var(--)",
-						fontSize: 6,
 						padding: "2px 3px",
 						border: "2px solid #282828",
 						lineHeight: 1,
@@ -563,20 +518,18 @@ function GridSlot({
 				{/* Cleared checkmark */}
 				{isCleared && (
 					<div
+						className="text-gba-[7] font-palette-white"
 						style={{
 							position: "absolute",
 							top: -4,
 							right: -4,
 							background: "#50b058",
-							color: "#fff",
 							border: "2px solid #282828",
 							width: 14,
 							height: 14,
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",
-							fontFamily: "var(--)",
-							fontSize: 7,
 							zIndex: 2,
 						}}
 					>
@@ -600,14 +553,11 @@ function GridSlot({
 
 			{/* Short gym name label */}
 			<div
+				className={`text-gba-[5] ${isLocked ? "font-palette-muted" : "font-palette-default"}`}
 				style={{
 					marginTop: 3,
-					fontFamily: "var(--)",
-					fontSize: 5,
-					color: isLocked ? "#5a4838" : "#282828",
 					textAlign: "center",
 					lineHeight: 1.3,
-					textShadow: isLocked ? "none" : "1px 1px 0 rgba(255,255,255,0.5)",
 					maxWidth: "100%",
 					overflow: "hidden",
 					textOverflow: "ellipsis",
@@ -647,46 +597,26 @@ function LeagueSlot({ unlocked }: { unlocked: boolean }) {
 					justifyContent: "center",
 				}}
 			>
-				<svg
-					viewBox="0 0 12 12"
-					width={32}
-					height={32}
-					shapeRendering="crispEdges"
-				>
-					<polygon
-						points="6,1 7.2,4.6 11,4.8 8,7.2 9,11 6,9.2 3,11 4,7.2 1,4.8 4.8,4.6"
-						fill={unlocked ? "#f8d858" : "#a8b0b8"}
-						stroke="#282828"
-						strokeWidth="0.8"
-					/>
-				</svg>
+				<IconStar fill={unlocked ? "#f8d858" : "#a8b0b8"} />
 			</div>
 			<div
-				style={{
-					flex: 1,
-					fontFamily: "var(--)",
-					color: unlocked ? "#282828" : "#d8d0c0",
-				}}
+				className={unlocked ? "font-palette-default" : "font-palette-muted"}
+				style={{ flex: 1 }}
 			>
-				<div style={{ fontSize: 9, lineHeight: 1.4 }}>
+				<div className="text-gba-[9]" style={{ lineHeight: 1.4 }}>
 					{MASTER_TOURNAMENT.name.toUpperCase()}
 				</div>
 				<div
-					style={{
-						fontSize: 7,
-						marginTop: 3,
-						color: unlocked ? "#a88820" : "#a8a090",
-					}}
+					className={`text-gba-[7] ${unlocked ? "font-palette-yellow" : "font-palette-muted"}`}
+					style={{ marginTop: 3 }}
 				>
 					{unlocked ? "▶ ENTER THE HALL" : "ALL 9 BADGES NEEDED"}
 				</div>
 			</div>
 			{unlocked && (
 				<span
+					className="text-gba-[12] font-palette-red"
 					style={{
-						fontFamily: "var(--)",
-						fontSize: 12,
-						color: "#a82828",
 						animation: "cursor-blink 0.8s step-end infinite",
 					}}
 				>
@@ -733,6 +663,7 @@ export function GymTrailInline({
 		>
 			{/* Pokédex-style chrome header */}
 			<div
+				className="text-gba-[8] font-palette-white"
 				style={{
 					background: "#d03838",
 					border: "3px solid #282828",
@@ -742,9 +673,6 @@ export function GymTrailInline({
 					display: "flex",
 					alignItems: "center",
 					gap: 8,
-					fontFamily: "var(--)",
-					color: "#f8f8f8",
-					fontSize: 8,
 					flexShrink: 0,
 				}}
 			>
@@ -833,21 +761,19 @@ export function GymTrailInline({
 
 			{/* Status bar */}
 			<div
+				className="text-gba-[7] font-palette-blue"
 				style={{
 					background: "#101828",
 					border: "2px solid #282828",
 					padding: "5px 8px",
 					display: "flex",
 					justifyContent: "space-between",
-					fontFamily: "var(--)",
-					fontSize: 7,
-					color: "#78b8f0",
 					flexShrink: 0,
 				}}
 			>
 				<span>NEXT: {nextGym?.name.toUpperCase() ?? "—"}</span>
-				<span style={{ color: "#f0e070" }}>
-					★ {clearedCount}/{GYMS.length}
+				<span className="font-palette-yellow">
+					{clearedCount}/{GYMS.length}
 				</span>
 			</div>
 

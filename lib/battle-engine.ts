@@ -1,13 +1,10 @@
 import { BattleStreams, RandomPlayerAI, Teams, Dex } from "@pkmn/sim";
-import { Battle } from "@pkmn/client";
 import { type ID } from "@pkmn/dex-types";
-import { Generations } from "@pkmn/data";
-import { generatePubMonModData, type PubMon } from "@/lib/pokemon-data";
-import type PartySocket from "partysocket";
+import { generatePubMonModData } from "@/lib/pokemon-data";
+import PartySocket from "partysocket";
 
-// Custom dex and generations for PubMon mod
+// Custom dex for PubMon mod
 const customDex = Dex.mod("pubmon" as ID, generatePubMonModData() as any);
-const gens = new Generations(customDex);
 
 /**
  * BattleEngine interface - abstraction for both local and remote battles
@@ -40,6 +37,19 @@ export interface BattleEngine {
 	 * @param callback Function called with each protocol chunk
 	 */
 	onChunk(callback: (chunk: string) => void): void;
+
+	/**
+	 * Authoritative battle end, decided relative to this engine's player.
+	 * Optional: only the remote engine emits this (the server can force-end a
+	 * battle, e.g. an admin resolving an unresponsive match). Local battles end
+	 * naturally via |win| protocol chunks.
+	 */
+	onEnd?(
+		callback: (result: {
+			outcome: "win" | "loss";
+			reason: "natural" | "admin" | "forfeit" | "void";
+		}) => void,
+	): void;
 
 	/**
 	 * Cleanup resources
@@ -173,35 +183,66 @@ export class LocalBattleEngine implements BattleEngine {
 }
 
 /**
- * RemoteBattleEngine - WebSocket-based communication with BattleServer for P2P
+ * RemoteBattleEngine - WebSocket client for an authoritative BattleServer (P2P)
  *
- * This engine maintains a local @pkmn/sim instance for optimistic prediction
- * while sending moves to an authoritative BattleServer. It compares server
- * events with local predictions and triggers rollback if there's a mismatch.
+ * The BattleServer owns the simulation. This engine simply connects to the
+ * battle room, forwards the server's protocol events to the UI, and surfaces
+ * the authoritative battle end (natural |win|, forfeit, or an admin
+ * resolve/void). There is no local prediction — for a turn-based battle the
+ * round-trip is cheap and a single source of truth avoids desync entirely.
  */
 export class RemoteBattleEngine implements BattleEngine {
 	private battleId: string;
 	private sessionId: string;
 	private socket: PartySocket;
+	/** Whether this engine created (and therefore owns/closes) the socket. */
+	private ownsSocket: boolean;
 
-	// Local prediction engine
-	private localEngine: LocalBattleEngine | null = null;
-	private predictedEvents: string[] = [];
-
-	// Server state
-	private serverEventLog: string[] = [];
 	private chunkCallback: ((chunk: string) => void) | null = null;
+	private endCallback:
+		| ((result: {
+				outcome: "win" | "loss";
+				reason: "natural" | "admin" | "forfeit" | "void";
+		  }) => void)
+		| null = null;
+	private ended = false;
+	private joinSent = false;
 
-	// Reconciliation
-	private reconciliationCount = 0;
-	private maxReconciliationAttempts = 3;
-
-	constructor(battleId: string, sessionId: string, socket: PartySocket) {
+	/**
+	 * @param battleId  Battle room id (the BattleServer durable object name).
+	 * @param sessionId This client's player session id.
+	 * @param socket    Optional pre-built socket (used by tests). When omitted,
+	 *                  the engine opens its own connection to the battle room.
+	 * @param host      Optional host override for the self-created socket.
+	 */
+	constructor(
+		battleId: string,
+		sessionId: string,
+		socket?: PartySocket,
+		host?: string,
+	) {
 		this.battleId = battleId;
 		this.sessionId = sessionId;
-		this.socket = socket;
 
-		// Listen for battle_update messages from server
+		if (socket) {
+			this.socket = socket;
+			this.ownsSocket = false;
+		} else {
+			const resolvedHost =
+				host ||
+				(typeof process !== "undefined"
+					? process.env.NEXT_PUBLIC_SERVER_URL
+					: undefined) ||
+				"http://localhost:8787";
+			// Battles live in their own party/room, NOT the main event room.
+			this.socket = new PartySocket({
+				host: resolvedHost,
+				party: "battle",
+				room: battleId,
+			});
+			this.ownsSocket = true;
+		}
+
 		this.socket.addEventListener("message", this.handleServerMessage);
 	}
 
@@ -209,34 +250,21 @@ export class RemoteBattleEngine implements BattleEngine {
 		try {
 			const msg = JSON.parse(event.data);
 
+			if (msg.type === "battle_end") {
+				// Authoritative end (natural |win|, forfeit, or an admin
+				// resolve/void). Resolve win/loss against our own sessionId rather
+				// than parsing |win| names, which are unreliable remotely.
+				if (this.ended) return;
+				this.ended = true;
+				const outcome: "win" | "loss" =
+					msg.winnerId && msg.winnerId === this.sessionId ? "win" : "loss";
+				this.endCallback?.({ outcome, reason: msg.reason ?? "natural" });
+				return;
+			}
+
 			if (msg.type === "battle_update" && Array.isArray(msg.events)) {
-				console.log("[RemoteBattleEngine] Received battle_update:", msg.events);
-
-				// Append to server event log
-				this.serverEventLog.push(...msg.events);
-
-				// Check for desync
-				const desync = this.detectDesync(msg.events);
-
-				if (desync) {
-					console.warn("[RemoteBattleEngine] DESYNC DETECTED!");
-					this.reconciliationCount++;
-
-					if (this.reconciliationCount > this.maxReconciliationAttempts) {
-						console.error(
-							"[RemoteBattleEngine] Max reconciliation attempts exceeded. Force resync.",
-						);
-						this.forceResync();
-					} else {
-						this.rollbackAndReplay();
-					}
-				} else {
-					// No desync - forward server events to UI
-					const chunk = msg.events.join("\n");
-					if (this.chunkCallback) {
-						this.chunkCallback(chunk);
-					}
-				}
+				// Forward the server's canonical protocol straight to the UI.
+				this.chunkCallback?.(msg.events.join("\n"));
 			}
 		} catch (error) {
 			console.error(
@@ -246,35 +274,26 @@ export class RemoteBattleEngine implements BattleEngine {
 		}
 	};
 
-	start(p1Team: string, p2Team: string): void {
-		// Create local prediction engine
-		this.localEngine = new LocalBattleEngine();
+	// Teams are built authoritatively on the server from each player's party,
+	// so the client just needs to join the room.
+	start(_p1Team?: string, _p2Team?: string): void {
+		const sendJoin = () => {
+			if (this.joinSent) return;
+			this.joinSent = true;
+			this.socket.send(
+				JSON.stringify({ type: "battle_join", sessionId: this.sessionId }),
+			);
+		};
 
-		// Capture predicted events
-		this.localEngine.onChunk((chunk) => {
-			const lines = chunk.split("\n").filter((line) => line.length > 0);
-			this.predictedEvents.push(...lines);
-		});
-
-		// Start local prediction
-		this.localEngine.start(p1Team, p2Team);
-
-		// Join battle on server
-		this.socket.send(
-			JSON.stringify({
-				type: "battle_join",
-				sessionId: this.sessionId,
-			}),
-		);
+		// A self-created socket may not be open yet; join once it connects.
+		if (this.ownsSocket && (this.socket as any).readyState !== 1) {
+			this.socket.addEventListener("open", sendJoin);
+		} else {
+			sendJoin();
+		}
 	}
 
 	submitMove(moveIndex: number): void {
-		// Optimistic: run locally first
-		if (this.localEngine) {
-			this.localEngine.submitMove(moveIndex);
-		}
-
-		// Send to server
 		this.socket.send(
 			JSON.stringify({
 				type: "battle_attack",
@@ -285,12 +304,6 @@ export class RemoteBattleEngine implements BattleEngine {
 	}
 
 	forfeitTurn(): void {
-		// Optimistic: run locally first
-		if (this.localEngine) {
-			this.localEngine.forfeitTurn();
-		}
-
-		// Send to server
 		this.socket.send(
 			JSON.stringify({
 				type: "battle_forfeit",
@@ -303,86 +316,25 @@ export class RemoteBattleEngine implements BattleEngine {
 		this.chunkCallback = callback;
 	}
 
+	onEnd(
+		callback: (result: {
+			outcome: "win" | "loss";
+			reason: "natural" | "admin" | "forfeit" | "void";
+		}) => void,
+	): void {
+		this.endCallback = callback;
+	}
+
 	destroy(): void {
-		console.log("[RemoteBattleEngine] Destroying engine...");
-
-		// Remove message listener
 		this.socket.removeEventListener("message", this.handleServerMessage);
-
-		// Destroy local engine
-		if (this.localEngine) {
-			this.localEngine.destroy();
-			this.localEngine = null;
-		}
-
 		this.chunkCallback = null;
-	}
-
-	/**
-	 * Detect desync between predicted events and server events
-	 */
-	private detectDesync(serverEvents: string[]): boolean {
-		// Simple comparison: check if server events match predicted events
-		// In production, this would be more sophisticated
-		for (let i = 0; i < serverEvents.length; i++) {
-			const serverEvent = serverEvents[i];
-			const predictedEvent =
-				this.predictedEvents[
-					this.serverEventLog.length - serverEvents.length + i
-				];
-
-			if (serverEvent !== predictedEvent) {
-				console.warn("[RemoteBattleEngine] Event mismatch:", {
-					server: serverEvent,
-					predicted: predictedEvent,
-				});
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Rollback local state and replay server's canonical event log
-	 */
-	private rollbackAndReplay(): void {
-		console.log(
-			"[RemoteBattleEngine] Rolling back and replaying server events...",
-		);
-
-		// Destroy local engine
-		if (this.localEngine) {
-			this.localEngine.destroy();
-		}
-
-		// Create new Battle instance and replay full server event log
-		const battle = new Battle(gens);
-		for (const line of this.serverEventLog) {
+		this.endCallback = null;
+		if (this.ownsSocket) {
 			try {
-				battle.add(line);
-			} catch (e) {
-				console.error("[RemoteBattleEngine] Error replaying event:", line, e);
+				this.socket.close();
+			} catch {
+				// already closed
 			}
 		}
-
-		// Sync state with UI
-		if (this.chunkCallback) {
-			this.chunkCallback(this.serverEventLog.join("\n"));
-		}
-
-		// Clear predicted events
-		this.predictedEvents = [];
-	}
-
-	/**
-	 * Force full resync from server (last resort)
-	 */
-	private forceResync(): void {
-		console.error("[RemoteBattleEngine] Forcing full resync...");
-
-		// In production, this would request full state from server
-		// For now, just replay server events
-		this.rollbackAndReplay();
 	}
 }

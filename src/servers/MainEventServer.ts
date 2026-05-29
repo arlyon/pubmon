@@ -1,4 +1,4 @@
-import { Server, type Connection } from "partyserver";
+import { Server, getServerByName, type Connection } from "partyserver";
 import type { PubMon, PubType } from "../../lib/pokemon-data";
 import { getRandomPubMon, ALL_PUBMON } from "../../lib/pokemon-data";
 import type {
@@ -76,23 +76,9 @@ export class MainEventServer extends Server {
 		});
 
 		// Send current leaderboard to new connection
-		const leaderboard = Array.from(this.gameState.players.values()).map(
-			(p) => ({
-				name: p.info.name,
-				drinksLogged: p.battleLog.length,
-				battlesWon: p.battleLog.filter((b) => b.outcome === "win").length,
-				totalBattles: p.battleLog.length,
-				badges: Array.from(p.badges),
-				partyCount: p.party.length,
-				level:
-					p.party.length > 0 ? Math.max(...p.party.map((mon) => mon.level)) : 1,
-				tournamentOptIn: p.tournamentOptIn,
-			}),
-		);
-
 		this.sendToConnection(connection, {
 			type: "leaderboard_sync",
-			players: leaderboard,
+			players: this.buildLeaderboard(),
 		});
 
 		// Send tournament state if one exists
@@ -203,6 +189,12 @@ export class MainEventServer extends Server {
 				case "admin_start_tournament":
 					await this.handleAdminStartTournament();
 					break;
+				case "admin_reset_tournament":
+					await this.handleAdminResetTournament();
+					break;
+				case "admin_resolve_match":
+					await this.handleAdminResolveMatch(msg);
+					break;
 				case "admin_forfeit_match":
 					await this.handleAdminForfeitMatch(msg);
 					break;
@@ -243,7 +235,7 @@ export class MainEventServer extends Server {
 		console.log(`[MainEventServer] HTTP ${request.method} ${pathname}`);
 
 		// GET /rpc/gym - Fetch global gym ID and phase
-		if (request.method === "GET" && pathname === "/parties/main/rpc/gym") {
+		if (request.method === "GET" && pathname.endsWith("/rpc/gym")) {
 			return Response.json({
 				currentGymId: this.gameState.currentGymId,
 				gamePhase: this.gameState.phase,
@@ -253,7 +245,7 @@ export class MainEventServer extends Server {
 		// GET /rpc/player/:sessionId - Fetch full player state
 		if (
 			request.method === "GET" &&
-			pathname.startsWith("/parties/main/rpc/player/")
+			pathname.includes("/rpc/player/")
 		) {
 			const sessionId = pathname.split("/").pop();
 			if (!sessionId) {
@@ -265,14 +257,26 @@ export class MainEventServer extends Server {
 				return new Response("Player not found", { status: 404 });
 			}
 
-			// Return full serialized player state
+			// Return the full serialized player state. The page uses this to
+			// hydrate the XState machine on reload (needs info/badges/optIn),
+			// and the BattleServer extracts the battle slice it needs.
 			return Response.json(serializePlayerState(player));
 		}
 
 		// POST /rpc/battle-complete - Battle result from BattleServer
-		if (request.method === "POST" && pathname === "/rpc/battle-complete") {
-			const body = await request.json<{ battleId: string; winnerId: string }>();
-			await this.completeBattleMatch(body.battleId, body.winnerId);
+		if (request.method === "POST" && pathname.endsWith("/rpc/battle-complete")) {
+			const body = await request.json<{
+				battleId: string;
+				winnerId: string;
+				duration?: number;
+				moveCount?: number;
+			}>();
+			await this.completeBattleMatch(
+				body.battleId,
+				body.winnerId,
+				body.duration,
+				body.moveCount,
+			);
 
 			return Response.json({ success: true });
 		}
@@ -711,6 +715,9 @@ export class MainEventServer extends Server {
 			type: "player_state",
 			playerState: serializePlayerState(player),
 		});
+
+		// Notify everyone (incl. the admin console) so opt-in status updates live.
+		await this.broadcastLeaderboard();
 	}
 
 	// ============================================================================
@@ -752,6 +759,10 @@ export class MainEventServer extends Server {
 
 		await this.persistState();
 
+		// Push the phase change so every connected client enters tournament mode
+		// live (without this they wouldn't know until a page reload).
+		this.broadcastPhase();
+
 		// Broadcast tournament start
 		this.broadcastMessage({
 			type: "tournament_start",
@@ -760,6 +771,131 @@ export class MainEventServer extends Server {
 
 		// Start first round matches
 		await this.startRoundMatches();
+	}
+
+	/**
+	 * Tear down the current tournament and return everyone to the collection
+	 * phase. Opt-ins are preserved so the admin can immediately start again.
+	 */
+	private async handleAdminResetTournament() {
+		for (const player of this.gameState.players.values()) {
+			player.activeBattleId = undefined;
+			player.activeBattleOpponent = undefined;
+		}
+		this.gameState.tournamentBracket = undefined;
+		this.gameState.phase = "collection";
+
+		await this.persistState();
+
+		// Phase change back to collection signals clients to leave the tournament.
+		this.broadcastPhase();
+		await this.broadcastLeaderboard();
+
+		console.log("[Admin] Tournament reset -> collection");
+	}
+
+	/**
+	 * Authoritatively resolve a match: declare a winner (winnerId) or void it
+	 * (winnerId === null, nobody advances). Releases both players, formally ends
+	 * the live battle room, and advances the round when complete.
+	 */
+	private async handleAdminResolveMatch(
+		msg: Extract<ClientMessage, { type: "admin_resolve_match" }>,
+	) {
+		if (!this.gameState.tournamentBracket) return;
+
+		const match = this.gameState.tournamentBracket.matches.find(
+			(m) => m.matchId === msg.matchId,
+		);
+		if (!match) {
+			console.log(`[Admin] resolve: match ${msg.matchId} not found`);
+			return;
+		}
+
+		const winnerId = msg.winnerId;
+		if (
+			winnerId &&
+			winnerId !== match.player1SessionId &&
+			winnerId !== match.player2SessionId
+		) {
+			console.log(`[Admin] resolve: ${winnerId} is not in match ${msg.matchId}`);
+			return;
+		}
+
+		match.winnerId = winnerId ?? undefined;
+		match.status = winnerId ? "completed" : "forfeited";
+		match.adminOverride = true;
+
+		// Release both players from any active battle.
+		const participants = [match.player1SessionId, match.player2SessionId]
+			.filter((id): id is string => !!id)
+			.map((id) => this.gameState.players.get(id));
+		for (const p of participants) {
+			if (p) {
+				p.activeBattleId = undefined;
+				p.activeBattleOpponent = undefined;
+			}
+		}
+
+		await this.persistState();
+
+		// Formally end the live battle room so each user's battle screen closes.
+		if (match.battleId) {
+			await this.endBattleRoom(
+				match.battleId,
+				winnerId ?? null,
+				winnerId ? "admin" : "void",
+			);
+		}
+
+		// Update the bracket UI / clients.
+		const winnerName = winnerId
+			? this.gameState.players.get(winnerId)?.info.name ?? ""
+			: "";
+		if (match.battleId) {
+			this.broadcastMessage({
+				type: "match_complete",
+				battleId: match.battleId,
+				winnerId: winnerId ?? "",
+				winnerName,
+			});
+		}
+		this.broadcastMessage({
+			type: "bracket_update",
+			bracket: this.gameState.tournamentBracket,
+		});
+
+		console.log(
+			`[Admin] Resolved match ${msg.matchId}: ${winnerId ? `winner ${winnerName}` : "VOID"}`,
+		);
+
+		const roundComplete = this.gameState.tournamentBracket.matches.every(
+			(m) => m.status === "completed" || m.status === "forfeited",
+		);
+		if (roundComplete) {
+			await this.advanceTournament();
+		}
+	}
+
+	/**
+	 * Tell a BattleServer room to finish and notify both connected players
+	 * (broadcasts battle_end). Used when the admin resolves a live match.
+	 */
+	private async endBattleRoom(
+		battleId: string,
+		winnerId: string | null,
+		reason: "admin" | "void",
+	) {
+		try {
+			const stub = await getServerByName(this.env.BATTLE_SERVER, battleId);
+			await stub.fetch(`https://do/parties/battle/${battleId}/rpc/end-battle`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ winnerId, reason }),
+			});
+		} catch (error) {
+			console.error("[MainEventServer] Failed to end battle room:", error);
+		}
 	}
 
 	private async handleAdminForfeitMatch(
@@ -848,14 +984,43 @@ export class MainEventServer extends Server {
 			return;
 		}
 
-		// Advance opponent
+		// Don't overturn an already-decided match.
+		if (match.winnerId) {
+			console.log(`[Admin] Match ${msg.matchId} already has a winner`);
+			return;
+		}
+
+		// Advance opponent by walkover.
 		match.winnerId = opponentId;
 		match.status = "forfeited";
 		match.adminOverride = true;
 
+		// Release both players from any active battle room. The opponent may be
+		// sitting in the BattleServer waiting on the no-show; match_complete is
+		// the signal clients use to leave the battle.
+		const kicked = this.gameState.players.get(msg.sessionId);
+		const opponent = this.gameState.players.get(opponentId);
+		if (kicked) {
+			kicked.activeBattleId = undefined;
+			kicked.activeBattleOpponent = undefined;
+		}
+		if (opponent) {
+			opponent.activeBattleId = undefined;
+			opponent.activeBattleOpponent = undefined;
+		}
+
 		await this.persistState();
 
-		// Broadcast bracket update
+		// Tell clients the match is over (opponent leaves the battle room) and
+		// push the updated bracket.
+		if (match.battleId) {
+			this.broadcastMessage({
+				type: "match_complete",
+				battleId: match.battleId,
+				winnerId: opponentId,
+				winnerName: opponent?.info.name ?? "",
+			});
+		}
 		this.broadcastMessage({
 			type: "bracket_update",
 			bracket: this.gameState.tournamentBracket,
@@ -942,6 +1107,9 @@ export class MainEventServer extends Server {
 		// Transition to hall-of-fame phase
 		this.gameState.phase = "hall-of-fame";
 		await this.persistState();
+
+		// Push the phase change so clients leave tournament mode live.
+		this.broadcastPhase();
 
 		// Broadcast hall of fame ready
 		this.broadcastMessage({
@@ -1149,7 +1317,12 @@ export class MainEventServer extends Server {
 	/**
 	 * Called by BattleServer when a battle completes
 	 */
-	async completeBattleMatch(battleId: string, winnerId: string) {
+	async completeBattleMatch(
+		battleId: string,
+		winnerId: string,
+		durationMs?: number,
+		moveCount?: number,
+	) {
 		if (!this.gameState.tournamentBracket) return;
 
 		const match = this.gameState.tournamentBracket.matches.find(
@@ -1157,6 +1330,15 @@ export class MainEventServer extends Server {
 		);
 
 		if (!match) return;
+
+		// First write wins: ignore late/duplicate reports (e.g. an orphaned
+		// battle room reporting after an admin already resolved the match).
+		if (match.winnerId) {
+			console.log(
+				`[MainEventServer] Ignoring battle-complete for already-decided match ${match.matchId}`,
+			);
+			return;
+		}
 
 		match.winnerId = winnerId;
 		match.status = "completed";
@@ -1185,11 +1367,14 @@ export class MainEventServer extends Server {
 			battleId,
 			winnerId,
 			winnerName: winner.info.name,
+			durationMs,
+			moveCount,
 		});
 
-		// Check if round is complete
+		// Check if round is complete (a forfeited match — e.g. an admin kick of
+		// an unresponsive player — also counts as done).
 		const roundComplete = this.gameState.tournamentBracket.matches.every(
-			(m) => m.status === "completed",
+			(m) => m.status === "completed" || m.status === "forfeited",
 		);
 
 		if (roundComplete) {
@@ -1205,8 +1390,23 @@ export class MainEventServer extends Server {
 			.filter(Boolean) as string[];
 
 		if (winners.length === 1) {
-			// Tournament complete
-			console.log(`[MainEventServer] Tournament winner: ${winners[0]}`);
+			// Tournament complete — record the champion and enter the
+			// post-tournament state.
+			const champion = this.gameState.players.get(winners[0]);
+			this.gameState.tournamentBracket.champion = winners[0];
+			this.gameState.tournamentBracket.championName = champion?.info.name;
+
+			await this.persistState();
+
+			console.log(
+				`[MainEventServer] Tournament champion: ${champion?.info.name ?? winners[0]}`,
+			);
+
+			// Broadcast the final bracket so clients see the crowned champion.
+			this.broadcastMessage({
+				type: "bracket_update",
+				bracket: this.gameState.tournamentBracket,
+			});
 			return;
 		}
 
@@ -1233,10 +1433,36 @@ export class MainEventServer extends Server {
 	// Utility Methods
 	// ============================================================================
 
+	/**
+	 * Broadcast the current game phase (and gym) to every connected client so
+	 * phase transitions (collection <-> tournament <-> hall-of-fame) are
+	 * reflected live, without requiring a page reload.
+	 */
+	private broadcastPhase() {
+		this.broadcastMessage({
+			type: "gym_update",
+			currentGymId: this.gameState.currentGymId,
+			gamePhase: this.gameState.phase,
+		});
+	}
+
 	private async broadcastLeaderboard() {
-		const leaderboard = Array.from(this.gameState.players.values()).map(
-			(p) => ({
+		this.broadcastMessage({
+			type: "leaderboard_sync",
+			players: this.buildLeaderboard(),
+		});
+	}
+
+	/**
+	 * Build the leaderboard payload. Includes sessionId + sprite so clients can
+	 * map tournament bracket entries (keyed by sessionId) back to players.
+	 */
+	private buildLeaderboard() {
+		return Array.from(this.gameState.players.entries()).map(
+			([sessionId, p]) => ({
+				sessionId,
 				name: p.info.name,
+				sprite: p.info.sprite,
 				drinksLogged: p.battleLog.length,
 				battlesWon: p.battleLog.filter((b) => b.outcome === "win").length,
 				totalBattles: p.battleLog.length,
@@ -1247,11 +1473,6 @@ export class MainEventServer extends Server {
 				tournamentOptIn: p.tournamentOptIn,
 			}),
 		);
-
-		this.broadcastMessage({
-			type: "leaderboard_sync",
-			players: leaderboard,
-		});
 	}
 
 	private async persistState() {

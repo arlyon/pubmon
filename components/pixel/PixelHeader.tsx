@@ -1,21 +1,52 @@
 import type React from "react";
 
+const VARIANTS = {
+	blue: {
+		bg: "bg-[#384080]",
+		palette: "font-palette-blue",
+	},
+	red: {
+		bg: "bg-pixel-red",
+		palette: "font-palette-red",
+	},
+	dark: {
+		bg: "bg-[#262b44]",
+		palette: "font-palette-blue",
+	},
+	gray: {
+		bg: "bg-pixel-gray",
+		palette: "font-palette-default",
+	},
+} as const;
+
 interface PixelHeaderProps {
 	title: string;
-	variant?: "blue" | "red";
+	subtitle?: string;
+	variant?: keyof typeof VARIANTS;
+	right?: React.ReactNode;
 }
 
 const PixelHeader: React.FC<PixelHeaderProps> = ({
 	title,
+	subtitle,
 	variant = "blue",
+	right,
 }) => {
-	const bg = variant === "blue" ? "bg-pixel-blue" : "bg-pixel-red";
-	const border =
-		variant === "blue" ? "border-pixel-blue-dark" : "border-pixel-red-dark";
+	const v = VARIANTS[variant];
 
 	return (
-		<div className={`${bg} border-2 ${border} px-[8px] py-[4px]`}>
-			<span className=" text-pixel-sm text-pixel-white">{title}</span>
+		<div
+			className={`${v.bg} px-gba-[8] py-gba-[6] border-b border-pixel-black flex justify-between items-center font-sans ${v.palette}`}
+		>
+			<div>
+				<div className="text-gba-[9]">{title}</div>
+				{subtitle && (
+					<div className="text-gba-[6] mt-gba-[2] font-palette-white">
+						{subtitle}
+					</div>
+				)}
+			</div>
+			{right && right}
 		</div>
 	);
 };

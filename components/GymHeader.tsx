@@ -65,7 +65,10 @@ export function GymHeader({
 	};
 
 	return (
-		<div className={cn("w-full absolute z-50", className)} style={{ top: "var(--safe-area-inset-top, 0px)" }}>
+		<div
+			className={cn("w-full absolute z-50", className)}
+			style={{ top: "var(--safe-area-inset-top, 0px)" }}
+		>
 			<div className="w-full font-sans relative [font-palette:--emerald-blue] text-gba-[9] leading-none">
 				{/* Blue expandable section */}
 				<motion.div
@@ -254,7 +257,7 @@ export function GymHeader({
 				>
 					<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
 						<span style={{ color: "#78b8f0" }}>PRIZE:</span>
-						<span>★ {currentGym.badgeName}</span>
+						<span>{currentGym.badgeName}</span>
 					</div>
 					<div className="text-muted-foreground text-gba-[4] group-hover:text-primary transition-colors">
 						{isExpanded ? "▼" : "▶"}

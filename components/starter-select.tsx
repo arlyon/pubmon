@@ -13,6 +13,7 @@ import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { TrainerSprite } from "./trainer-sprite";
+import { TypePokeball } from "./images/TypePokeball";
 
 const STARTERS: Record<PubType, string> = {
 	beer: "Hoppsin",
@@ -36,52 +37,9 @@ function ProfessorSprite() {
 function PokeballRow() {
 	return (
 		<div className="flex items-center justify-center gap-[12px]">
-			{TYPE_ORDER.map((type) => {
-				const info = TYPE_INFO[type];
-				return (
-					<svg
-						key={type}
-						viewBox="0 0 10 10"
-						width={16}
-						height={16}
-						className="pixel-perfect"
-					>
-						<circle cx={5} cy={5} r={4.5} fill={info.color} />
-						<rect
-							x={0.5}
-							y={4.5}
-							width={9}
-							height={1}
-							fill="rgb(var(--pixel-black))"
-						/>
-						<circle
-							cx={5}
-							cy={5}
-							r={4.5}
-							fill="none"
-							stroke="rgb(var(--pixel-black))"
-							strokeWidth={0.5}
-						/>
-						<rect
-							x={0.5}
-							y={5}
-							width={9}
-							height={4.5}
-							rx={4.5}
-							fill="rgb(var(--pixel-white))"
-						/>
-						<circle
-							cx={5}
-							cy={5}
-							r={1.2}
-							fill="rgb(var(--pixel-white))"
-							stroke="rgb(var(--pixel-black))"
-							strokeWidth={0.4}
-						/>
-						<circle cx={5} cy={5} r={0.6} fill="rgb(var(--pixel-black))" />
-					</svg>
-				);
-			})}
+			{TYPE_ORDER.map((type) => (
+				<TypePokeball key={type} color={TYPE_INFO[type].color} />
+			))}
 		</div>
 	);
 }

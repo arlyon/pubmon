@@ -50,6 +50,8 @@ export interface GameState {
 export interface TournamentBracket {
 	round: number;
 	matches: TournamentMatch[];
+	champion?: string; // sessionId of the final winner (set when tournament ends)
+	championName?: string; // display name of the champion
 }
 
 export interface TournamentMatch {

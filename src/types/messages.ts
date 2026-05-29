@@ -21,6 +21,8 @@ export type ClientMessage =
 	// Admin messages
 	| AdminSetGymMessage
 	| AdminStartTournamentMessage
+	| AdminResetTournamentMessage
+	| AdminResolveMatchMessage
 	| AdminForfeitMatchMessage
 	| AdminPromotePlayerMessage
 	| AdminKickPlayerMessage
@@ -116,6 +118,18 @@ export interface AdminSetGymMessage {
 export interface AdminStartTournamentMessage {
 	type: "admin_start_tournament";
 	adminSecret: string;
+}
+
+export interface AdminResetTournamentMessage {
+	type: "admin_reset_tournament";
+	adminSecret: string;
+}
+
+export interface AdminResolveMatchMessage {
+	type: "admin_resolve_match";
+	adminSecret: string;
+	matchId: string;
+	winnerId: string | null; // sessionId of winner, or null to void (no winner)
 }
 
 export interface AdminForfeitMatchMessage {
@@ -234,10 +248,16 @@ export interface GymUpdateMessage {
 export interface LeaderboardSyncMessage {
 	type: "leaderboard_sync";
 	players: Array<{
+		sessionId: string;
 		name: string;
+		sprite: string;
 		drinksLogged: number;
+		battlesWon: number;
+		totalBattles: number;
 		badges: number[];
 		partyCount: number;
+		level: number;
+		tournamentOptIn: boolean;
 	}>;
 }
 
@@ -258,8 +278,10 @@ export interface MatchStartMessage {
 export interface MatchCompleteMessage {
 	type: "match_complete";
 	battleId: string;
-	winnerId: string;
+	winnerId: string; // "" when the match was voided (no winner)
 	winnerName: string;
+	durationMs?: number; // total battle time, when reported by the BattleServer
+	moveCount?: number;
 }
 
 export interface BracketUpdateMessage {
@@ -340,6 +362,9 @@ export interface BattleStateMessage {
 	};
 	currentTurn: "player1" | "player2";
 	turnCount: number;
+	startedAt: number; // epoch ms the battle became active
+	lastMoveAt: number; // epoch ms of the last accepted move
+	serverNow: number; // server clock at send time (for client offset calc)
 }
 
 export interface BattleUpdateMessage {
@@ -360,8 +385,9 @@ export interface BattleTurnResultMessage {
 
 export interface BattleEndMessage {
 	type: "battle_end";
-	winnerId: string;
+	winnerId: string; // "" when voided (no winner)
 	winnerName: string;
+	reason?: "natural" | "admin" | "forfeit" | "void";
 }
 
 export interface BattleErrorMessage {

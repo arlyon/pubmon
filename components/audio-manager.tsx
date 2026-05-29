@@ -103,6 +103,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 			});
 		}
 
+		sound.mute(isMuted);
 		sound.play();
 
 		// Fade in new track only if transitioning from existing music (except battle)
@@ -263,12 +264,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		const next = !isMuted;
 		setIsMuted(next);
 		localStorage.setItem("pubmon_muted", String(next));
-		Howler.mute(next);
+		if (bgmRef.current) {
+			bgmRef.current.mute(next);
+		}
 	};
 
 	// Apply persisted mute state on mount
 	useEffect(() => {
-		Howler.mute(isMuted);
+		if (bgmRef.current) {
+			bgmRef.current.mute(isMuted);
+		}
 	}, []);
 
 	// Pre-load intro + battle audio on mount

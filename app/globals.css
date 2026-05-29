@@ -10,12 +10,23 @@
   src: local('Press Start 2P');
 }
 
+/* Emerald font — loaded by next/font/local in layout.tsx (Next.js sets --font-emerald).
+   This @font-face is a fallback for environments that skip the layout (e.g. Storybook). */
+@font-face {
+  font-family: 'emeraldFont';
+  src: url('/Emerald.ttf') format('truetype');
+}
+
+:root {
+  --font-emerald: 'emeraldFont';
+}
+
 /* Emerald font color palette customization */
 @font-palette-values --emerald-default {
   font-family: emeraldFont;
   override-colors:
     0 #282828, /* Dark text */
-    2 #a8b0b8; /* Light shadow for depth */
+    2 rgba(0, 0, 0, 0.1); /* Light shadow for depth */
 }
 
 @font-palette-values --emerald-no-shadow {
@@ -57,14 +68,14 @@
   font-family: emeraldFont;
   override-colors:
     0 #f8f8f8, /* White text */
-    2 #686868; /* Gray shadow */
+    2 rgba(0, 0, 0, 0.25); /* Gray shadow */
 }
 
 @font-palette-values --emerald-muted {
   font-family: emeraldFont;
   override-colors:
     0 #a8b0b8, /* Muted gray text */
-    2 #d8e0e8; /* Very light shadow */
+    2 rgba(0, 0, 0, 0.08); /* Very light shadow */
 }
 
 :root {
@@ -241,6 +252,16 @@
 @keyframes badge-spin {
   from { transform: rotateY(0deg); }
   to { transform: rotateY(360deg); }
+}
+
+@keyframes pixel-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(300px) rotate(180deg); opacity: 1; }
 }
 
 @keyframes pixel-bounce {

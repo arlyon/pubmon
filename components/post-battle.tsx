@@ -69,38 +69,17 @@ const PokeBall = ({
 	animated?: boolean;
 	style?: React.CSSProperties;
 }) => (
-	<svg
-		viewBox="0 0 10 10"
+	<img
+		src="/sprites/POKEBALL.png"
 		width={size}
 		height={size}
-		shapeRendering="crispEdges"
+		alt="pokeball"
 		style={{
 			imageRendering: "pixelated",
 			animation: animated ? "pixel-bounce 1s steps(2,end) infinite" : undefined,
 			...style,
 		}}
-	>
-		<circle cx={5} cy={5} r={4.5} fill="#e43b44" />
-		<rect x={0.5} y={4.5} width={9} height={1} fill="#1a1c2c" />
-		<circle
-			cx={5}
-			cy={5}
-			r={4.5}
-			fill="none"
-			stroke="#1a1c2c"
-			strokeWidth={0.5}
-		/>
-		<rect x={0.5} y={5} width={9} height={4.5} rx={4.5} fill="#f4f4f4" />
-		<circle
-			cx={5}
-			cy={5}
-			r={1.2}
-			fill="#f4f4f4"
-			stroke="#1a1c2c"
-			strokeWidth={0.4}
-		/>
-		<circle cx={5} cy={5} r={0.6} fill="#1a1c2c" />
-	</svg>
+	/>
 );
 
 // ─── Run screen (RunB — pub receipt) ─────────────────────────────────────────
@@ -259,7 +238,7 @@ function CatchScreen({
 					padding: "4px 0",
 				}}
 			>
-				★ PUBDEX +1 ★
+				PUBDEX +1
 			</div>
 
 			{/* Entry card */}
@@ -413,12 +392,12 @@ function WinScreen({
 
 	return (
 		<div
-			className="flex flex-col gap-gba-[10] px-gba-[12] py-gba-[12]"
-			style={{ minHeight: "100%" }}
+			className="flex flex-col items-center gap-gba-[10] px-gba-[12] py-gba-[12]"
+			style={{ background: "#1a1c2c", minHeight: "100%" }}
 		>
 			{/* Victory banner */}
 			<div
-				className="text-center border-gba-[1] border-foreground px-gba-[10] py-gba-[8]"
+				className="w-full text-center border-gba-[1] border-foreground px-gba-[10] py-gba-[8]"
 				style={{
 					background: "#f8d030",
 					boxShadow:
@@ -427,16 +406,13 @@ function WinScreen({
 				}}
 			>
 				<div
-					className=" text-gba-[14]"
+					className="text-gba-[14]"
 					style={{ color: "#181010", letterSpacing: 1.5 }}
 				>
 					VICTORY!
 				</div>
 				{defeatedPokemon && (
-					<div
-						className=" text-gba-[8] mt-gba-[4]"
-						style={{ color: "#5a4818" }}
-					>
+					<div className="text-gba-[8] mt-gba-[4]" style={{ color: "#5a4818" }}>
 						{defeatedPokemon.name.toUpperCase()} WAS DEFEATED
 					</div>
 				)}
@@ -444,17 +420,9 @@ function WinScreen({
 
 			{/* Sprite + XP bar */}
 			{activePokemon && (
-				<PixelBox className="p-gba-[8]">
+				<PixelBox className="w-full p-gba-[8]">
 					<div className="flex gap-gba-[10] items-center">
-						<div
-							className="flex-shrink-0 flex items-center justify-center"
-							style={{
-								width: 72,
-								height: 72,
-								background: "#d0e8f0",
-								border: "2px solid #282828",
-							}}
-						>
+						<div className="flex-shrink-0 flex items-center justify-center w-gba-[72] h-gba-[72] bg-secondary border-gba-[1] border-foreground">
 							<PixelSprite
 								name={activePokemon.sprite}
 								variant={activePokemon.spriteVariant ?? 1}
@@ -463,11 +431,11 @@ function WinScreen({
 							/>
 						</div>
 						<div className="flex-1">
-							<div className=" text-gba-[8] text-foreground/60 mb-gba-[4]">
+							<div className="text-gba-[8] text-foreground/60 mb-gba-[4]">
 								EXP TO NEXT
 							</div>
 							<XPBar from={xpFrom} to={xpTo} />
-							<div className="flex justify-between  text-gba-[7] text-foreground/60 mt-gba-[4]">
+							<div className="flex justify-between text-gba-[7] text-foreground/60 mt-gba-[4]">
 								<span>+{xpGained} XP</span>
 								<span>{activePokemon.xp} XP</span>
 							</div>
@@ -478,22 +446,19 @@ function WinScreen({
 
 			{/* Stat display */}
 			{stats.length > 0 && (
-				<PixelBox className="p-gba-[8]">
-					<div className=" text-gba-[8] text-foreground/60 mb-gba-[6]">
+				<PixelBox className="w-full p-gba-[8]">
+					<div className="text-gba-[8] text-foreground/60 mb-gba-[6]">
 						STATS
 					</div>
 					{stats.map((s, i) => (
 						<div
 							key={s.label}
-							className="flex items-center gap-gba-[6] py-gba-[3]  text-gba-[8]"
+							className="flex items-center gap-gba-[6] py-gba-[3] text-gba-[8] border-foreground/20"
 							style={{
-								borderBottom:
-									i < stats.length - 1 ? "1px dashed #a8b0b8" : "none",
+								borderBottom: i < stats.length - 1 ? "1px dashed" : "none",
 							}}
 						>
-							<span className="text-foreground/50" style={{ width: 36 }}>
-								{s.label}
-							</span>
+							<span className="text-foreground/50 w-gba-[36]">{s.label}</span>
 							<span>{s.value}</span>
 						</div>
 					))}

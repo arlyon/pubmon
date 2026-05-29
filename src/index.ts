@@ -36,8 +36,9 @@ export default {
 				return new Response("Invalid battle ID", { status: 400 });
 			}
 
-			const id = env.BATTLE_SERVER.idFromName(battleId);
-			const stub = env.BATTLE_SERVER.get(id);
+			// Use getServerByName so partyserver assigns `this.name = battleId`
+			// inside the BattleServer (it reports results keyed by that name).
+			const stub = await getServerByName(env.BATTLE_SERVER, battleId);
 			return stub.fetch(request);
 		}
 

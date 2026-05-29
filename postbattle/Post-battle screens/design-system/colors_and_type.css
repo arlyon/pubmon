@@ -1,0 +1,227 @@
+/* ============================================================
+   PubMon Design System — Colors & Type
+   Gen 2/3 (GBA Pokemon FireRed / Emerald) inspired pixel UI
+   ============================================================ */
+
+/* -- FONTS ----------------------------------------------------- */
+
+@font-face {
+  font-family: "Emerald";
+  src: url("fonts/Emerald.ttf") format("truetype");
+  font-display: swap;
+}
+
+/* Press Start 2P loaded from Google Fonts in HTML head, e.g.:
+   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+   This is the "PokemonPixel" headline / heading face. */
+
+:root {
+  /* ---- Core grayscale (FireRed pixel UI) ---- */
+  --pixel-white:        #f8f8f8;   /* card / dialog background */
+  --pixel-black:        #282828;   /* outline + body text */
+  --pixel-gray:         #a8b0b8;   /* mid-tone, borders, inactive */
+  --pixel-gray-light:   #d8e0e8;   /* page bg, inset highlight */
+  --pixel-gray-dark:    #686868;   /* shadow text */
+
+  /* ---- Brand chrome (FireRed cartridge palette) ---- */
+  --pixel-blue:         #4878d0;   /* PRIMARY — UI accents, "Crawl"/"Pubmon" */
+  --pixel-blue-dark:    #305098;   /* bevel + outline for blue surfaces */
+  --pixel-blue-deep:    #2038a0;   /* trainer-card LV stripe */
+  --pixel-red:          #d03838;   /* DESTRUCTIVE — Pubdex chrome */
+  --pixel-red-soft:     #f85858;   /* trainer-card title bar */
+  --pixel-red-dark:     #a82828;   /* bevel + outline for red surfaces */
+  --pixel-green:        #50b058;   /* OK / confirm */
+  --pixel-yellow:       #f8d030;   /* League / badge highlight */
+  --pixel-gold:         #a88820;   /* yellow shadow */
+
+  /* ---- HP & status (battle screen) ---- */
+  --hp-green:           #50c848;
+  --hp-yellow:          #f8b020;
+  --hp-red:             #f04038;
+  --status-brn:         #e43b44;
+  --status-psn:         #a86dd9;
+  --status-par:         #ffd500;
+  --status-slp:         #6e7a8a;
+  --status-frz:         #00c2ff;
+
+  /* ---- Drink type colors (PubMon "elemental" types) ---- */
+  --type-beer:          #c28b4a;   /* Earth */
+  --type-shot:          #e43b44;   /* Fire  */
+  --type-wine:          #f4a4c0;   /* Fairy */
+  --type-water:         #63c6e1;   /* Water */
+  --type-cocktail:      #63c74d;   /* Grass */
+
+  /* ---- Sidebar / dark chrome ---- */
+  --sidebar-bg:         #262b44;
+  --sidebar-fg:         #f4f4f4;
+  --sidebar-primary:    #e8c170;
+  --sidebar-accent:     #3a4466;
+  --sidebar-border:     #5a6988;
+
+  /* ---- Gym-header / status-bar chrome ----
+     These show up across GymHeader, trainer-card LV strip, prize bars.
+     Curated from the source repo; treat as canonical alongside --pixel-blue-*. */
+  --chrome-bg:          #101828;   /* status bar bg, prize bar bg (near-black blue) */
+  --chrome-mid:         #182860;   /* pub-info row bg */
+  --chrome-cyan:        #78b8f0;   /* status-bar / muted secondary text on dark */
+  --chrome-cyan-soft:   #78a8d8;   /* muted body text on dark */
+  --chrome-pale-blue:   #a8c8f0;   /* "LEADER" label color */
+  --chrome-gold:        #f0e070;   /* prize / hall-of-fame gold (warmer than --pixel-yellow) */
+  --chrome-gold-bright: #f8d858;   /* leader-name gold */
+
+  /* ---- Trainer-card / stat-box ---- */
+  --stat-bg:            #c8d8a8;   /* pale green-cream stat box */
+  --stat-bg-accent:     #2038a0;   /* same as --pixel-blue-deep */
+  --xp-track:           #6870a0;   /* xp bar track */
+  --xp-fill:            #3878f8;   /* xp bar fill */
+  --portrait-bg:        #d0e8f0;   /* trainer / pubmon portrait panel */
+
+  /* ---- Semantic aliases (consume these in app code) ---- */
+  --bg:                 var(--pixel-gray-light);
+  --fg:                 var(--pixel-black);
+  --fg-muted:           var(--pixel-gray);
+  --fg-subtle:          var(--pixel-gray-dark);
+  --card:               var(--pixel-white);
+  --card-fg:            var(--pixel-black);
+  --primary:            var(--pixel-blue);
+  --primary-fg:         var(--pixel-white);
+  --accent:             var(--pixel-blue);
+  --destructive:        var(--pixel-red);
+  --border:             var(--pixel-black);   /* outlines are HARD black, 2-3px */
+  --border-soft:        var(--pixel-gray);
+  --highlight-inset:    var(--pixel-gray-light);
+  --shadow-inset:       var(--pixel-gray);
+
+  /* ---- Pixel sizing ----
+     Everything in the original repo uses --pixel-scale to multiply 1px units
+     so a single design-time pixel scales to crisp 2x/3x renders without
+     anti-aliasing. Keep at 1 for design-time / 1:1 cards, 2 for app shell. */
+  --pixel-scale:        1;
+  --px:                 calc(1px * var(--pixel-scale));
+
+  /* ---- Spacing (multiples of pixel) ---- */
+  --space-1:            calc(2px  * var(--pixel-scale));
+  --space-2:            calc(4px  * var(--pixel-scale));
+  --space-3:            calc(6px  * var(--pixel-scale));
+  --space-4:            calc(8px  * var(--pixel-scale));
+  --space-6:            calc(12px * var(--pixel-scale));
+  --space-8:            calc(16px * var(--pixel-scale));
+  --space-12:           calc(24px * var(--pixel-scale));
+
+  /* ---- Borders ----
+     Pixel UI is hard 2-3px solid black. NEVER round corners. */
+  --border-w:           calc(2px * var(--pixel-scale));
+  --border-w-thick:     calc(3px * var(--pixel-scale));
+  --radius:             0;        /* HARD corners */
+
+  /* ---- Shadows ----
+     Drop shadows are 1-2px solid offsets — NEVER blurred.
+     Bevel = 2px inset highlight (top-left) + 2px inset shade (bot-right). */
+  --shadow-pop:         calc(2px * var(--pixel-scale)) calc(2px * var(--pixel-scale)) 0 0 rgba(0,0,0,0.2);
+  --shadow-pop-strong:  calc(2px * var(--pixel-scale)) calc(2px * var(--pixel-scale)) 0 0 rgba(0,0,0,0.6);
+  --shadow-bevel:
+    inset calc(2px * var(--pixel-scale)) calc(2px * var(--pixel-scale)) 0 var(--pixel-gray-light),
+    inset calc(-2px * var(--pixel-scale)) calc(-2px * var(--pixel-scale)) 0 var(--pixel-gray);
+
+  /* ---- Type sizes (pre-scale) ----
+     Designed at 1px = 1 source pixel. Multiplied by --pixel-scale at runtime.
+     Press Start 2P / Emerald are designed for ~6-9px source sizes. */
+  --text-pixel-xs:      calc(6px  * var(--pixel-scale));
+  --text-pixel-sm:      calc(8px  * var(--pixel-scale));   /* default body */
+  --text-pixel:         calc(9px  * var(--pixel-scale));   /* most UI text  */
+  --text-pixel-lg:      calc(10px * var(--pixel-scale));   /* headers       */
+  --text-pixel-xl:      calc(12px * var(--pixel-scale));   /* big titles    */
+
+  /* ---- Font stacks ---- */
+  --:    "Press Start 2P", "Courier New", monospace;   /* HEADLINE / chunky */
+  --font-emerald:  "Emerald", "Press Start 2P", monospace;       /* BODY / dialog    */
+  --font-mono:     ui-monospace, "Courier New", monospace;
+}
+
+/* ============================================================
+   Semantic typography classes
+   ============================================================ */
+.h1, h1.pix {
+  font-family: var(--);
+  font-size: var(--text-pixel-xl);
+  color: var(--fg);
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.h2, h2.pix {
+  font-family: var(--);
+  font-size: var(--text-pixel-lg);
+  color: var(--fg);
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.h3, h3.pix {
+  font-family: var(--font-emerald);
+  font-size: var(--text-pixel-lg);
+  color: var(--fg);
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.body, p.pix {
+  font-family: var(--font-emerald);
+  font-size: var(--text-pixel);
+  color: var(--fg);
+  line-height: 1.45;
+}
+.caption {
+  font-family: var(--font-emerald);
+  font-size: var(--text-pixel-sm);
+  color: var(--fg-subtle);
+}
+.mono, code.pix {
+  font-family: var(--);
+  font-size: var(--text-pixel-sm);
+  color: var(--fg);
+}
+
+/* Apply pixel-art rendering universally (text + raster) */
+.pixel-perfect, .pixel-perfect * {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+}
+
+/* ============================================================
+   Pixel-box surfaces (FireRed dialog box system)
+   ============================================================ */
+.pixel-box {
+  background: var(--pixel-white);
+  border: var(--border-w-thick) solid var(--pixel-black);
+  box-shadow: var(--shadow-bevel);
+  padding: var(--space-4);
+  border-radius: 0;
+}
+.pixel-box--blue {
+  background: var(--pixel-blue);
+  border-color: var(--pixel-blue-dark);
+  color: var(--pixel-white);
+  box-shadow:
+    inset 2px 2px 0 rgba(72,120,208,0.6),
+    inset -2px -2px 0 rgba(48,80,152,0.8);
+}
+.pixel-box--red {
+  background: var(--pixel-red);
+  border-color: var(--pixel-red-dark);
+  color: var(--pixel-white);
+  box-shadow:
+    inset 2px 2px 0 rgba(208,56,56,0.6),
+    inset -2px -2px 0 rgba(168,40,40,0.8);
+}
+
+/* ============================================================
+   Cursor / dialog "▼" blink
+   ============================================================ */
+@keyframes cursor-blink { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+@keyframes pixel-bounce { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1px) } }
+@keyframes pixel-shake  { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) } 75% { transform: translateX(2px) } }
+@keyframes flash        { 0%,100% { opacity: 1 } 50% { opacity: 0 } }

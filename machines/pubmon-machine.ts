@@ -8,7 +8,9 @@ import type { PartySocket } from "partysocket";
 // ============================================================================
 
 export interface LeaderboardEntry {
+	sessionId: string;
 	name: string;
+	sprite?: string;
 	drinksLogged: number;
 	battlesWon: number;
 	totalBattles: number;
@@ -18,9 +20,21 @@ export interface LeaderboardEntry {
 	tournamentOptIn?: boolean;
 }
 
+export interface TournamentMatch {
+	matchId: string;
+	player1SessionId: string;
+	player2SessionId: string | null;
+	battleId?: string;
+	winnerId?: string;
+	status: "pending" | "in_progress" | "completed" | "forfeited";
+	adminOverride?: boolean;
+}
+
 export interface TournamentBracket {
-	matches: any[];
-	currentRound: number;
+	round: number;
+	matches: TournamentMatch[];
+	champion?: string;
+	championName?: string;
 }
 
 export interface GameContext {
@@ -49,7 +63,7 @@ export interface GameContext {
 		pokemon: PubMon;
 		startTime: number;
 		endTime: number;
-		outcome: "win" | "caught" | "run" | "lose";
+		outcome: "win" | "caught" | "run" | "loss";
 	}>;
 	// Temporary state for transitions
 	xpGained: number;
@@ -90,6 +104,8 @@ export type GameEvent =
 	| { type: "TOURNAMENT_STARTED"; bracket: TournamentBracket }
 	| { type: "BRACKET_UPDATE"; bracket: TournamentBracket }
 	| { type: "MATCH_STARTED"; battleId: string; opponentName: string }
+	| { type: "MATCH_COMPLETED"; battleId: string }
+	| { type: "JOIN_BATTLE" }
 	| { type: "HALL_OF_FAME_READY" }
 	| { type: "PLAYER_STATE_UPDATE"; playerState: any }
 	// Internal Events
@@ -336,7 +352,7 @@ export const pubmonMachine = setup({
 				sessionId: string;
 				pubmonId: number;
 				battleStartTime: number;
-				outcome: "win" | "lose";
+				outcome: "win" | "loss";
 			}
 		>(async ({ input }) => {
 			const { socket, sessionId, pubmonId, battleStartTime, outcome } = input;
@@ -457,10 +473,50 @@ export const pubmonMachine = setup({
 			},
 			tournamentState: ({ context, event }) => {
 				if (event.type === "PLAYER_STATE_UPDATE" && event.playerState) {
+					const ps = event.playerState;
+					// activeBattleId is the canonical, persisted source of truth for
+					// "this player is in a match" — sync it so the notification banner
+					// survives reconnects and clears when the server resolves the match.
 					return {
 						...context.tournamentState,
-						isOptedIn: event.playerState.tournamentOptIn || false,
+						isOptedIn: ps.tournamentOptIn || false,
+						activeBattle:
+							ps.activeBattleId && ps.activeBattleOpponent
+								? {
+										battleId: ps.activeBattleId,
+										opponentName: ps.activeBattleOpponent,
+									}
+								: null,
 					};
+				}
+				return context.tournamentState;
+			},
+		}),
+
+		// Set/clear the active tournament battle from the background sync region so
+		// it is tracked regardless of which view the player is currently in.
+		setActiveBattle: assign({
+			tournamentState: ({ context, event }) => {
+				if (event.type === "MATCH_STARTED") {
+					return {
+						...context.tournamentState,
+						activeBattle: {
+							battleId: event.battleId,
+							opponentName: event.opponentName,
+						},
+					};
+				}
+				return context.tournamentState;
+			},
+		}),
+
+		clearActiveBattle: assign({
+			tournamentState: ({ context, event }) => {
+				if (
+					event.type === "MATCH_COMPLETED" &&
+					context.tournamentState.activeBattle?.battleId === event.battleId
+				) {
+					return { ...context.tournamentState, activeBattle: null };
 				}
 				return context.tournamentState;
 			},
@@ -571,7 +627,16 @@ export const pubmonMachine = setup({
 		tournamentState: {
 			isOptedIn: input.initialPlayerState?.tournamentOptIn || false,
 			bracket: null,
-			activeBattle: null,
+			// Seed from the persisted player so a mid-match page reload immediately
+			// shows the "match ready" notification.
+			activeBattle:
+				input.initialPlayerState?.activeBattleId &&
+				input.initialPlayerState?.activeBattleOpponent
+					? {
+							battleId: input.initialPlayerState.activeBattleId,
+							opponentName: input.initialPlayerState.activeBattleOpponent,
+						}
+					: null,
 		},
 		battleLog: input.initialPlayerState?.battleLog || [],
 		xpGained: 0,
@@ -601,6 +666,12 @@ export const pubmonMachine = setup({
 						},
 						BRACKET_UPDATE: {
 							actions: "updateTournamentBracket",
+						},
+						MATCH_STARTED: {
+							actions: "setActiveBattle",
+						},
+						MATCH_COMPLETED: {
+							actions: "clearActiveBattle",
 						},
 						PLAYER_STATE_UPDATE: {
 							actions: "updatePlayerState",
@@ -857,6 +928,20 @@ export const pubmonMachine = setup({
 
 						league: {
 							on: {
+								// The league tab is the tournament hub: if the player's
+								// match starts while they're spectating, drop them into it.
+								MATCH_STARTED: {
+									target: "tournament.tournamentBattle",
+									actions: assign({
+										tournamentState: ({ context, event }) => ({
+											...context.tournamentState,
+											activeBattle: {
+												battleId: event.battleId,
+												opponentName: event.opponentName,
+											},
+										}),
+									}),
+								},
 								NAVIGATE: [
 									{
 										guard: ({ event }) => event.phase === "crawl",
@@ -1029,14 +1114,14 @@ export const pubmonMachine = setup({
 									const outcome =
 										(event as any).type === "FAINT_DETECTED"
 											? (event as any).result
-											: "lose";
+											: "loss";
 									return {
 										socket: context.socket,
 										sessionId: context.sessionId,
 										pubmonId: context.activeEncounter.wildPubmon?.id || 0,
 										battleStartTime:
 											context.activeEncounter.battleStartTime || Date.now(),
-										outcome: outcome as "win" | "lose",
+										outcome: outcome as "win" | "loss",
 									};
 								},
 								onDone: [
@@ -1125,6 +1210,12 @@ export const pubmonMachine = setup({
 
 					on: {
 						HALL_OF_FAME_READY: ".hallOfFame",
+						// Available from any main-loop view: jump into the player's
+						// active tournament battle when they accept the notification.
+						JOIN_BATTLE: {
+							guard: ({ context }) => !!context.tournamentState.activeBattle,
+							target: ".tournament.tournamentBattle",
+						},
 					},
 				},
 			},

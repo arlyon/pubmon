@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { PixelBox } from "./pixel-box";
 import { GYMS } from "@/lib/gym-data";
+import { PixelBox } from "./pixel-box";
 
 interface DebugPanelProps {
 	state: any;
@@ -29,7 +29,7 @@ export function DebugPanel({ state, context }: DebugPanelProps) {
 	}
 
 	return (
-		<div className="fixed bottom-0 right-0 z-[9999] max-w-md">
+		<div className="fixed bottom-3 right-3 z-[9999] max-w-md pointer-events-none">
 			{isExpanded ? (
 				<PixelBox className="m-4 max-h-[80vh] overflow-hidden flex flex-col">
 					{/* Header */}
@@ -123,7 +123,8 @@ export function DebugPanel({ state, context }: DebugPanelProps) {
 
 									<div className="text-muted-foreground">Opponent:</div>
 									<div className="font-bold">
-										{context.tournamentState?.activeBattle?.opponentName || "N/A"}
+										{context.tournamentState?.activeBattle?.opponentName ||
+											"N/A"}
 									</div>
 								</div>
 
@@ -200,7 +201,7 @@ export function DebugPanel({ state, context }: DebugPanelProps) {
 			) : (
 				<button
 					onClick={() => setIsExpanded(true)}
-					className="m-4 px-3 py-2 bg-primary text-primary-foreground text-[10px] font-mono hover:opacity-80 border-2 border-primary-foreground/20"
+					className="px-3 py-2 bg-primary text-primary-foreground text-[10px] font-mono hover:opacity-80 border-2 border-primary-foreground/20"
 					style={{ fontFamily: "'Press Start 2P', monospace" }}
 				>
 					DEBUG

@@ -81,7 +81,7 @@ export function PixelButton({
 			onClick={onClick}
 			disabled={disabled}
 			className={`
-        px-4 py-2 font-sans text-[10px]
+        px-gba-[8] py-gba-[4] font-sans text-gba-[9]
         hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)]
         hover:-translate-y-0.5
         transition-all cursor-pointer
