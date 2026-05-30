@@ -32,6 +32,23 @@ export interface PlayerState {
 }
 
 // ============================================================================
+// Pokeball Pairing State
+// ============================================================================
+
+/**
+ * A physical NFC Pokeball, identified by the id encoded in its /p/<id> URL.
+ * A ball is "blank" until first scanned, at which point it locks to the
+ * scanning session and snapshots that trainer's lead PubMon.
+ */
+export interface PokeballPairing {
+	id: string; // NFC tag id from the /p/<id> URL
+	ownerSessionId: string | null; // null = blank/unclaimed (can be re-claimed)
+	pubmon: PubMon | null; // snapshot of the mon bound to this ball
+	pairedAt: number | null; // epoch ms of the one-time claim
+	lastAccessAt: number; // epoch ms of the most recent scan
+}
+
+// ============================================================================
 // Global Game State (Main Event Server)
 // ============================================================================
 
@@ -39,6 +56,7 @@ export interface GameState {
 	phase: "collection" | "tournament" | "hall-of-fame";
 	currentGymId: number; // Admin-controlled global gym
 	players: Map<string, PlayerState>; // sessionId -> PlayerState
+	pokeballs: Map<string, PokeballPairing>; // ballId -> PokeballPairing
 	tournamentBracket?: TournamentBracket;
 	hallOfFame?: Record<string, string[]>; // sessionId -> ribbon paths
 }
@@ -109,6 +127,7 @@ export interface SerializableGameState {
 	phase: "collection" | "tournament" | "hall-of-fame";
 	currentGymId: number;
 	players: Record<string, SerializablePlayerState>;
+	pokeballs?: Record<string, PokeballPairing>; // optional for legacy stored state
 	tournamentBracket?: TournamentBracket;
 	hallOfFame?: Record<string, string[]>;
 }
@@ -145,10 +164,16 @@ export function serializeGameState(state: GameState): SerializableGameState {
 		players[sessionId] = serializePlayerState(player);
 	});
 
+	const pokeballs: Record<string, PokeballPairing> = {};
+	state.pokeballs.forEach((ball, id) => {
+		pokeballs[id] = ball;
+	});
+
 	return {
 		phase: state.phase,
 		currentGymId: state.currentGymId,
 		players,
+		pokeballs,
 		tournamentBracket: state.tournamentBracket,
 		hallOfFame: state.hallOfFame,
 	};
@@ -160,10 +185,16 @@ export function deserializeGameState(state: SerializableGameState): GameState {
 		players.set(sessionId, deserializePlayerState(playerState));
 	});
 
+	const pokeballs = new Map<string, PokeballPairing>();
+	Object.entries(state.pokeballs || {}).forEach(([id, ball]) => {
+		pokeballs.set(id, ball);
+	});
+
 	return {
 		phase: state.phase,
 		currentGymId: state.currentGymId,
 		players,
+		pokeballs,
 		tournamentBracket: state.tournamentBracket,
 		hallOfFame: state.hallOfFame,
 	};

@@ -62,10 +62,22 @@ async function getGameState() {
 	}
 }
 
+async function getBallOutcome() {
+	const cookieStore = await cookies();
+	const raw = cookieStore.get("pubmon_ball_outcome")?.value;
+	if (!raw) return null;
+	try {
+		return JSON.parse(raw);
+	} catch {
+		return null;
+	}
+}
+
 export default async function Page() {
-	const [initialPlayerState, gameState] = await Promise.all([
+	const [initialPlayerState, gameState, ballOutcome] = await Promise.all([
 		getPlayerState(),
 		getGameState(),
+		getBallOutcome(),
 	]);
 
 	return (
@@ -74,6 +86,7 @@ export default async function Page() {
 				initialPlayerState={initialPlayerState}
 				initialGymId={gameState.currentGymId}
 				initialGamePhase={gameState.gamePhase}
+				ballOutcome={ballOutcome}
 			/>
 		</PixelScreen>
 	);

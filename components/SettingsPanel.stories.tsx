@@ -11,6 +11,10 @@ const meta = {
 	args: {
 		isMuted: false,
 		onToggleMute: fn(),
+		uiScale: 1,
+		onScaleChange: fn(),
+		sessionId: "story-session",
+		party: [],
 	},
 	decorators: [
 		(Story) => (

@@ -32,6 +32,10 @@ import { SettingsPanel } from "./settings-panel";
 import { AnimatePresence } from "framer-motion";
 import { TeamManagement } from "./team-management";
 import { PlayCanvas } from "./play-canvas";
+import {
+	PokeballMessage,
+	type PokeballMessageKind,
+} from "./pokeball-message";
 
 function generateUUID(): string {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -53,17 +57,22 @@ interface GameShellProps {
 	initialPlayerState?: any;
 	initialGymId?: number;
 	initialGamePhase?: "collection" | "tournament" | "hall-of-fame";
+	ballOutcome?: { status?: string; pubmon?: PubMon | null } | null;
 }
 
 export function GameShell({
 	initialPlayerState,
 	initialGymId,
 	initialGamePhase,
+	ballOutcome,
 }: GameShellProps) {
 	const [sessionId, setSessionId] = useState<string>("");
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const [playingPubmon, setPlayingPubmon] = useState<PubMon | null>(null);
+	const [ballMessage, setBallMessage] = useState<PokeballMessageKind | null>(
+		null,
+	);
 	const [uiScale, setUiScale] = useState<number>(() => {
 		if (typeof window === "undefined") return 1;
 		const stored = localStorage.getItem("pubmon_ui_scale");
@@ -214,6 +223,33 @@ export function GameShell({
 
 	const handleExitPlay = useCallback(() => {
 		setPlayingPubmon(null);
+	}, []);
+
+	// Consume a pokeball scan outcome handed over by /p/<id> (server-side
+	// claim + redirect). Opens the sandbox on success or shows a themed
+	// message on error, then clears the one-shot cookie.
+	useEffect(() => {
+		if (!ballOutcome) return;
+		document.cookie =
+			"pubmon_ball_outcome=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+
+		switch (ballOutcome.status) {
+			case "owner":
+			case "paired_now":
+				if (ballOutcome.pubmon) setPlayingPubmon(ballOutcome.pubmon);
+				break;
+			case "foreign":
+				setBallMessage("foreign");
+				break;
+			case "no_mon":
+			case "no_player":
+				setBallMessage("empty");
+				break;
+			default:
+				setBallMessage("error");
+		}
+		// Only run for the initial server-provided outcome.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// Global WebSocket listener - feeds events to the state machine
@@ -443,6 +479,10 @@ export function GameShell({
 							battleId={context.tournamentState.activeBattle.battleId}
 							socket={socket}
 							sessionId={sessionId}
+							playerName={context.playerInfo?.name}
+							opponentName={
+								context.tournamentState.activeBattle.opponentName
+							}
 						/>
 					)}
 
@@ -491,6 +531,8 @@ export function GameShell({
 						onToggleMute={toggleMute}
 						uiScale={uiScale}
 						onScaleChange={handleScaleChange}
+						sessionId={sessionId}
+						party={context.party}
 					/>
 				)}
 
@@ -555,6 +597,17 @@ export function GameShell({
 						pubmon={playingPubmon}
 						onExit={handleExitPlay}
 						overlay={true}
+					/>
+				)}
+			</AnimatePresence>
+
+			{/* Pokeball scan result message (foreign / empty / error) */}
+			<AnimatePresence>
+				{ballMessage && (
+					<PokeballMessage
+						key="pokeball-message"
+						kind={ballMessage}
+						onDismiss={() => setBallMessage(null)}
 					/>
 				)}
 			</AnimatePresence>

@@ -4,6 +4,7 @@ import { getRandomPubMon, ALL_PUBMON } from "../../lib/pokemon-data";
 import type {
 	GameState,
 	PlayerState,
+	PokeballPairing,
 	TournamentBracket,
 	TournamentMatch,
 	SerializableGameState,
@@ -15,6 +16,13 @@ import {
 } from "../types/game-state";
 import type { ClientMessage, ServerMessage } from "../types/messages";
 import { DurableObjectState } from "@cloudflare/workers-types";
+
+/** CORS headers for the browser-facing pokeball RPC endpoints. */
+const CORS_HEADERS: Record<string, string> = {
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+	"Access-Control-Allow-Headers": "Content-Type",
+};
 
 /**
  * MainEventServer - The Global Event Room
@@ -39,6 +47,7 @@ export class MainEventServer extends Server {
 			phase: "collection",
 			currentGymId: 1,
 			players: new Map(),
+			pokeballs: new Map(),
 		};
 
 		// Get admin secret from environment
@@ -57,9 +66,35 @@ export class MainEventServer extends Server {
 			console.log(
 				`[MainEventServer] Loaded state: ${this.gameState.players.size} players`,
 			);
+			// One-time migration: rewrite legacy display names to the canonical
+			// normalized form so stored names match the comparison logic.
+			if (this.migrateNormalizeNames()) {
+				await this.persistState();
+			}
 		} else {
 			console.log("[MainEventServer] Starting fresh");
 		}
+	}
+
+	/**
+	 * Rewrites every player's stored display name to its normalized form.
+	 * Returns true if any name changed.
+	 */
+	private migrateNormalizeNames(): boolean {
+		let changed = false;
+
+		for (const player of this.gameState.players.values()) {
+			const canonical = this.normalizeName(player.info.name);
+			if (player.info.name !== canonical) {
+				player.info.name = canonical;
+				changed = true;
+			}
+		}
+
+		if (changed) {
+			console.log("[MainEventServer] Migrated player names to canonical form");
+		}
+		return changed;
 	}
 
 	/**
@@ -234,6 +269,12 @@ export class MainEventServer extends Server {
 
 		console.log(`[MainEventServer] HTTP ${request.method} ${pathname}`);
 
+		// The pokeball endpoints below are called from the browser (cross-origin
+		// in dev: Next on :3000 -> worker on :8787), so answer CORS preflight.
+		if (request.method === "OPTIONS") {
+			return new Response(null, { status: 204, headers: CORS_HEADERS });
+		}
+
 		// GET /rpc/gym - Fetch global gym ID and phase
 		if (request.method === "GET" && pathname.endsWith("/rpc/gym")) {
 			return Response.json({
@@ -281,7 +322,194 @@ export class MainEventServer extends Server {
 			return Response.json({ success: true });
 		}
 
+		// GET /rpc/pokeballs/:sessionId - List balls owned by a session
+		if (request.method === "GET" && pathname.includes("/rpc/pokeballs/")) {
+			const sessionId = pathname.split("/").pop();
+			if (!sessionId) {
+				return new Response("Missing session ID", { status: 400 });
+			}
+			return this.jsonCors({
+				pokeballs: this.getOwnedPokeballs(sessionId),
+			});
+		}
+
+		// POST /rpc/pokeball/:id/:action - claim | assign | unlink
+		if (request.method === "POST" && pathname.includes("/rpc/pokeball/")) {
+			const parts = pathname.split("/");
+			const idx = parts.indexOf("pokeball");
+			const ballId = parts[idx + 1];
+			const action = parts[idx + 2];
+
+			if (!ballId || !action) {
+				return new Response("Missing ball id or action", { status: 400 });
+			}
+
+			if (action === "claim") {
+				const body = await request.json<{ sessionId?: string }>();
+				return this.jsonCors(
+					await this.resolvePokeballClaim(ballId, body.sessionId),
+				);
+			}
+
+			if (action === "assign") {
+				const body = await request.json<{
+					sessionId?: string;
+					partyIndex?: number;
+				}>();
+				return this.jsonCors(
+					await this.assignPokeballMon(ballId, body.sessionId, body.partyIndex),
+				);
+			}
+
+			if (action === "unlink") {
+				const body = await request.json<{ sessionId?: string }>();
+				return this.jsonCors(await this.unlinkPokeball(ballId, body.sessionId));
+			}
+
+			return new Response("Unknown pokeball action", { status: 400 });
+		}
+
 		return new Response("Not found", { status: 404 });
+	}
+
+	// ============================================================================
+	// Pokeball pairing
+	// ============================================================================
+
+	/** JSON response with CORS headers for browser-facing pokeball calls. */
+	private jsonCors(data: unknown): Response {
+		return Response.json(data, { headers: CORS_HEADERS });
+	}
+
+	/** Public summary of a ball, safe to send to its owner. */
+	private serializePokeball(ball: PokeballPairing) {
+		return {
+			id: ball.id,
+			pubmon: ball.pubmon,
+			pairedAt: ball.pairedAt,
+		};
+	}
+
+	/** All balls currently locked to a given session. */
+	private getOwnedPokeballs(sessionId: string) {
+		const owned: ReturnType<typeof this.serializePokeball>[] = [];
+		for (const ball of this.gameState.pokeballs.values()) {
+			if (ball.ownerSessionId === sessionId) {
+				owned.push(this.serializePokeball(ball));
+			}
+		}
+		return owned;
+	}
+
+	/**
+	 * Resolve a scan of /p/<ballId> for a given session and perform the
+	 * one-time claim when the ball is blank. Returns a status the client uses
+	 * to decide which screen to render.
+	 */
+	private async resolvePokeballClaim(ballId: string, sessionId?: string) {
+		// No cookie/session at all -> player needs to start the game first.
+		if (!sessionId) {
+			return { status: "no_player" as const };
+		}
+
+		const player = this.gameState.players.get(sessionId);
+		if (!player) {
+			return { status: "no_player" as const };
+		}
+
+		const ball = this.gameState.pokeballs.get(ballId);
+		const now = Date.now();
+
+		// Already locked to someone.
+		if (ball && ball.ownerSessionId) {
+			if (ball.ownerSessionId === sessionId) {
+				ball.lastAccessAt = now;
+				await this.persistState();
+				return {
+					status: "owner" as const,
+					ballId,
+					pubmon: ball.pubmon,
+				};
+			}
+			// Someone else's ball - privacy-preserving error, no owner details.
+			return { status: "foreign" as const };
+		}
+
+		// Blank (never claimed, or unlinked/given away) -> claim now.
+		if (player.party.length === 0) {
+			return { status: "no_mon" as const };
+		}
+
+		const mon = player.party[player.activeIndex] ?? player.party[0];
+		const pairing: PokeballPairing = {
+			id: ballId,
+			ownerSessionId: sessionId,
+			pubmon: mon,
+			pairedAt: now,
+			lastAccessAt: now,
+		};
+		this.gameState.pokeballs.set(ballId, pairing);
+		await this.persistState();
+
+		return {
+			status: "paired_now" as const,
+			ballId,
+			pubmon: mon,
+		};
+	}
+
+	/** Owner re-binds the ball to a different mon from their party. */
+	private async assignPokeballMon(
+		ballId: string,
+		sessionId?: string,
+		partyIndex?: number,
+	) {
+		if (!sessionId || partyIndex == null) {
+			return { success: false, reason: "missing_args" as const };
+		}
+
+		const ball = this.gameState.pokeballs.get(ballId);
+		if (!ball || ball.ownerSessionId !== sessionId) {
+			return { success: false, reason: "not_owner" as const };
+		}
+
+		const player = this.gameState.players.get(sessionId);
+		const mon = player?.party[partyIndex];
+		if (!mon) {
+			return { success: false, reason: "invalid_mon" as const };
+		}
+
+		ball.pubmon = mon;
+		ball.lastAccessAt = Date.now();
+		await this.persistState();
+
+		return {
+			success: true as const,
+			pokeballs: this.getOwnedPokeballs(sessionId),
+		};
+	}
+
+	/** Owner blanks the ball so it can be re-claimed (lost / given away). */
+	private async unlinkPokeball(ballId: string, sessionId?: string) {
+		if (!sessionId) {
+			return { success: false, reason: "missing_args" as const };
+		}
+
+		const ball = this.gameState.pokeballs.get(ballId);
+		if (!ball || ball.ownerSessionId !== sessionId) {
+			return { success: false, reason: "not_owner" as const };
+		}
+
+		ball.ownerSessionId = null;
+		ball.pubmon = null;
+		ball.pairedAt = null;
+		ball.lastAccessAt = Date.now();
+		await this.persistState();
+
+		return {
+			success: true as const,
+			pokeballs: this.getOwnedPokeballs(sessionId),
+		};
 	}
 
 	// ============================================================================
@@ -314,18 +542,27 @@ export class MainEventServer extends Server {
 	}
 
 	/**
+	 * Canonical form of a player name. Trims, collapses internal whitespace,
+	 * and uppercases so that comparison and the stored display name always
+	 * agree (the game UI is uppercase GBA styling).
+	 */
+	private normalizeName(name: string): string {
+		return name.trim().replace(/\s+/g, " ").toUpperCase();
+	}
+
+	/**
 	 * Check if a player name is available
 	 */
 	private async handleCheckName(
 		msg: Extract<ClientMessage, { type: "check_name" }>,
 		connection: Connection,
 	) {
-		const normalizedName = msg.name.trim().toUpperCase();
+		const normalizedName = this.normalizeName(msg.name);
 		let nameExists = false;
 
 		// Check if name exists (case-insensitive)
 		for (const player of this.gameState.players.values()) {
-			if (player.info.name.toUpperCase() === normalizedName) {
+			if (this.normalizeName(player.info.name) === normalizedName) {
 				nameExists = true;
 				break;
 			}
@@ -345,13 +582,13 @@ export class MainEventServer extends Server {
 		msg: Extract<ClientMessage, { type: "claim_player" }>,
 		connection: Connection,
 	) {
-		const normalizedName = msg.name.trim().toUpperCase();
+		const normalizedName = this.normalizeName(msg.name);
 		let oldSessionId: string | null = null;
 		let playerState: PlayerState | null = null;
 
 		// Find the player by name
 		for (const [sessionId, player] of this.gameState.players.entries()) {
-			if (player.info.name.toUpperCase() === normalizedName) {
+			if (this.normalizeName(player.info.name) === normalizedName) {
 				oldSessionId = sessionId;
 				playerState = player;
 				break;
@@ -368,6 +605,14 @@ export class MainEventServer extends Server {
 		playerState.sessionId = msg.newSessionId;
 		playerState.lastActivity = Date.now();
 		this.gameState.players.set(msg.newSessionId, playerState);
+
+		// Re-point any Pokéballs this trainer owns to the new session id, so
+		// ball ownership survives claiming the account on a different device.
+		for (const ball of this.gameState.pokeballs.values()) {
+			if (ball.ownerSessionId === oldSessionId) {
+				ball.ownerSessionId = msg.newSessionId;
+			}
+		}
 
 		// Persist changes
 		await this.persistState();
@@ -398,9 +643,9 @@ export class MainEventServer extends Server {
 		}
 
 		// Check if name is already taken (case-insensitive)
-		const normalizedName = msg.playerInfo.name.trim().toUpperCase();
+		const normalizedName = this.normalizeName(msg.playerInfo.name);
 		for (const player of this.gameState.players.values()) {
-			if (player.info.name.toUpperCase() === normalizedName) {
+			if (this.normalizeName(player.info.name) === normalizedName) {
 				this.sendError(
 					connection,
 					"Name already taken. Please use a different name or claim your existing account.",
@@ -409,10 +654,10 @@ export class MainEventServer extends Server {
 			}
 		}
 
-		// Create new player
+		// Create new player (store the canonical, normalized display name)
 		const newPlayer: PlayerState = {
 			sessionId: msg.sessionId,
-			info: msg.playerInfo,
+			info: { ...msg.playerInfo, name: normalizedName },
 			party: [],
 			activeIndex: 0,
 			badges: new Set(),
