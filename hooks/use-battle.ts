@@ -13,6 +13,17 @@ const customDex = Dex.mod("pubmon" as ID, generatePubMonModData() as any);
 // Pass the custom dex to Generations so move lookups use our custom mod
 const gens = new Generations(customDex);
 
+/** The side ("p1"/"p2") a protocol ident like "p1a: Foo" or "p2" belongs to. */
+function identSide(ident: string | undefined): "p1" | "p2" | null {
+	if (!ident) return null;
+	if (ident.startsWith("p1")) return "p1";
+	if (ident.startsWith("p2")) return "p2";
+	return null;
+}
+
+const otherSide = (side: "p1" | "p2"): "p1" | "p2" =>
+	side === "p1" ? "p2" : "p1";
+
 export type BattleMenu = "main" | "fight" | "message";
 
 export interface MoveSlot {
@@ -82,9 +93,14 @@ export function useBattle({
 	// Track PP usage for player's moves
 	const movePPUsage = useRef<Map<string, number>>(new Map());
 
-	// Track HP from protocol messages
+	// Track HP from protocol messages. p1HpRef is always *this client's* mon,
+	// p2HpRef the opponent's — regardless of which sim side (p1/p2) we are.
 	const p1HpRef = useRef<{ hp: number; maxhp: number }>({ hp: 0, maxhp: 0 });
 	const p2HpRef = useRef<{ hp: number; maxhp: number }>({ hp: 0, maxhp: 0 });
+
+	// Which sim side this client controls. Wild battles are always p1; for PvP
+	// the server tells us via battle_assign (and the request's side.id).
+	const mySideRef = useRef<"p1" | "p2">("p1");
 
 	// Latest pokemon, read via refs inside handleEngineChunk / the mount effect so
 	// those callbacks stay stable and don't tear the engine down mid-battle when
@@ -401,10 +417,21 @@ export function useBattle({
 					const jsonStr = line.split("|").slice(2).join("|");
 					try {
 						requestObj = JSON.parse(jsonStr);
+						// The request's side.id confirms which side we control
+						// (backs up the server's battle_assign).
+						const sideId = (requestObj as any)?.side?.id;
+						if (sideId === "p1" || sideId === "p2") {
+							mySideRef.current = sideId;
+						}
 					} catch (e) {
 						console.error("Failed to parse request:", e);
 					}
 				}
+
+				// "mine" = this client's side, "foe" = the opponent's, whichever
+				// sim side (p1/p2) we happen to be.
+				const mySide = mySideRef.current;
+				const foe = otherSide(mySide);
 
 				try {
 					battleRef.current.add(line);
@@ -427,13 +454,15 @@ export function useBattle({
 					lastRequestRef.current = req;
 				}
 
-				// Track PP usage when player uses a move
-				if (line.startsWith("|move|p1a")) {
+				// Track PP usage when *we* use a move
+				if (line.startsWith("|move|")) {
 					const parts = line.split("|");
-					const moveName = parts[3];
-					if (moveName) {
-						const currentPP = movePPUsage.current.get(moveName) || 0;
-						movePPUsage.current.set(moveName, currentPP + 1);
+					if (identSide(parts[2]) === mySide) {
+						const moveName = parts[3];
+						if (moveName) {
+							const currentPP = movePPUsage.current.get(moveName) || 0;
+							movePPUsage.current.set(moveName, currentPP + 1);
+						}
 					}
 				}
 
@@ -442,21 +471,21 @@ export function useBattle({
 					// Format: |switch|p1a: Player|Species|20/20
 					const parts = line.split("|");
 					const playerPart = parts[2];
+					const side = identSide(playerPart);
 					const hpPart = parts[4];
 
 					if (hpPart) {
 						const parsed = parseHpFromProtocol(hpPart);
 						if (parsed) {
-							if (playerPart.startsWith("p1a")) {
-								// Player HP is actual values
+							if (side === mySide) {
+								// Our HP is actual values
 								p1HpRef.current = parsed;
 								setPlayerHp(parsed.hp); // Initialize HP on switch
-								console.log("Updated p1 HP from switch:", parsed);
-							} else if (playerPart.startsWith("p2a")) {
-								// Enemy HP is percentage - convert to actual using baseMaxhp
+								console.log("Updated my HP from switch:", parsed);
+							} else if (side === foe) {
+								// Foe HP may be a percentage - convert using baseMaxhp
 								if (parsed.maxhp === 100) {
-									// This is a percentage, convert it
-									const pokemon = battleRef.current?.p2.active[0];
+									const pokemon = battleRef.current?.[foe].active[0];
 									const baseMaxhp = pokemon?.baseMaxhp || 100;
 									p2HpRef.current = {
 										hp: Math.round((parsed.hp / 100) * baseMaxhp),
@@ -467,7 +496,7 @@ export function useBattle({
 									p2HpRef.current = parsed;
 								}
 								setEnemyHp(p2HpRef.current.hp); // Initialize HP on switch
-								console.log("Updated p2 HP from switch:", p2HpRef.current);
+								console.log("Updated foe HP from switch:", p2HpRef.current);
 							}
 						}
 					}
@@ -477,18 +506,19 @@ export function useBattle({
 					// Format: |-damage|p1a: Player|15/20
 					const parts = line.split("|");
 					const playerPart = parts[2];
+					const side = identSide(playerPart);
 					const hpPart = parts[3];
 
 					if (hpPart) {
 						const parsed = parseHpFromProtocol(hpPart);
 						if (parsed) {
-							if (playerPart.startsWith("p1a")) {
+							if (side === mySide) {
 								p1HpRef.current = parsed;
-								console.log("Updated p1 HP from damage:", parsed);
-							} else if (playerPart.startsWith("p2a")) {
-								// Enemy HP is percentage - convert to actual using baseMaxhp
+								console.log("Updated my HP from damage:", parsed);
+							} else if (side === foe) {
+								// Foe HP may be a percentage - convert using baseMaxhp
 								if (parsed.maxhp === 100) {
-									const pokemon = battleRef.current?.p2.active[0];
+									const pokemon = battleRef.current?.[foe].active[0];
 									const baseMaxhp = pokemon?.baseMaxhp || 100;
 									p2HpRef.current = {
 										hp: Math.round((parsed.hp / 100) * baseMaxhp),
@@ -497,7 +527,7 @@ export function useBattle({
 								} else {
 									p2HpRef.current = parsed;
 								}
-								console.log("Updated p2 HP from damage:", p2HpRef.current);
+								console.log("Updated foe HP from damage:", p2HpRef.current);
 							}
 						}
 					}
@@ -507,17 +537,18 @@ export function useBattle({
 					// Format: |-heal|p1a: Player|20/20
 					const parts = line.split("|");
 					const playerPart = parts[2];
+					const side = identSide(playerPart);
 					const hpPart = parts[3];
 
 					if (hpPart) {
 						const parsed = parseHpFromProtocol(hpPart);
 						if (parsed) {
-							if (playerPart.startsWith("p1a")) {
+							if (side === mySide) {
 								p1HpRef.current = parsed;
-								console.log("Updated p1 HP from heal:", parsed);
-							} else if (playerPart.startsWith("p2a")) {
+								console.log("Updated my HP from heal:", parsed);
+							} else if (side === foe) {
 								if (parsed.maxhp === 100) {
-									const pokemon = battleRef.current?.p2.active[0];
+									const pokemon = battleRef.current?.[foe].active[0];
 									const baseMaxhp = pokemon?.baseMaxhp || 100;
 									p2HpRef.current = {
 										hp: Math.round((parsed.hp / 100) * baseMaxhp),
@@ -526,41 +557,41 @@ export function useBattle({
 								} else {
 									p2HpRef.current = parsed;
 								}
-								console.log("Updated p2 HP from heal:", p2HpRef.current);
+								console.log("Updated foe HP from heal:", p2HpRef.current);
 							}
 						}
 					}
 				}
 
-				// Extract full Pokemon state for both players
-				if (battleRef.current.p1.active[0]) {
-					const p1Pokemon = battleRef.current.p1.active[0];
+				// Extract full Pokemon state for both players (from our view)
+				if (battleRef.current[mySide].active[0]) {
+					const myPokemon = battleRef.current[mySide].active[0];
 					// Only extract if species is properly loaded
-					if (p1Pokemon.baseSpeciesForme && p1HpRef.current.maxhp > 0) {
-						const p1State = extractPokemonState(
-							p1Pokemon,
+					if (myPokemon.baseSpeciesForme && p1HpRef.current.maxhp > 0) {
+						const myState = extractPokemonState(
+							myPokemon,
 							"p1",
 							playerPokemonRef.current?.moves,
 						);
-						if (p1State) {
-							console.log("Setting p1 state:", p1State);
-							setPlayerActivePokemon(p1State);
+						if (myState) {
+							console.log("Setting my state:", myState);
+							setPlayerActivePokemon(myState);
 						}
 					}
 				}
 
-				if (battleRef.current.p2.active[0]) {
-					const p2Pokemon = battleRef.current.p2.active[0];
+				if (battleRef.current[foe].active[0]) {
+					const foePokemon = battleRef.current[foe].active[0];
 					// Only extract if species is properly loaded
-					if (p2Pokemon.baseSpeciesForme && p2HpRef.current.maxhp > 0) {
-						const p2State = extractPokemonState(
-							p2Pokemon,
+					if (foePokemon.baseSpeciesForme && p2HpRef.current.maxhp > 0) {
+						const foeState = extractPokemonState(
+							foePokemon,
 							"p2",
 							wildPokemonRef.current?.moves,
 						);
-						if (p2State) {
-							console.log("Setting p2 state:", p2State);
-							setEnemyActivePokemon(p2State);
+						if (foeState) {
+							console.log("Setting foe state:", foeState);
+							setEnemyActivePokemon(foeState);
 						}
 					}
 				}
@@ -603,8 +634,8 @@ export function useBattle({
 				} else if (line.startsWith("|-damage|")) {
 					const parts = line.split("|");
 					const pkmn = parts[2].substring(4);
-					const isPlayer = parts[2].startsWith("p1a");
-					const isEnemy = parts[2].startsWith("p2a");
+					const isPlayer = identSide(parts[2]) === mySide;
+					const isEnemy = identSide(parts[2]) === foe;
 
 					messageQueueRef.current.push({
 						text: `${pkmn} took damage!`,
@@ -617,8 +648,8 @@ export function useBattle({
 					const parts = line.split("|");
 					const pkmn = parts[2].substring(4);
 					const move = parts[3];
-					const isPlayer = parts[2].startsWith("p1a");
-					const isEnemy = parts[2].startsWith("p2a");
+					const isPlayer = identSide(parts[2]) === mySide;
+					const isEnemy = identSide(parts[2]) === foe;
 
 					// Track the last move used by the player
 					if (isPlayer) {
@@ -726,6 +757,12 @@ export function useBattle({
 
 		// Set up engine chunk handler
 		battleEngine.onChunk(handleEngineChunk);
+
+		// Learn which side we control (remote/PvP only; local stays p1). Arrives
+		// before any chunk so HP/perspective is correct from the first event.
+		battleEngine.onMySide?.((side) => {
+			mySideRef.current = side;
+		});
 
 		// Authoritative end from the server (forfeit / admin resolve / void).
 		// Threads through to the battle UI even if no |win| chunk arrives.

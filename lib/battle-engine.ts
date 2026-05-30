@@ -52,6 +52,12 @@ export interface BattleEngine {
 	): void;
 
 	/**
+	 * Which side (p1/p2) this client controls. Optional: only the remote engine
+	 * reports it (the server assigns sides). Local battles are always p1.
+	 */
+	onMySide?(callback: (side: "p1" | "p2") => void): void;
+
+	/**
 	 * Cleanup resources
 	 */
 	destroy(): void;
@@ -205,6 +211,8 @@ export class RemoteBattleEngine implements BattleEngine {
 				reason: "natural" | "admin" | "forfeit" | "void";
 		  }) => void)
 		| null = null;
+	private mySideCallback: ((side: "p1" | "p2") => void) | null = null;
+	private mySide: "p1" | "p2" | null = null;
 	private ended = false;
 	private joinSent = false;
 
@@ -262,6 +270,14 @@ export class RemoteBattleEngine implements BattleEngine {
 				return;
 			}
 
+			if (msg.type === "battle_assign" && (msg.side === "p1" || msg.side === "p2")) {
+				// The server tells us which side we control. Arrives before any
+				// battle_update so the UI can orient before the first HP event.
+				this.mySide = msg.side;
+				this.mySideCallback?.(msg.side);
+				return;
+			}
+
 			if (msg.type === "battle_update" && Array.isArray(msg.events)) {
 				// Forward the server's canonical protocol straight to the UI.
 				this.chunkCallback?.(msg.events.join("\n"));
@@ -314,6 +330,12 @@ export class RemoteBattleEngine implements BattleEngine {
 
 	onChunk(callback: (chunk: string) => void): void {
 		this.chunkCallback = callback;
+	}
+
+	onMySide(callback: (side: "p1" | "p2") => void): void {
+		this.mySideCallback = callback;
+		// If the assignment already arrived, replay it immediately.
+		if (this.mySide) callback(this.mySide);
 	}
 
 	onEnd(

@@ -182,17 +182,29 @@ export function GameShell({
 		[send],
 	);
 
+	// Navigation deferred to the wipe's midpoint, so the view only swaps once the
+	// screen is fully covered (then the wipe reveals the new scene).
+	const pendingBattleActionRef = useRef<(() => void) | null>(null);
+
+	const startBattleTransition = useCallback((action: () => void) => {
+		pendingBattleActionRef.current = action;
+		setShowBattleTransition(true);
+	}, []);
+
 	const handleDrinkSelect = useCallback(
 		(type: PubType) => {
-			send({ type: "ORDER_DRINK", drinkType: type });
-			setShowBattleTransition(true);
+			startBattleTransition(() =>
+				send({ type: "ORDER_DRINK", drinkType: type }),
+			);
 		},
-		[send],
+		[send, startBattleTransition],
 	);
 
 	const handleBattleTransitionMidpoint = useCallback(() => {
-		// Battle state is managed by the machine
-		// No need to set phase here
+		// Fully covered: now swap the view (run the deferred navigation).
+		const action = pendingBattleActionRef.current;
+		pendingBattleActionRef.current = null;
+		action?.();
 	}, []);
 
 	const handleBattleTransitionComplete = useCallback(() => {
@@ -380,7 +392,9 @@ export function GameShell({
 			{showBattleAlert && activeBattle && (
 				<button
 					type="button"
-					onClick={() => send({ type: "JOIN_BATTLE" })}
+					onClick={() =>
+						startBattleTransition(() => send({ type: "JOIN_BATTLE" }))
+					}
 					className="fixed top-0 inset-x-0 z-[900] font-heading text-pixel-white flex items-center justify-between gap-gba-[8] px-gba-[10] py-gba-[6] border-b-[3px] border-pixel-black"
 					style={{
 						background: "#d03838",
@@ -516,7 +530,9 @@ export function GameShell({
 							activeBattle={context.tournamentState.activeBattle}
 							gamePhase={context.gamePhase}
 							bracket={context.tournamentState.bracket}
-							onReturnToBattle={() => send({ type: "JOIN_BATTLE" })}
+							onReturnToBattle={() =>
+								startBattleTransition(() => send({ type: "JOIN_BATTLE" }))
+							}
 							onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
 						/>
 					)}

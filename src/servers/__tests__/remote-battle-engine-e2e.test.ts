@@ -64,6 +64,10 @@ function makeEngineClient(
 		resolveEnd = r;
 	});
 
+	let mySide: "p1" | "p2" | null = null;
+	engine.onMySide?.((s) => {
+		mySide = s;
+	});
 	engine.onEnd((e) => resolveEnd(e));
 	engine.onChunk((chunk) => {
 		chunks.push(chunk);
@@ -89,6 +93,7 @@ function makeEngineClient(
 		sawRequest: () => chunks.some((c) => c.includes("|request|")),
 		sawHpSwitch: () => /\|switch\|.*\d+\/\d+/.test(allText()),
 		gotAnyEvents: () => chunks.length > 0,
+		getMySide: () => mySide,
 	};
 }
 
@@ -125,8 +130,13 @@ describe("RemoteBattleEngine E2E (real DO)", () => {
 			expect(ca.sawHpSwitch()).toBe(true);
 			expect(cb.sawHpSwitch()).toBe(true);
 
-			// Perspective: each player must see their OWN mon as "p1a". Since the
-			// two players have different starters, their p1a switch lines differ.
+			// Perspective is signalled out-of-band via battle_assign, not by
+			// rewriting the protocol: the first joiner is p1, the second p2.
+			expect(ca.getMySide()).toBe("p1");
+			expect(cb.getMySide()).toBe("p2");
+
+			// The protocol itself stays canonical, so both clients see the same
+			// p1a switch line (the client relabels for display using its side).
 			const firstP1aSwitch = (chunks: string[]) =>
 				chunks
 					.join("\n")
@@ -136,7 +146,7 @@ describe("RemoteBattleEngine E2E (real DO)", () => {
 			const bP1a = firstP1aSwitch(cb.chunks);
 			expect(aP1a).toBeDefined();
 			expect(bP1a).toBeDefined();
-			expect(aP1a).not.toBe(bP1a);
+			expect(aP1a).toBe(bP1a);
 
 			// Exactly one winner, decided naturally.
 			expect(endA.reason).toBe("natural");

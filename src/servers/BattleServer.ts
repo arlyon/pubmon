@@ -16,47 +16,6 @@ import { generatePubMonModData } from "../../lib/pokemon-data";
 import { type ID } from "@pkmn/dex-types";
 
 /**
- * Swap p1<->p2 side identifiers in one protocol line. The sim labels the room
- * creator as p1; the client UI always renders "p1a" as the local player, so we
- * relabel the stream for player 2 to give each client a self-centred view.
- */
-function swapProtocolSides(line: string): string {
-	// Requests carry the choosable moves as JSON; swap the side fields precisely.
-	if (line.startsWith("|request|")) {
-		const json = line.slice("|request|".length);
-		try {
-			const req = JSON.parse(json);
-			const flip = (id: string) =>
-				id === "p1" ? "p2" : id === "p2" ? "p1" : id;
-			if (req.side?.id) req.side.id = flip(req.side.id);
-			if (Array.isArray(req.side?.pokemon)) {
-				for (const p of req.side.pokemon) {
-					if (typeof p.ident === "string") {
-						const m = p.ident.match(/^p([12])(.*)$/);
-						if (m) p.ident = `p${m[1] === "1" ? "2" : "1"}${m[2]}`;
-					}
-				}
-			}
-			return "|request|" + JSON.stringify(req);
-		} catch {
-			return line;
-		}
-	}
-	// Other lines: side idents (p1, p1a, p2b, ...) only ever appear at the start
-	// of a "|"-delimited field, followed by end / ":" / " ".
-	return line
-		.split("|")
-		.map((field) =>
-			field.replace(
-				/^p([12])([ab]?)(?=$|:| )/,
-				(_, n: string, slot: string) =>
-					`p${n === "1" ? "2" : "1"}${slot}`,
-			),
-		)
-		.join("|");
-}
-
-/**
  * BattleServer - Isolated Battle Sub-Room
  *
  * Responsibilities:
@@ -78,6 +37,8 @@ export class BattleServer extends Server {
 	// Latest per-side `|request|` line, replayed to a reconnecting client so its
 	// move menu is restored (these are not part of the omniscient eventLog).
 	private lastRequest: { player1?: string; player2?: string } = {};
+	// Guards one-time battle setup against concurrent joins.
+	private setupPromise: Promise<boolean> | null = null;
 	private startTime: number = 0;
 	private lastMoveAt: number = 0;
 
@@ -180,121 +141,130 @@ export class BattleServer extends Server {
 		msg: Extract<BattleClientMessage, { type: "battle_join" }>,
 		connection: Connection,
 	) {
-		// Reconnection: this session is already a participant. Restore its
-		// connection and replay the battle from the start so the client can
-		// rebuild HP / log / move-menu state. (Also covers the dev StrictMode
-		// remount, which tears down and recreates the client engine.)
-		if (this.battleState) {
-			const slot =
-				this.battleState.player1.sessionId === msg.sessionId
-					? "player1"
-					: this.battleState.player2.sessionId === msg.sessionId
-						? "player2"
-						: null;
-			if (slot) {
-				const player = this.battleState[slot];
-				player.connected = true;
-				this.connectionMap.set(msg.sessionId, connection);
-
-				// Replay the full canonical protocol from |start|, in this
-				// player's perspective.
-				if (this.eventLog.length > 0) {
-					connection.send(
-						JSON.stringify({
-							type: "battle_update",
-							events: this.perspectiveEvents(slot, [...this.eventLog]),
-						}),
-					);
-				}
-				// Restore the move menu.
-				const req = this.lastRequest[slot];
-				if (req) {
-					connection.send(
-						JSON.stringify({ type: "battle_update", events: [req] }),
-					);
-				}
-				// Current snapshot (timing etc.) for spectator-style fields.
-				this.sendBattleStateTo(connection);
-
-				// If the battle already finished, tell the reconnecting client.
-				if (
-					this.battleState.status === "completed" &&
-					this.battleState.winnerId
-				) {
-					connection.send(
-						JSON.stringify({
-							type: "battle_end",
-							winnerId: this.battleState.winnerId,
-							winnerName:
-								this.battleState.player1.sessionId ===
-								this.battleState.winnerId
-									? this.battleState.player1.name
-									: this.battleState.player2.name,
-							reason: "natural",
-						}),
-					);
-				}
-
-				console.log(`[BattleServer] ${player.name} reconnected to ${this.name}`);
+		// First arrival sets up the whole battle from BOTH teams (fetched from
+		// MainEventServer) and starts the sim immediately — we don't wait for the
+		// opponent's socket, so each player can see the field and queue a move as
+		// soon as they arrive. Guarded so concurrent joins set up only once.
+		if (!this.battleState) {
+			const ok = await this.setupBattleOnce();
+			if (!ok) {
+				this.sendError(connection, "Failed to set up battle");
 				return;
 			}
 		}
 
-		// Fetch player data from MainEventServer
-		const playerData = await this.fetchPlayerData(msg.sessionId);
-		if (!playerData) {
-			this.sendError(connection, "Failed to fetch player data");
+		// (Re)connect this player into the running battle. Covers the opponent
+		// arriving later and the dev StrictMode remount, which both replay the
+		// canonical log so the client can rebuild HP / log / move-menu state.
+		const slot =
+			this.battleState!.player1.sessionId === msg.sessionId
+				? "player1"
+				: this.battleState!.player2.sessionId === msg.sessionId
+					? "player2"
+					: null;
+		if (!slot) {
+			this.sendError(connection, "You are not in this battle");
 			return;
 		}
 
-		// Initialize battle state if needed
-		if (!this.battleState) {
-			this.battleState = {
-				battleId: this.name,
-				player1: {
-					sessionId: msg.sessionId,
-					name: playerData.name,
-					party: playerData.party,
-					activeIndex: playerData.activeIndex,
-					connected: true,
-				},
-				player2: {
-					sessionId: "",
-					name: "",
-					party: [],
-					activeIndex: 0,
-					connected: false,
-				},
-				currentTurn: "player1",
-				turnCount: 0,
-				status: "waiting",
-			};
+		const player = this.battleState![slot];
+		player.connected = true;
+		this.connectionMap.set(msg.sessionId, connection);
 
-			this.connectionMap.set(msg.sessionId, connection);
-			console.log(`[BattleServer] Player 1 joined: ${playerData.name}`);
-		} else if (!this.battleState.player2.connected) {
-			// Second player joins
-			this.battleState.player2 = {
-				sessionId: msg.sessionId,
-				name: playerData.name,
-				party: playerData.party,
-				activeIndex: playerData.activeIndex,
-				connected: true,
-			};
+		// Tell the client its side before replaying any events, so it can orient
+		// before the first HP-bearing |switch|.
+		this.sendSideAssignment(connection, slot);
 
-			this.connectionMap.set(msg.sessionId, connection);
-			this.battleState.status = "active";
-
-			console.log(`[BattleServer] Player 2 joined: ${playerData.name}`);
-
-			// Initialize battle engine
-			await this.initializeBattleEngine();
-
-			// Broadcast initial battle state to both players
-			await this.broadcastBattleState();
-		} else {
-			this.sendError(connection, "Battle is full");
+		// Replay the canonical protocol so far (may be empty if the sim hasn't
+		// emitted yet — the live broadcast then delivers the opening events).
+		if (this.eventLog.length > 0) {
+			connection.send(
+				JSON.stringify({ type: "battle_update", events: [...this.eventLog] }),
+			);
 		}
+		// Restore the move menu if a request has already been issued.
+		const req = this.lastRequest[slot];
+		if (req) {
+			connection.send(
+				JSON.stringify({ type: "battle_update", events: [req] }),
+			);
+		}
+		// Current snapshot (timing etc.) for spectator-style fields.
+		this.sendBattleStateTo(connection);
+
+		// If the battle already finished, tell the reconnecting client.
+		if (
+			this.battleState!.status === "completed" &&
+			this.battleState!.winnerId
+		) {
+			connection.send(
+				JSON.stringify({
+					type: "battle_end",
+					winnerId: this.battleState!.winnerId,
+					winnerName:
+						this.battleState!.player1.sessionId === this.battleState!.winnerId
+							? this.battleState!.player1.name
+							: this.battleState!.player2.name,
+					reason: "natural",
+				}),
+			);
+		}
+
+		console.log(
+			`[BattleServer] ${player.name} connected to ${this.name} as ${slot}`,
+		);
+	}
+
+	/** Build the battle from both teams and start the sim. Runs at most once. */
+	private setupBattleOnce(): Promise<boolean> {
+		if (!this.setupPromise) this.setupPromise = this.setupBattle();
+		return this.setupPromise;
+	}
+
+	private async setupBattle(): Promise<boolean> {
+		const participants = await this.fetchMatchParticipants(this.name);
+		if (!participants) {
+			console.error(`[BattleServer] No match found for ${this.name}`);
+			return false;
+		}
+
+		const { player1SessionId, player2SessionId } = participants;
+		const [p1, p2] = await Promise.all([
+			this.fetchPlayerData(player1SessionId),
+			this.fetchPlayerData(player2SessionId),
+		]);
+		if (!p1 || !p2) {
+			console.error(`[BattleServer] Failed to fetch teams for ${this.name}`);
+			return false;
+		}
+
+		this.battleState = {
+			battleId: this.name,
+			player1: {
+				sessionId: player1SessionId,
+				name: p1.name,
+				party: p1.party,
+				activeIndex: p1.activeIndex,
+				connected: false,
+			},
+			player2: {
+				sessionId: player2SessionId,
+				name: p2.name,
+				party: p2.party,
+				activeIndex: p2.activeIndex,
+				connected: false,
+			},
+			currentTurn: "player1",
+			turnCount: 0,
+			status: "active",
+		};
+
+		console.log(
+			`[BattleServer] Battle ${this.name} set up: ${p1.name} vs ${p2.name}`,
+		);
+
+		await this.initializeBattleEngine();
+		return true;
 	}
 
 	private async handleBattleAttack(
@@ -450,14 +420,12 @@ export class BattleServer extends Server {
 			void (async () => {
 				try {
 					for await (const chunk of stream) {
-						let lines = chunk
+						const lines = chunk
 							.split("\n")
 							.filter((line) => line.startsWith("|request|"));
 						if (lines.length === 0) continue;
-						// Relabel to this player's perspective (player2 -> p1a).
-						lines = this.perspectiveEvents(slot, lines);
-						// Remember the latest (perspective-correct) request so we can
-						// restore the move menu for a reconnecting client.
+						// Remember the latest request so we can restore the move menu
+						// for a reconnecting client.
 						this.lastRequest[slot] = lines[lines.length - 1];
 						const sid = this.battleState?.[slot].sessionId;
 						const conn = sid ? this.connectionMap.get(sid) : undefined;
@@ -516,11 +484,13 @@ export class BattleServer extends Server {
 		// Split chunk into lines and filter empty
 		const lines = chunk.split("\n").filter((line) => line.length > 0);
 
-		// Append to canonical event log (player1's perspective is canonical).
+		// Append to the canonical event log (raw sim protocol).
 		this.eventLog.push(...lines);
 
-		// Send each player their own perspective (player2 sees themselves as p1a).
-		this.sendBattleEvents(lines);
+		// Broadcast the canonical protocol unchanged. Each client renders from
+		// its own perspective (told via battle_assign); the server does not
+		// relabel sides.
+		this.broadcastMessage({ type: "battle_update", events: lines });
 
 		// Check for |win| event
 		for (const line of lines) {
@@ -646,30 +616,17 @@ export class BattleServer extends Server {
 		if (state) connection.send(JSON.stringify(state));
 	}
 
-	/** Relabel events for a player's perspective (player2 sees themselves p1a). */
-	private perspectiveEvents(
+	/** Tell a client which side (p1/p2) it is, so it can render its own view. */
+	private sendSideAssignment(
+		connection: Connection,
 		slot: "player1" | "player2",
-		lines: string[],
-	): string[] {
-		return slot === "player2" ? lines.map(swapProtocolSides) : lines;
-	}
-
-	/** Send a battle_update to each player in their own perspective. */
-	private sendBattleEvents(lines: string[]) {
-		if (!this.battleState) return;
-		const p1 = this.connectionMap.get(this.battleState.player1.sessionId);
-		const p2 = this.connectionMap.get(this.battleState.player2.sessionId);
-		if (p1) {
-			p1.send(JSON.stringify({ type: "battle_update", events: lines }));
-		}
-		if (p2) {
-			p2.send(
-				JSON.stringify({
-					type: "battle_update",
-					events: this.perspectiveEvents("player2", lines),
-				}),
-			);
-		}
+	) {
+		connection.send(
+			JSON.stringify({
+				type: "battle_assign",
+				side: slot === "player1" ? "p1" : "p2",
+			}),
+		);
 	}
 
 	// ============================================================================
@@ -679,6 +636,26 @@ export class BattleServer extends Server {
 	/** Get a stub for the global MainEventServer durable object. */
 	private async mainEventServer() {
 		return getServerByName(this.env.MAIN_EVENT_SERVER, "global");
+	}
+
+	/** Look up the two participants for this battle's match. */
+	private async fetchMatchParticipants(
+		battleId: string,
+	): Promise<{ player1SessionId: string; player2SessionId: string } | null> {
+		try {
+			const stub = await this.mainEventServer();
+			const response = await stub.fetch(
+				`https://do/parties/main/global/rpc/match/${battleId}`,
+			);
+			if (!response.ok) return null;
+			return (await response.json()) as {
+				player1SessionId: string;
+				player2SessionId: string;
+			};
+		} catch (error) {
+			console.error("[BattleServer] Failed to fetch match participants:", error);
+			return null;
+		}
 	}
 
 	private async fetchPlayerData(

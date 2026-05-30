@@ -341,11 +341,17 @@ export interface BattleForfeitMessage {
 // ============================================================================
 
 export type BattleServerMessage =
+	| BattleAssignMessage
 	| BattleStateMessage
 	| BattleUpdateMessage
 	| BattleTurnResultMessage
 	| BattleEndMessage
 	| BattleErrorMessage;
+
+export interface BattleAssignMessage {
+	type: "battle_assign";
+	side: "p1" | "p2"; // which side this client controls
+}
 
 export interface BattleStateMessage {
 	type: "battle_state";

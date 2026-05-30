@@ -304,6 +304,23 @@ export class MainEventServer extends Server {
 			return Response.json(serializePlayerState(player));
 		}
 
+		// GET /rpc/match/:battleId - participants for a tournament match, so the
+		// BattleServer can start the sim from both teams without waiting for both
+		// sockets to connect.
+		if (request.method === "GET" && pathname.includes("/rpc/match/")) {
+			const battleId = pathname.split("/").pop();
+			const match = this.gameState.tournamentBracket?.matches.find(
+				(m) => m.battleId === battleId,
+			);
+			if (!match || !match.player2SessionId) {
+				return new Response("Match not found", { status: 404 });
+			}
+			return Response.json({
+				player1SessionId: match.player1SessionId,
+				player2SessionId: match.player2SessionId,
+			});
+		}
+
 		// POST /rpc/battle-complete - Battle result from BattleServer
 		if (request.method === "POST" && pathname.endsWith("/rpc/battle-complete")) {
 			const body = await request.json<{
