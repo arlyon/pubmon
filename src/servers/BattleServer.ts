@@ -16,6 +16,47 @@ import { generatePubMonModData } from "../../lib/pokemon-data";
 import { type ID } from "@pkmn/dex-types";
 
 /**
+ * Swap p1<->p2 side identifiers in one protocol line. The sim labels the room
+ * creator as p1; the client UI always renders "p1a" as the local player, so we
+ * relabel the stream for player 2 to give each client a self-centred view.
+ */
+function swapProtocolSides(line: string): string {
+	// Requests carry the choosable moves as JSON; swap the side fields precisely.
+	if (line.startsWith("|request|")) {
+		const json = line.slice("|request|".length);
+		try {
+			const req = JSON.parse(json);
+			const flip = (id: string) =>
+				id === "p1" ? "p2" : id === "p2" ? "p1" : id;
+			if (req.side?.id) req.side.id = flip(req.side.id);
+			if (Array.isArray(req.side?.pokemon)) {
+				for (const p of req.side.pokemon) {
+					if (typeof p.ident === "string") {
+						const m = p.ident.match(/^p([12])(.*)$/);
+						if (m) p.ident = `p${m[1] === "1" ? "2" : "1"}${m[2]}`;
+					}
+				}
+			}
+			return "|request|" + JSON.stringify(req);
+		} catch {
+			return line;
+		}
+	}
+	// Other lines: side idents (p1, p1a, p2b, ...) only ever appear at the start
+	// of a "|"-delimited field, followed by end / ":" / " ".
+	return line
+		.split("|")
+		.map((field) =>
+			field.replace(
+				/^p([12])([ab]?)(?=$|:| )/,
+				(_, n: string, slot: string) =>
+					`p${n === "1" ? "2" : "1"}${slot}`,
+			),
+		)
+		.join("|");
+}
+
+/**
  * BattleServer - Isolated Battle Sub-Room
  *
  * Responsibilities:
@@ -155,12 +196,13 @@ export class BattleServer extends Server {
 				player.connected = true;
 				this.connectionMap.set(msg.sessionId, connection);
 
-				// Replay the full canonical protocol from |start|.
+				// Replay the full canonical protocol from |start|, in this
+				// player's perspective.
 				if (this.eventLog.length > 0) {
 					connection.send(
 						JSON.stringify({
 							type: "battle_update",
-							events: [...this.eventLog],
+							events: this.perspectiveEvents(slot, [...this.eventLog]),
 						}),
 					);
 				}
@@ -408,12 +450,14 @@ export class BattleServer extends Server {
 			void (async () => {
 				try {
 					for await (const chunk of stream) {
-						const lines = chunk
+						let lines = chunk
 							.split("\n")
 							.filter((line) => line.startsWith("|request|"));
 						if (lines.length === 0) continue;
-						// Remember the latest request so we can restore the move menu
-						// for a reconnecting client.
+						// Relabel to this player's perspective (player2 -> p1a).
+						lines = this.perspectiveEvents(slot, lines);
+						// Remember the latest (perspective-correct) request so we can
+						// restore the move menu for a reconnecting client.
 						this.lastRequest[slot] = lines[lines.length - 1];
 						const sid = this.battleState?.[slot].sessionId;
 						const conn = sid ? this.connectionMap.get(sid) : undefined;
@@ -472,14 +516,11 @@ export class BattleServer extends Server {
 		// Split chunk into lines and filter empty
 		const lines = chunk.split("\n").filter((line) => line.length > 0);
 
-		// Append to canonical event log
+		// Append to canonical event log (player1's perspective is canonical).
 		this.eventLog.push(...lines);
 
-		// Broadcast to both clients
-		this.broadcastMessage({
-			type: "battle_update",
-			events: lines,
-		});
+		// Send each player their own perspective (player2 sees themselves as p1a).
+		this.sendBattleEvents(lines);
 
 		// Check for |win| event
 		for (const line of lines) {
@@ -603,6 +644,32 @@ export class BattleServer extends Server {
 	private sendBattleStateTo(connection: Connection) {
 		const state = this.buildBattleState();
 		if (state) connection.send(JSON.stringify(state));
+	}
+
+	/** Relabel events for a player's perspective (player2 sees themselves p1a). */
+	private perspectiveEvents(
+		slot: "player1" | "player2",
+		lines: string[],
+	): string[] {
+		return slot === "player2" ? lines.map(swapProtocolSides) : lines;
+	}
+
+	/** Send a battle_update to each player in their own perspective. */
+	private sendBattleEvents(lines: string[]) {
+		if (!this.battleState) return;
+		const p1 = this.connectionMap.get(this.battleState.player1.sessionId);
+		const p2 = this.connectionMap.get(this.battleState.player2.sessionId);
+		if (p1) {
+			p1.send(JSON.stringify({ type: "battle_update", events: lines }));
+		}
+		if (p2) {
+			p2.send(
+				JSON.stringify({
+					type: "battle_update",
+					events: this.perspectiveEvents("player2", lines),
+				}),
+			);
+		}
 	}
 
 	// ============================================================================

@@ -37,6 +37,7 @@ interface PixelStatCardProps {
 	status?: string | null;
 	level?: number; // Optional override for level
 	showHpNumbers?: boolean; // Whether to show exact HP numbers
+	nameOverride?: string; // Show this instead of the PubMon name (e.g. trainer)
 }
 
 export default function PixelStatCard({
@@ -46,6 +47,7 @@ export default function PixelStatCard({
 	status,
 	level,
 	showHpNumbers = true,
+	nameOverride,
 }: PixelStatCardProps) {
 	const actualMaxHp = maxHp ?? pokemon.maxHp;
 	const actualLevel = level ?? pokemon.level;
@@ -54,7 +56,7 @@ export default function PixelStatCard({
 		<PixelBox className="bg-transparent leading-none flex flex-col gap-gba-[0]">
 			<div className="flex items-center gap-gba-[2]">
 				<span className=" text-gba-[9] text-pixel-black">
-					{pokemon.name.toUpperCase()}
+					{(nameOverride ?? pokemon.name).toUpperCase()}
 				</span>
 				<div className="flex gap-gba-[2]">
 					<TypeBadge type={pokemon.type} />

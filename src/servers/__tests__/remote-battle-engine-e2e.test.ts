@@ -125,6 +125,19 @@ describe("RemoteBattleEngine E2E (real DO)", () => {
 			expect(ca.sawHpSwitch()).toBe(true);
 			expect(cb.sawHpSwitch()).toBe(true);
 
+			// Perspective: each player must see their OWN mon as "p1a". Since the
+			// two players have different starters, their p1a switch lines differ.
+			const firstP1aSwitch = (chunks: string[]) =>
+				chunks
+					.join("\n")
+					.split("\n")
+					.find((l) => l.startsWith("|switch|p1a:"));
+			const aP1a = firstP1aSwitch(ca.chunks);
+			const bP1a = firstP1aSwitch(cb.chunks);
+			expect(aP1a).toBeDefined();
+			expect(bP1a).toBeDefined();
+			expect(aP1a).not.toBe(bP1a);
+
 			// Exactly one winner, decided naturally.
 			expect(endA.reason).toBe("natural");
 			expect(endB.reason).toBe("natural");

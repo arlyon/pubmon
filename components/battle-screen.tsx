@@ -23,6 +23,8 @@ interface BattleScreenProps {
 	battleId?: string; // Required if battleMode === 'p2p'
 	socket?: any; // PartySocket for P2P battles
 	sessionId?: string; // Required if battleMode === 'p2p'
+	playerName?: string; // Trainer name to show in P2P battles
+	opponentName?: string; // Opponent trainer name to show in P2P battles
 }
 
 const SLIDE_FRAMES = 80;
@@ -39,6 +41,8 @@ export function BattleScreen({
 	battleId,
 	socket,
 	sessionId,
+	playerName,
+	opponentName,
 }: BattleScreenProps) {
 	// Factory for the P2P engine. useBattle calls this inside its mount effect so
 	// a fresh engine is created on every (re)mount — required for the
@@ -226,6 +230,8 @@ export function BattleScreen({
 			enemyAttacking={enemyAttacking}
 			playerActivePokemon={playerActivePokemon}
 			enemyActivePokemon={enemyActivePokemon}
+			playerName={playerName}
+			opponentName={opponentName}
 			introComplete={introComplete}
 			showCatchAnim={showCatchAnim}
 			moves={moves}

@@ -41,6 +41,9 @@ export interface BattleScreenViewProps {
 	/** Active pokemon state from battle engine */
 	playerActivePokemon?: ActivePokemon | null;
 	enemyActivePokemon?: ActivePokemon | null;
+	/** Trainer names to show instead of the PubMon name (P2P battles) */
+	playerName?: string;
+	opponentName?: string;
 	/** Whether the intro slide-in is complete */
 	introComplete?: boolean;
 	/** Whether to show the catch animation */
@@ -89,6 +92,8 @@ export function BattleScreenView({
 	enemyAttacking = false,
 	playerActivePokemon,
 	enemyActivePokemon,
+	playerName,
+	opponentName,
 	introComplete = true,
 	showCatchAnim = false,
 	moves = [],
@@ -142,6 +147,7 @@ export function BattleScreenView({
 							maxHp={enemyActivePokemon?.maxhp}
 							status={enemyActivePokemon?.status}
 							showHpNumbers={false}
+							nameOverride={opponentName}
 						/>
 					)}
 				</div>
@@ -221,6 +227,7 @@ export function BattleScreenView({
 									maxHp={playerActivePokemon?.maxhp}
 									status={playerActivePokemon?.status}
 									showHpNumbers
+									nameOverride={playerName}
 								/>
 							)}
 						</div>
