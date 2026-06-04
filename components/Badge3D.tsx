@@ -13,20 +13,37 @@ export function SpinningBadge({
 	durationMs = 3000,
 	depth = 2,
 	layers = 5,
+	silhouette = false,
+	delayMs = 0,
 }: {
 	src: string;
 	className?: string;
 	durationMs?: number;
 	depth?: number;
 	layers?: number;
+	/** Render a black silhouette (like locked badges in the collection). */
+	silhouette?: boolean;
+	/** Negative animation offset so multiple badges don't spin in unison. */
+	delayMs?: number;
 }) {
 	return (
-		<div className={className} style={{ perspective: "1000px" }}>
+		<div
+			className={className}
+			style={{
+				perspective: "1000px",
+				// Fade out edge-on so the stacked layers never "ghost". Kept on this
+				// wrapper (not the preserve-3d child) because animating opacity there
+				// would flatten the 3D layering.
+				animation: `badge-coin-edge-fade ${durationMs}ms linear infinite`,
+				animationDelay: `-${delayMs}ms`,
+			}}
+		>
 			<div
 				className="relative w-full h-full"
 				style={{
 					transformStyle: "preserve-3d",
 					animation: `badge-spin ${durationMs}ms linear infinite`,
+					animationDelay: `-${delayMs}ms`,
 				}}
 			>
 				{Array.from({ length: layers }).map((_, layer) => (
@@ -37,8 +54,12 @@ export function SpinningBadge({
 						className="absolute inset-0 w-full h-full"
 						style={{
 							imageRendering: "pixelated",
-							transform: `translateZ(${layer * depth}px)`,
-							filter: layer > 0 ? `brightness(${1 - layer * 0.1})` : "none",
+							transform: `translateZ(${(layer - (layers - 1) / 2) * depth}px)`,
+							filter: silhouette
+								? `brightness(0) opacity(${1 - layer * 0.15})`
+								: layer > 0
+									? `brightness(${1 - layer * 0.1})`
+									: "none",
 						}}
 					/>
 				))}

@@ -62,7 +62,7 @@ export function PixelButton({
 	children: React.ReactNode;
 	className?: string;
 	onClick?: () => void;
-	variant?: "default" | "primary" | "danger" | "type";
+	variant?: "default" | "primary" | "danger" | "type" | "yellow";
 	disabled?: boolean;
 }) {
 	const variants = {
@@ -70,6 +70,7 @@ export function PixelButton({
 		primary: "bg-primary text-primary-foreground hover:brightness-110",
 		danger: "bg-destructive text-destructive-foreground hover:brightness-110",
 		type: "bg-accent text-accent-foreground hover:bg-muted",
+		yellow: "bg-pixel-yellow hover:brightness-110",
 	};
 
 	const palettes = {
@@ -77,6 +78,7 @@ export function PixelButton({
 		primary: "font-palette-blue",
 		danger: "font-palette-red",
 		type: "font-palette-blue",
+		yellow: "font-palette-default",
 	};
 
 	return (

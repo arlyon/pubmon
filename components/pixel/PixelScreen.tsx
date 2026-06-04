@@ -16,7 +16,7 @@ function readUiScale(): number {
 /**
  * PixelScreen renders children at exactly 320px logical width and applies
  * a CSS variable (--pixel-scale) for responsive scaling. Uses continuous
- * scaling optimized for HiDPI displays with a max 2x cap (640px).
+ * scaling optimized for HiDPI displays, capped at 1280px wide.
  *
  * The user's UI Scale setting (0.5x–2x, persisted in localStorage as
  * `pubmon_ui_scale`) multiplies both the rendered width and --pixel-scale.
@@ -82,8 +82,10 @@ const PixelScreen: React.FC<PixelScreenProps> = ({ children }) => {
 		>
 			<div
 				style={{
-					width: 320 * scale * uiScale,
-					maxWidth: 640 * uiScale,
+					width: "100%",
+					// width:100% bounds us to the parent (screen) width; the cap
+					// only kicks in on very wide screens, so we never exceed it.
+					maxWidth: 1280 * uiScale,
 					// @ts-expect-error CSS custom properties are valid
 					"--pixel-scale": scale * uiScale,
 				}}

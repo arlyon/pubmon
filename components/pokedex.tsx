@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
-import PixelHeader from "./pixel/PixelHeader";
 import { PixelBox } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { PubMonDetailPanel } from "./pubmon-detail";
@@ -55,23 +54,8 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 	const isSeen = selected ? allUnlocked || seenIds.has(selected.id) : false;
 	const isCaught = selected ? allUnlocked || caughtIds.has(selected.id) : false;
 
-	const totalSeen = allUnlocked ? ALL_PUBMON.length : seenIds.size;
-	const totalCaught = allUnlocked ? ALL_PUBMON.length : caughtIds.size;
-	const totalPubMon = ALL_PUBMON.length;
-
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
-			<PixelHeader
-				title="PUBDEX"
-				subtitle="PUBMON DIRECTORY"
-				variant="red"
-				right={
-					<div className="bg-pixel-black px-gba-[6] py-gba-[3] text-gba-[7] border border-pixel-white font-palette-yellow">
-						{totalCaught}/{totalPubMon}
-					</div>
-				}
-			/>
-
 			{/* Type filter tabs */}
 			<div className="flex gap-gba-[2] flex-wrap my-gba-[4] px-2">
 				<button
