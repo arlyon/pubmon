@@ -1,15 +1,20 @@
 {
-	"permissions": {
-		"allow": [
-			"Bash(grep:*)",
-			"Bash(pnpm add:*)",
-			"Bash(bun test:*)",
-			"Bash(ls:*)",
-			"Bash(npx tsc:*)",
-			"Bash(*)"
-		]
-	},
-	"enableAllProjectMcpServers": true,
-	"enabledMcpjsonServers": ["homeassistant"],
-	"disabledMcpjsonServers": ["homeassistant"]
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(pnpm add:*)",
+      "Bash(bun test:*)",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(*)",
+      "WebFetch(domain:api.anthropic.com)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "homeassistant"
+  ],
+  "disabledMcpjsonServers": [
+    "homeassistant"
+  ]
 }

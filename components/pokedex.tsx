@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
-import PixelBox from "./pixel/PixelBox";
-import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import PixelHeader from "./pixel/PixelHeader";
+import { PixelBox } from "./pixel-box";
+import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { PubMonDetailPanel } from "./pubmon-detail";
 
 interface PokedexProps {
@@ -73,13 +73,13 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 			/>
 
 			{/* Type filter tabs */}
-			<div className="flex gap-gba-[2] flex-wrap my-gba-[4]">
+			<div className="flex gap-gba-[2] flex-wrap my-gba-[4] px-2">
 				<button
 					type="button"
 					onClick={() => setFilterType("all")}
-					className={`px-gba-[4] py-gba-[2]  text-gba-[6] border-gba-[2] cursor-pointer transition-colors ${
+					className={`px-gba-[4] py-gba-[2] text-gba-[6] border-gba-[2] cursor-pointer transition-colors ${
 						filterType === "all"
-							? "border-pixel-black bg-pixel-white text-pixel-black"
+							? "border-pixel-black bg-pixel-black text-pixel-white"
 							: "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
 					}`}
 				>
@@ -92,16 +92,15 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 							key={type}
 							type="button"
 							onClick={() => setFilterType(type)}
-							className={`px-gba-[4] py-gba-[2]  text-gba-[6] border-gba-[2] cursor-pointer transition-colors
-                ${
-									filterType === type
-										? "text-pixel-white"
-										: "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
-								}`}
+							className={`px-gba-[4] py-gba-[2] text-gba-[6] border-gba-[2] cursor-pointer transition-colors ${
+								filterType === type
+									? "text-pixel-white"
+									: "border-pixel-gray bg-pixel-gray-light text-pixel-gray"
+							}`}
 							style={
 								filterType === type
 									? {
-											borderColor: "rgb(var(--pixel-black))",
+											borderColor: info.color,
 											backgroundColor: info.color,
 										}
 									: undefined
@@ -114,8 +113,8 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 			</div>
 
 			{/* Pokemon grid */}
-			<div className="mb-gba-[4] flex-1 min-h-gba-[120]">
-				<PixelBox className="h-full flex flex-col">
+			<div className="mb-gba-[4] flex-1 min-h-gba-[120] px-2">
+				<PixelBox className="h-full flex flex-col p-2">
 					<div className="overflow-y-auto pixel-scroll flex-1">
 						<div className="grid grid-cols-4 gap-gba-[2] p-gba-[2]">
 							{filteredPubMon.map((mon) => {
@@ -208,7 +207,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 			{/* Detail panel */}
 			{selected && isSeen && (
-				<div className="mb-gba-[4]">
+				<div className="mb-gba-[4] px-2">
 					<PubMonDetailPanel
 						mon={selected}
 						onCry={() => playPokemonCry(selected.id)}
@@ -250,8 +249,8 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 			{/* Detail panel for unseen */}
 			{selected && !isSeen && (
-				<div className="mb-gba-[4]">
-					<PixelBox>
+				<div className="mb-gba-[4] px-2">
+					<PixelBox className="p-2">
 						<div className="flex gap-gba-[4]">
 							{/* Silhouette sprite */}
 							<div className="size-gba-[48] flex items-center justify-center shrink-0 bg-pixel-gray-light border-gba-[2] border-pixel-gray">
@@ -262,7 +261,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 								>
 									<PixelSprite
 										name={selected.sprite}
-										size={64}
+										size={48}
 										variant={selected.spriteVariant}
 									/>
 								</div>

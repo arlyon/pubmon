@@ -5,9 +5,9 @@ import type { PubMon } from "@/lib/pokemon-data";
 import { TYPE_INFO } from "@/lib/pokemon-data";
 import { cn } from "@/lib/utils";
 import type { ActivePokemon, BattleMenu } from "@/hooks/use-battle";
-import PixelBox from "./pixel/PixelBox";
 import PixelStatCard from "./pixel/PixelStatCard";
 import PixelTextBox from "./pixel/PixelTextBox";
+import { PixelBox } from "./pixel-box";
 import { PixelSprite } from "./pixel-sprite";
 
 interface MoveInfo {
@@ -296,7 +296,7 @@ export function BattleScreenView({
 				{showMenu && menu === "main" && !message && (
 					<div>
 						<PixelBox
-							className="mb-[2px]"
+							className="mb-[2px] p-2"
 							style={{
 								background:
 									"linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%)",
@@ -361,7 +361,7 @@ export function BattleScreenView({
 				{menu === "fight" && !message && playerPokemon && moves.length > 0 && (
 					<div>
 						<PixelBox
-							className="mb-[2px]"
+							className="mb-[2px] p-2"
 							style={{
 								background:
 									"linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%)",
@@ -425,7 +425,7 @@ export function BattleScreenView({
 				{showMenu && !playerPokemon && menu === "main" && !message && (
 					<div>
 						<PixelBox
-							className="mb-[2px]"
+							className="mb-[2px] p-2"
 							style={{
 								background:
 									"linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%)",

@@ -18,7 +18,7 @@ interface AudioContextType {
 	playBGM: (trackId: TrackId) => void;
 	stopBGM: () => void;
 	playSFX: (trackId: TrackId | string) => void;
-	playCry: (cryNumber: number) => void;
+	playCry: (cryNumber: number, requireLoaded?: boolean) => void;
 	playAttackSFX: (moveId: string) => void;
 	preloadTrack: (trackId: TrackId) => void;
 	preloadCry: (cryNumber: number) => void;
@@ -232,24 +232,32 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		sound.play();
 	};
 
-	const playCry = (cryNumber: number) => {
+	const playCry = (cryNumber: number, requireLoaded = false) => {
 		// Use preloaded cry if available
 		let sound = preloadedCriesRef.current.get(cryNumber);
 
 		if (sound) {
+			// When requireLoaded (e.g. the intro), never block waiting on the
+			// cry — if it hasn't finished loading yet, just skip it.
+			if (requireLoaded && sound.state() !== "loaded") return;
 			// Keep in cache for potential replays during battle
 			sound.volume(volume);
 			sound.play();
-		} else {
-			// Fallback to creating new sound if not preloaded
-			const paddedNumber = cryNumber.toString().padStart(3, "0");
-			sound = new Howl({
-				src: [`/audio/cries/${paddedNumber}.wav`],
-				loop: false,
-				volume: volume,
-			});
-			sound.play();
+			return;
 		}
+
+		// Not preloaded. For time-sensitive callers (requireLoaded) we skip
+		// rather than lazy-load and play late.
+		if (requireLoaded) return;
+
+		// Fallback to creating new sound if not preloaded (e.g. battle cries)
+		const paddedNumber = cryNumber.toString().padStart(3, "0");
+		sound = new Howl({
+			src: [`/audio/cries/${paddedNumber}.wav`],
+			loop: false,
+			volume: volume,
+		});
+		sound.play();
 	};
 
 	const setVolume = (newVolume: number) => {

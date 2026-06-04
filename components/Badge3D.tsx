@@ -2,6 +2,51 @@
 
 import { GYMS } from "@/lib/gym-data";
 
+/**
+ * The fake-3D rotating gym badge: stacks the sprite in translateZ layers and
+ * spins on the Y axis (global `badge-spin` keyframe). Size it via `className`
+ * (e.g. "w-32 h-32" or "size-gba-[34]") so it can scale with --pixel-scale.
+ */
+export function SpinningBadge({
+	src,
+	className = "w-32 h-32",
+	durationMs = 3000,
+	depth = 2,
+	layers = 5,
+}: {
+	src: string;
+	className?: string;
+	durationMs?: number;
+	depth?: number;
+	layers?: number;
+}) {
+	return (
+		<div className={className} style={{ perspective: "1000px" }}>
+			<div
+				className="relative w-full h-full"
+				style={{
+					transformStyle: "preserve-3d",
+					animation: `badge-spin ${durationMs}ms linear infinite`,
+				}}
+			>
+				{Array.from({ length: layers }).map((_, layer) => (
+					<img
+						key={layer}
+						src={src}
+						alt=""
+						className="absolute inset-0 w-full h-full"
+						style={{
+							imageRendering: "pixelated",
+							transform: `translateZ(${layer * depth}px)`,
+							filter: layer > 0 ? `brightness(${1 - layer * 0.1})` : "none",
+						}}
+					/>
+				))}
+			</div>
+		</div>
+	);
+}
+
 interface Badge3DProps {
 	badgeId: number;
 	onContinue: () => void;
@@ -16,37 +61,7 @@ export function Badge3D({ badgeId, onContinue }: Badge3DProps) {
 		<div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-pixel-black/90">
 			<div className="flex flex-col items-center gap-6 max-w-md px-4">
 				{/* 3D Badge Display */}
-				<div
-					className="relative w-32 h-32"
-					style={{
-						perspective: "1000px",
-					}}
-				>
-					<div
-						className="relative w-32 h-32"
-						style={{
-							transformStyle: "preserve-3d",
-							animation: "spin-y 3s linear infinite",
-						}}
-					>
-						{/* Create fake 3D depth with multiple layers */}
-						{[0, 1, 2, 3, 4].map((layer) => (
-							<img
-								key={layer}
-								src={gym.badgeSprite}
-								alt={gym.badgeName}
-								width={128}
-								height={128}
-								className="absolute top-0 left-0"
-								style={{
-									imageRendering: "pixelated",
-									transform: `translateZ(${layer * 2}px)`,
-									filter: layer > 0 ? `brightness(${1 - layer * 0.1})` : "none",
-								}}
-							/>
-						))}
-					</div>
-				</div>
+				<SpinningBadge src={gym.badgeSprite} className="w-32 h-32" />
 
 				{/* Badge Info */}
 				<div className="flex flex-col items-center gap-2 text-center">
@@ -75,17 +90,6 @@ export function Badge3D({ badgeId, onContinue }: Badge3DProps) {
 					CONTINUE
 				</button>
 			</div>
-
-			<style jsx>{`
-        @keyframes spin-y {
-          from {
-            transform: rotateY(0deg);
-          }
-          to {
-            transform: rotateY(360deg);
-          }
-        }
-      `}</style>
 		</div>
 	);
 }

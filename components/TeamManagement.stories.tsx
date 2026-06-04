@@ -82,7 +82,6 @@ const meta = {
 		activeIndex: 0,
 		onBack: fn(),
 		onSetActive: fn(),
-		onPlay: fn(),
 	},
 	decorators: [
 		(Story) => (

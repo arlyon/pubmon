@@ -12,7 +12,6 @@ import { pubmonMachine } from "@/machines/pubmon-machine";
 import { useAudio } from "./audio-manager";
 import { Badge3D } from "./Badge3D";
 import { BattleScreen } from "./battle-screen";
-import { CollapsibleGymPath } from "./CollapsibleGymPath";
 import { DebugPanel } from "./debug-panel";
 import { DrinkSelect } from "./drink-select";
 import { GameNavbar } from "./game-navbar";
@@ -26,16 +25,21 @@ import { PixelBox } from "./pixel-box";
 import { IntroSequence } from "./intro";
 import type { PlayerInfo } from "./player-create";
 import { Pokedex } from "./pokedex";
-import { TrainerCard } from "./TrainerCard";
 import { PostBattle } from "./post-battle";
 import { SettingsPanel } from "./settings-panel";
 import { AnimatePresence } from "framer-motion";
 import { TeamManagement } from "./team-management";
 import { PlayCanvas } from "./play-canvas";
+import { TournamentTeaser } from "./tournament-teaser";
+import { SKIP_TEASER, TOURNAMENT_START } from "@/lib/tournament";
 import {
 	PokeballMessage,
 	type PokeballMessageKind,
 } from "./pokeball-message";
+
+// Stable no-op so the intro startup's child effects (which depend on their
+// callback props) don't re-fire when GameShell re-renders.
+const noop = () => {};
 
 function generateUUID(): string {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -68,8 +72,31 @@ export function GameShell({
 }: GameShellProps) {
 	const [sessionId, setSessionId] = useState<string>("");
 	const [showBattleTransition, setShowBattleTransition] = useState(false);
+	// Reported up by BattleScreen once the field (opponent + HP) is populated;
+	// gates the battle-entry wipe's reveal so we un-wipe only when data is ready.
+	const [battleReady, setBattleReady] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const [playingPubmon, setPlayingPubmon] = useState<PubMon | null>(null);
+	// Pre-tournament teaser: before the start time the whole app is just the
+	// title startup followed by a live countdown. `teaserStarted` flips once the
+	// player taps START on the title screen. We compute `beforeTournament` once
+	// (no per-second tick here, so the intro's timed scenes aren't disturbed)
+	// and schedule a single hard reload at the deadline to unlock the game.
+	const [teaserStarted, setTeaserStarted] = useState(false);
+	const enterTeaser = useCallback(() => setTeaserStarted(true), []);
+	const [beforeTournament, setBeforeTournament] = useState(
+		() => !SKIP_TEASER && Date.now() < TOURNAMENT_START.getTime(),
+	);
+	useEffect(() => {
+		if (!beforeTournament) return;
+		const ms = TOURNAMENT_START.getTime() - Date.now();
+		if (ms <= 0) {
+			setBeforeTournament(false);
+			return;
+		}
+		const t = setTimeout(() => window.location.reload(), ms);
+		return () => clearTimeout(t);
+	}, [beforeTournament]);
 	const [ballMessage, setBallMessage] = useState<PokeballMessageKind | null>(
 		null,
 	);
@@ -185,11 +212,17 @@ export function GameShell({
 	// Navigation deferred to the wipe's midpoint, so the view only swaps once the
 	// screen is fully covered (then the wipe reveals the new scene).
 	const pendingBattleActionRef = useRef<(() => void) | null>(null);
+	// Whether the current view would auto-enter a battle on MATCH_STARTED (so we
+	// can cover that transition too, not just the explicit JOIN paths).
+	const autoEnterBattleViewRef = useRef(false);
 
 	const startBattleTransition = useCallback((action: () => void) => {
 		pendingBattleActionRef.current = action;
+		setBattleReady(false);
 		setShowBattleTransition(true);
 	}, []);
+
+	const handleBattleReady = useCallback(() => setBattleReady(true), []);
 
 	const handleDrinkSelect = useCallback(
 		(type: PubType) => {
@@ -299,11 +332,17 @@ export function GameShell({
 				const amP1 = msg.player1SessionId === sessionId;
 				const amP2 = msg.player2SessionId === sessionId;
 				if (amP1 || amP2) {
-					send({
-						type: "MATCH_STARTED",
-						battleId: msg.battleId,
-						opponentName: amP1 ? msg.player2Name : msg.player1Name,
-					});
+					const navigate = () =>
+						send({
+							type: "MATCH_STARTED",
+							battleId: msg.battleId,
+							opponentName: amP1 ? msg.player2Name : msg.player1Name,
+						});
+					// If the machine will auto-enter the battle from here (bracket /
+					// league view), cover the swap with the wipe; otherwise the JOIN
+					// alert handles the wipe when the player clicks in.
+					if (autoEnterBattleViewRef.current) startBattleTransition(navigate);
+					else navigate();
 				}
 			}
 
@@ -325,7 +364,7 @@ export function GameShell({
 		return () => {
 			socket.removeEventListener("message", handleMessage);
 		};
-	}, [send, sessionId]);
+	}, [send, sessionId, startBattleTransition]);
 
 	// Helper functions to check machine state
 	const stateValue = state.value as any;
@@ -356,6 +395,10 @@ export function GameShell({
 		stateValue.view?.mainLoop?.celebration === "badgeReward";
 	const isRan = stateValue.view?.mainLoop?.celebration === "ran";
 
+	// The bracket/league views auto-enter a battle on MATCH_STARTED; track that
+	// so the socket handler can cover the swap with the wipe.
+	autoEnterBattleViewRef.current = isLeague || isTournamentBracket;
+
 	// Determine active tab for navbar
 	const getActiveTab = ():
 		| "crawl"
@@ -382,6 +425,34 @@ export function GameShell({
 		!showBattleTransition &&
 		!isOnboarding &&
 		!isStarter;
+
+	// Before the tournament starts, the app is the title startup → countdown
+	// teaser, for everyone (logged in or not). After the deadline the countdown
+	// hard-reloads and normal play resumes.
+	if (beforeTournament) {
+		// NOTE: do not set --pixel-scale here. GameShell is rendered inside
+		// <PixelScreen> (app/page.tsx), which provides the correct scale for the
+		// 320px-logical GBA UI. Overriding it with uiScale=1 makes everything tiny.
+		return (
+			<div className="flex flex-col relative h-screen bg-pixel-gray-light">
+				{teaserStarted ? (
+					<TournamentTeaser
+						badges={context.badges}
+						seenIds={seenIds}
+						caughtIds={caughtIds}
+					/>
+				) : (
+					<IntroSequence
+						socket={socket}
+						sessionId={sessionId}
+						onPlayerCreate={noop}
+						onStarterSelect={noop}
+						onTitleStart={enterTeaser}
+					/>
+				)}
+			</div>
+		);
+	}
 
 	return (
 		<div
@@ -422,6 +493,7 @@ export function GameShell({
 					active={showBattleTransition}
 					onMidpoint={handleBattleTransitionMidpoint}
 					onComplete={handleBattleTransitionComplete}
+					release={battleReady}
 					width={typeof window !== "undefined" ? window.innerWidth : 400}
 					height={typeof window !== "undefined" ? window.innerHeight : 800}
 				/>
@@ -470,6 +542,7 @@ export function GameShell({
 						onRun={handleRun}
 						onBattleEnd={handleBattleEnd}
 						battleMode="wild"
+						onReady={handleBattleReady}
 					/>
 				)}
 
@@ -497,6 +570,7 @@ export function GameShell({
 							opponentName={
 								context.tournamentState.activeBattle.opponentName
 							}
+							onReady={handleBattleReady}
 						/>
 					)}
 
@@ -506,7 +580,6 @@ export function GameShell({
 						onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
 						onSetActive={handleSetActiveMon}
 						activeIndex={context.activeIndex}
-						onPlay={setPlayingPubmon}
 					/>
 				)}
 

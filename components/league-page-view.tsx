@@ -49,6 +49,7 @@ export interface LeaguePageViewProps {
 	optedIn: boolean;
 	leaderboard: LeaderboardEntry[];
 	activeBattle: { battleId: string; opponentName: string } | null;
+	gamePhase: "collection" | "tournament" | "hall-of-fame";
 	onBack: () => void;
 	onReturnToBattle: () => void;
 	onToggleOptIn: () => void;
@@ -277,10 +278,12 @@ export function LeaguePageView({
 	optedIn,
 	leaderboard,
 	activeBattle,
+	gamePhase,
 	onBack,
 	onReturnToBattle,
 	onToggleOptIn,
 }: LeaguePageViewProps) {
+	const concluded = gamePhase === "hall-of-fame";
 	const sorted = useMemo(
 		() => [...leaderboard].sort((a, b) => b.battlesWon - a.battlesWon),
 		[leaderboard],
@@ -299,7 +302,7 @@ export function LeaguePageView({
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			<PixelHeader
 				title="HALL OF CHAMPS"
-				subtitle="LEADERBOARD"
+				subtitle={concluded ? "FINAL STANDINGS" : "LEADERBOARD"}
 				variant="dark"
 			/>
 
@@ -384,34 +387,44 @@ export function LeaguePageView({
 					<span>
 						RANKS {hasPodium ? "4" : "1"}–{sorted.length}
 					</span>
-					<span>QUAL: TOP 8</span>
+					<span>{concluded ? "TOURNAMENT OVER" : "QUAL: TOP 8"}</span>
 				</div>
 
-				{/* Tournament opt-in strip */}
-				<button
-					type="button"
-					onClick={onToggleOptIn}
-					className="w-full flex items-center justify-between font-heading text-gba-[7] px-gba-[8] py-gba-[6] border-b-[2px] border-pixel-black"
-					style={{
-						background: optedIn ? "#50b058" : "#fff",
-						color: optedIn ? "#fff" : "#282828",
-					}}
-				>
-					<span>
-						{optedIn
-							? "★ TOURNAMENT: OPTED IN"
-							: "TAP TO JOIN TOURNAMENT"}
-					</span>
-					<span
-						className="text-gba-[7] px-gba-[6] py-gba-[2] border-[2px] border-pixel-black"
+				{/* Tournament opt-in strip — hidden once the tournament has
+				    concluded and the hall of fame is live. */}
+				{concluded ? (
+					<div
+						className="w-full flex items-center justify-center font-heading text-gba-[7] px-gba-[8] py-gba-[6] border-b-[2px] border-pixel-black"
+						style={{ background: "#282828", color: "#f8d858" }}
+					>
+						★ CHAMPIONS CROWNED — SEE HALL OF FAME
+					</div>
+				) : (
+					<button
+						type="button"
+						onClick={onToggleOptIn}
+						className="w-full flex items-center justify-between font-heading text-gba-[7] px-gba-[8] py-gba-[6] border-b-[2px] border-pixel-black"
 						style={{
-							background: optedIn ? "#fff" : "#d8e0e8",
-							color: optedIn ? "#50b058" : "#686868",
+							background: optedIn ? "#50b058" : "#fff",
+							color: optedIn ? "#fff" : "#282828",
 						}}
 					>
-						{optedIn ? "ON" : "OFF"}
-					</span>
-				</button>
+						<span>
+							{optedIn
+								? "★ TOURNAMENT: OPTED IN"
+								: "TAP TO JOIN TOURNAMENT"}
+						</span>
+						<span
+							className="text-gba-[7] px-gba-[6] py-gba-[2] border-[2px] border-pixel-black"
+							style={{
+								background: optedIn ? "#fff" : "#d8e0e8",
+								color: optedIn ? "#50b058" : "#686868",
+							}}
+						>
+							{optedIn ? "ON" : "OFF"}
+						</span>
+					</button>
+				)}
 
 				{(hasPodium ? rest : sorted).map((entry, i) => {
 					const rank = (hasPodium ? 4 : 1) + i;
@@ -470,7 +483,7 @@ export function LeaguePageView({
 				})}
 
 				{/* Cut-line legend */}
-				{sorted.length > 8 && (
+				{sorted.length > 8 && !concluded && (
 					<div className="font-heading text-center text-gba-[7] text-[#686868] p-gba-[8] leading-relaxed">
 						- - - QUALIFICATION CUT-LINE - - -
 						<br />

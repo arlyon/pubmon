@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { type PubMon, TYPE_INFO } from "@/lib/pokemon-data";
-import PixelBox from "./pixel/PixelBox";
 import PixelHeader from "./pixel/PixelHeader";
-import { PixelButton } from "./pixel-box";
+import { PixelBox, PixelButton } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { PubMonDetailPanel } from "./pubmon-detail";
 
@@ -14,7 +13,6 @@ interface TeamManagementProps {
 	onBack: () => void;
 	onSetActive: (index: number) => void;
 	activeIndex: number;
-	onPlay: (pubmon: PubMon) => void;
 }
 
 export function TeamManagement({
@@ -22,7 +20,6 @@ export function TeamManagement({
 	onBack,
 	onSetActive,
 	activeIndex,
-	onPlay,
 }: TeamManagementProps) {
 	const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 	const selected = selectedIdx !== null ? team[selectedIdx] : null;
@@ -45,8 +42,8 @@ export function TeamManagement({
 			/>
 
 			{/* Party list */}
-			<div className="mt-gba-[1] flex-1 overflow-y-auto pixel-scroll min-h-gba-[120]">
-				<PixelBox>
+			<div className="mt-gba-[1] flex-1 overflow-y-auto pixel-scroll min-h-gba-[120] px-2">
+				<PixelBox className="p-2">
 					{team.length === 0 ? (
 						<div className="flex flex-col items-center justify-center py-gba-[16]">
 							<img
@@ -162,7 +159,7 @@ export function TeamManagement({
 
 			{/* Selected pokemon detail */}
 			{selected && selectedIdx !== null && (
-				<div className="mb-gba-[4]">
+				<div className="mb-gba-[4] px-2">
 					<PubMonDetailPanel
 						mon={selected}
 						onCry={() => playPokemonCry(selected.id)}
@@ -182,12 +179,6 @@ export function TeamManagement({
 										SET AS LEAD
 									</button>
 								)}
-								<button
-									onClick={() => selected && onPlay(selected)}
-									className="mt-gba-[4] w-full px-gba-[4] py-gba-[2] font-sans font-palette-green text-gba-[6] border-gba-[2] border-pixel-green bg-pixel-green-dark hover:bg-pixel-green hover:font-palette-default hover:border-pixel-black cursor-pointer transition-colors"
-								>
-									PLAY!
-								</button>
 							</>
 						}
 					>

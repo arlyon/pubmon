@@ -3,7 +3,7 @@
 interface PixelBoxProps<T extends React.ElementType = "div"> {
 	children: React.ReactNode;
 	className?: string;
-	variant?: "default" | "battle" | "menu" | "info";
+	variant?: "default" | "battle" | "menu" | "info" | "blue" | "red";
 	style?: React.CSSProperties;
 	as?: T;
 }
@@ -24,6 +24,8 @@ export function PixelBox<T extends React.ElementType = "div">({
 		battle: "border-primary",
 		menu: "border-foreground",
 		info: "border-accent",
+		blue: "border-pixel-blue-dark",
+		red: "border-pixel-red-dark",
 	};
 
 	const bgColors = {
@@ -31,6 +33,8 @@ export function PixelBox<T extends React.ElementType = "div">({
 		battle: "bg-card",
 		menu: "bg-background",
 		info: "bg-secondary",
+		blue: "bg-pixel-blue",
+		red: "bg-pixel-red",
 	};
 
 	return (

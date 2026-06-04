@@ -8,9 +8,9 @@ import {
 	TYPE_INFO,
 } from "@/lib/pokemon-data";
 import { useAudio } from "./audio-manager";
-import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
+import { PixelBox } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { TrainerSprite } from "./trainer-sprite";
 import { TypePokeball } from "./images/TypePokeball";
@@ -124,7 +124,7 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 			{/* Professor Scene (Shared for intro and pick phases) */}
 			{(phase === "intro" || phase === "pick") && (
 				<div className="mb-[4px]">
-					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
+					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]! p-2">
 						<div className="flex flex-col items-center py-[4px] gap-[4px]">
 							<div className="relative w-[120px] h-[120px] flex items-center justify-center">
 								<div className="absolute bottom-0 left-0 right-0 h-[8px] border-t-2 border-pixel-black bg-pixel-gray-light" />
@@ -169,7 +169,7 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 					/>
 
 					<div className="mt-[4px]">
-						<PixelBox>
+						<PixelBox className="p-2">
 							<div className="flex flex-col gap-[2px]">
 								{TYPE_ORDER.map((type) => {
 									const info = TYPE_INFO[type];
@@ -230,7 +230,7 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 					/>
 
 					<div className="my-[4px]">
-						<PixelBox>
+						<PixelBox className="p-2">
 							<div className="flex flex-col items-center py-[2px]">
 								<div className="flex items-center justify-center bg-pixel-white mb-[4px]">
 									<PixelSprite
@@ -278,7 +278,7 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 					/>
 
 					<div className="my-[4px]">
-						<PixelBox>
+						<PixelBox className="p-2">
 							<div className="flex justify-center items-center py-[16px] relative overflow-hidden h-[120px]">
 								{/* Sparkle effects */}
 								<div className="absolute inset-0 pointer-events-none">

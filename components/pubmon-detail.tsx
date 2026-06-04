@@ -2,7 +2,7 @@
 
 import type { PubMon } from "@/lib/pokemon-data";
 import { TYPE_INFO } from "@/lib/pokemon-data";
-import PixelBox from "./pixel/PixelBox";
+import { PixelBox } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 
 interface PubMonDetailPanelProps {
@@ -24,7 +24,7 @@ export function PubMonDetailPanel({
 	actions,
 }: PubMonDetailPanelProps) {
 	return (
-		<PixelBox variant="blue">
+		<PixelBox variant="blue" className="p-2">
 			<div className="flex gap-gba-[4] relative">
 				{/* Sprite */}
 				<div

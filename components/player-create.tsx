@@ -5,9 +5,9 @@ import type { PartySocket } from "partysocket";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getTrainerSprite } from "@/lib/trainer-sprites";
 import { useAudio } from "./audio-manager";
-import PixelBox from "./pixel/PixelBox";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
+import { PixelBox } from "./pixel-box";
 import { TrainerSprite } from "./trainer-sprite";
 
 export interface PlayerInfo {
@@ -193,7 +193,7 @@ export function PlayerCreate({
 			{/* Professor Scene (Shared for multiple phases) */}
 			{(phase === "welcome" || phase === "gender" || phase === "confirm") && (
 				<div>
-					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
+					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]! p-2">
 						<div className="flex flex-col items-center">
 							<div
 								style={{
@@ -210,7 +210,7 @@ export function PlayerCreate({
 			{/* Player Scene (Name phase) */}
 			{phase === "name" && gender && (
 				<div>
-					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
+					<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]! p-2">
 						<div className="flex flex-col items-center">
 							<TrainerSprite sprite="" gender={gender} size={64} />
 						</div>
@@ -259,7 +259,7 @@ export function PlayerCreate({
 					/>
 
 					<div className="mt-[4px]">
-						<PixelBox>
+						<PixelBox className="p-2">
 							<div className="flex flex-col gap-[4px]">
 								<div className="bg-pixel-white border-2 border-pixel-black p-[4px]">
 									<input
@@ -325,7 +325,7 @@ export function PlayerCreate({
 			{phase === "take_over_prompt" && gender && (
 				<>
 					<div>
-						<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]!">
+						<PixelBox className="flex items-center justify-center bg-[linear-gradient(to_top,#036672_0%,#036672_15%,#14b8a6_35%,#86efac_50%,#dcfce7_100%)]! p-2">
 							<div className="flex flex-col items-center">
 								<div
 									style={{

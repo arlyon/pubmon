@@ -176,6 +176,7 @@ export function LeaguePage({
 			optedIn={optedIn}
 			leaderboard={leaderboard}
 			activeBattle={activeBattle}
+			gamePhase={gamePhase}
 			onBack={onBack}
 			onReturnToBattle={onReturnToBattle}
 			onToggleOptIn={handleToggleOptIn}

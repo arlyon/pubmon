@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { PubMon, PubType } from "@/lib/pokemon-data";
 import { cn } from "@/lib/utils";
-import { CollapsibleGymPath } from "./CollapsibleGymPath";
 import { GymHeader } from "./GymHeader";
 import PixelScrollWrapper from "./pixel/PixelScrollWrapper";
 import { PixelBox, PixelButton } from "./pixel-box";
@@ -328,14 +327,18 @@ export function DrinkSelect({
 					</div>
 				</PixelBox>
 
-				{/* Action button */}
+				{/* Action button — drinks are closed once the crawl phase ends
+				    (tournament running or hall of fame reached). */}
 				<div className="flex justify-center">
 					<PixelButton
 						variant="primary"
+						disabled={gamePhase !== "collection"}
 						onClick={() => onSelect(selected.type)}
 						className="w-full text-gba-[9] py-3 [font-palette:--emerald-blue]"
 					>
-						ORDER {selected.label}
+						{gamePhase !== "collection"
+							? "BAR CLOSED"
+							: `ORDER ${selected.label}`}
 					</PixelButton>
 				</div>
 			</PixelScrollWrapper>

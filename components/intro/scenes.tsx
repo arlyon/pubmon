@@ -72,15 +72,16 @@ export function CryScene({
 	playCry,
 }: {
 	onDone: () => void;
-	playCry: (n: number) => void;
+	playCry: (n: number, requireLoaded?: boolean) => void;
 }) {
 	const [phase, setPhase] = useState<"pan" | "hold" | "fade">("pan");
 
 	useEffect(() => {
 		// Pan takes 1.6s (smooth ease-out), then hold with cry
 		const holdTimer = setTimeout(() => setPhase("hold"), 1600);
-		// Cry fires right as it lands center
-		const cryTimer = setTimeout(() => playCry(29), 1600);
+		// Cry fires right as it lands center — but only if it's already loaded;
+		// we never delay the intro waiting on it.
+		const cryTimer = setTimeout(() => playCry(29, true), 1600);
 		// Fade out after the shake/flash settles
 		const fadeTimer = setTimeout(() => setPhase("fade"), 3000);
 		// Done

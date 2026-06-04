@@ -72,6 +72,15 @@ export default plugin(function ({ matchUtilities }) {
 		"border-t-gba": (value) => ({
 			borderTopWidth: `calc(${value} * 1px * var(--pixel-scale))`,
 		}),
+		"border-b-gba": (value) => ({
+			borderBottomWidth: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"border-l-gba": (value) => ({
+			borderLeftWidth: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
+		"border-r-gba": (value) => ({
+			borderRightWidth: `calc(${value} * 1px * var(--pixel-scale))`,
+		}),
 		"my-gba": (value) => ({
 			marginTop: `calc(${value} * 1px * var(--pixel-scale))`,
 			marginBottom: `calc(${value} * 1px * var(--pixel-scale))`,

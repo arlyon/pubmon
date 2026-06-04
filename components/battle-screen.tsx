@@ -25,6 +25,7 @@ interface BattleScreenProps {
 	sessionId?: string; // Required if battleMode === 'p2p'
 	playerName?: string; // Trainer name to show in P2P battles
 	opponentName?: string; // Opponent trainer name to show in P2P battles
+	onReady?: () => void; // Fires once the field (opponent + HP) is populated
 }
 
 const SLIDE_FRAMES = 80;
@@ -43,6 +44,7 @@ export function BattleScreen({
 	sessionId,
 	playerName,
 	opponentName,
+	onReady,
 }: BattleScreenProps) {
 	// Factory for the P2P engine. useBattle calls this inside its mount effect so
 	// a fresh engine is created on every (re)mount — required for the
@@ -212,6 +214,19 @@ export function BattleScreen({
 	const introComplete = slideFrame >= SLIDE_FRAMES && showMenu;
 
 	const moves = protocolRequest?.active?.[0]?.moves ?? [];
+
+	// Tell the shell when the field is populated so it can un-wipe. Wild battles
+	// are ready as soon as they mount; P2P waits for the opponent + HP to arrive.
+	const isP2p = battleMode === "p2p";
+	const battleDataReady =
+		!isP2p ||
+		(!!playerActivePokemon &&
+			!!enemyActivePokemon &&
+			playerHp > 0 &&
+			enemyHp > 0);
+	useEffect(() => {
+		if (battleDataReady) onReady?.();
+	}, [battleDataReady, onReady]);
 
 	return (
 		<BattleScreenView

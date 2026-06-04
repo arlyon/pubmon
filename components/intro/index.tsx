@@ -42,6 +42,11 @@ interface IntroSequenceProps {
   onPlayerCreate: (info: PlayerInfo, existingState?: any) => void;
   /** Called after starter is selected and confirmed */
   onStarterSelect: (pokemon: PubMon) => void;
+  /**
+   * When provided, the title screen "START" hands off here instead of
+   * continuing into character creation. Used for the pre-tournament teaser.
+   */
+  onTitleStart?: () => void;
 }
 
 /**
@@ -55,6 +60,7 @@ export function IntroSequence({
   sessionId,
   onPlayerCreate,
   onStarterSelect,
+  onTitleStart,
 }: IntroSequenceProps) {
   const [scene, setScene] = useState<Scene>("boot");
   const [transitioning, setTransitioning] = useState(false);
@@ -224,7 +230,11 @@ export function IntroSequence({
       view = <CryScene onDone={() => goto("title")} playCry={playCry} />;
       break;
     case "title":
-      view = <TitleScene onStart={() => goto("professor")} />;
+      view = (
+        <TitleScene
+          onStart={() => (onTitleStart ? onTitleStart() : goto("professor"))}
+        />
+      );
       break;
     case "professor":
       view = <ProfessorScene onDone={() => goto("gender")} />;
