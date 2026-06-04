@@ -114,7 +114,7 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 
 			{/* Pokemon grid */}
 			<div className="mb-gba-[4] flex-1 min-h-gba-[120] px-2">
-				<PixelBox className="h-full flex flex-col p-2">
+				<PixelBox className="h-full flex flex-col p-2 overflow-y-scroll">
 					<div className="overflow-y-auto pixel-scroll flex-1">
 						<div className="grid grid-cols-4 gap-gba-[2] p-gba-[2]">
 							{filteredPubMon.map((mon) => {

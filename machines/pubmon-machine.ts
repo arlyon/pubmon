@@ -1,6 +1,6 @@
 import { setup, assign, fromPromise, type ActorRefFrom } from "xstate";
 import type { PubMon, PubType } from "@/lib/pokemon-data";
-import type { PlayerInfo } from "@/components/player-create";
+import type { PlayerInfo } from "@/components/intro";
 import type { PartySocket } from "partysocket";
 
 // ============================================================================
@@ -110,7 +110,7 @@ export type GameEvent =
 	| { type: "PLAYER_STATE_UPDATE"; playerState: any }
 	// Internal Events
 	| { type: "NEXT" }
-	| { type: "SELECT_GENDER"; gender: "boy" | "girl" }
+	| { type: "SELECT_GENDER"; gender: "boy" | "girl" | "mystery" }
 	| { type: "SUBMIT_NAME"; name: string }
 	| { type: "CONFIRM_NAME" }
 	| { type: "CLAIM_PLAYER"; name: string }

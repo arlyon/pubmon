@@ -4,8 +4,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import type { PartySocket } from "partysocket";
 import { ALL_PUBMON, type PubMon } from "@/lib/pokemon-data";
 import { getTrainerSprite } from "@/lib/trainer-sprites";
-import type { PlayerInfo } from "@/components/player-create";
 import { useAudio } from "@/components/audio-manager";
+
+export interface PlayerInfo {
+  name: string;
+  gender: "boy" | "girl" | "mystery";
+}
 import { GBAStage, IntroStyles } from "./intro-primitives";
 import {
   BootScene,
@@ -65,7 +69,7 @@ export function IntroSequence({
   const [scene, setScene] = useState<Scene>("boot");
   const [transitioning, setTransitioning] = useState(false);
   const [player, setPlayer] = useState<{
-    kind: "boy" | "girl";
+    kind: "boy" | "girl" | "mystery";
     name: string;
     starter: (typeof INTRO_STARTERS)[0] | null;
   }>({ kind: "boy", name: "", starter: null });
@@ -250,7 +254,13 @@ export function IntroSequence({
       );
       break;
     case "name":
-      view = <NameScene kind={player.kind} onDone={handleNameDone} />;
+      view = (
+        <NameScene
+          kind={player.kind}
+          onDone={handleNameDone}
+          onBack={() => goto("gender")}
+        />
+      );
       break;
     case "confirmName":
       view = (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMachine } from "@xstate/react";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	ALL_PUBMON,
 	getRandomPubMon,
@@ -22,8 +22,7 @@ import PixelTransition, {
 	circleWipeTransition,
 } from "./pixel/PixelTransition";
 import { PixelBox } from "./pixel-box";
-import { IntroSequence } from "./intro";
-import type { PlayerInfo } from "./player-create";
+import { IntroSequence, type PlayerInfo } from "./intro";
 import { Pokedex } from "./pokedex";
 import { PostBattle } from "./post-battle";
 import { SettingsPanel } from "./settings-panel";
@@ -111,6 +110,8 @@ export function GameShell({
 	const handleScaleChange = useCallback((scale: number) => {
 		setUiScale(scale);
 		localStorage.setItem("pubmon_ui_scale", String(scale));
+		// PixelScreen (our parent) owns the actual scaling; notify it to re-read.
+		window.dispatchEvent(new Event("pubmon-ui-scale-change"));
 	}, []);
 
 	// Initialize XState machine
@@ -434,7 +435,7 @@ export function GameShell({
 		// <PixelScreen> (app/page.tsx), which provides the correct scale for the
 		// 320px-logical GBA UI. Overriding it with uiScale=1 makes everything tiny.
 		return (
-			<div className="flex flex-col relative h-screen bg-pixel-gray-light">
+			<div className="flex flex-col relative h-dvh bg-pixel-gray-light">
 				{teaserStarted ? (
 					<TournamentTeaser
 						badges={context.badges}
@@ -455,10 +456,7 @@ export function GameShell({
 	}
 
 	return (
-		<div
-			className="flex flex-col relative h-screen bg-pixel-gray-light"
-			style={{ "--pixel-scale": uiScale } as CSSProperties}
-		>
+		<div className="flex flex-col relative h-dvh bg-pixel-gray-light">
 			{/* Active tournament battle notification */}
 			{showBattleAlert && activeBattle && (
 				<button

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { IconMute } from "./images/IconMute";
 import { IconSound } from "./images/IconSound";
+import { PixelButton } from "./pixel-box";
 import PixelHeader from "./pixel/PixelHeader";
 import type { PubMon } from "@/lib/pokemon-data";
 
@@ -174,18 +175,14 @@ export function SettingsPanel({
 		<div className="flex-1 flex flex-col">
 			<PixelHeader title="OPTIONS" subtitle="SETTINGS" variant="gray" />
 			<div className="flex-1 flex flex-col items-center justify-center gap-gba-[16] p-gba-[16] overflow-y-auto">
-			<button
-				type="button"
+			<PixelButton
 				onClick={onToggleMute}
-				className={`flex items-center gap-gba-[8] px-gba-[16] py-gba-[8] border-4 border-pixel-black text-gba-[9] font-bold uppercase transition-colors cursor-pointer ${
-					isMuted
-						? "bg-pixel-red text-pixel-white"
-						: "bg-pixel-white text-pixel-black hover:bg-pixel-gray-light"
-				}`}
+				variant={isMuted ? "danger" : "default"}
+				className="flex items-center gap-gba-[8] px-gba-[16] py-gba-[8] uppercase"
 			>
 				{isMuted ? <IconMute /> : <IconSound />}
 				{isMuted ? "UNMUTE" : "MUTE"}
-			</button>
+			</PixelButton>
 			<div className="flex flex-col items-center gap-gba-[8] w-full max-w-[200px]">
 				<div className="flex justify-between w-full text-gba-[9] font-bold uppercase text-pixel-black">
 					<span>UI Scale</span>

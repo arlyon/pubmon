@@ -144,7 +144,7 @@ interface DrinkSelectProps {
 	pokedexTotal: number;
 	playerSprite?: string;
 	playerName?: string;
-	playerGender?: "boy" | "girl";
+	playerGender?: "boy" | "girl" | "mystery";
 	gamePhase?: "collection" | "tournament" | "hall-of-fame";
 	activeBattleId?: string;
 	activeBattleOpponent?: string;

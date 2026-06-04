@@ -9,7 +9,7 @@ import {
 
 interface TrainerSpriteProps {
 	sprite: string;
-	gender?: "boy" | "girl";
+	gender?: "boy" | "girl" | "mystery";
 	size?: number;
 	className?: string;
 	flipped?: boolean;

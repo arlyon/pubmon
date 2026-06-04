@@ -9,8 +9,10 @@ import {
 	TYPE_INFO,
 } from "@/lib/pokemon-data";
 import {
-	getFallbackTrainerSprite,
+	type Gender,
+	hasCustomTrainerSprite,
 	getTrainerSpritePath,
+	resolveTrainerSprite,
 } from "@/lib/trainer-sprites";
 import {
 	IntroButton,
@@ -359,10 +361,7 @@ const PROF_LINES: [string, string][] = [
 	["Hello there!", "Welcome to the world of PUBMON!"],
 	["My name is BARLEY.", "Folks call me the PUB PROFESSOR."],
 	["This world is inhabited far and wide", "by creatures called PUBMON!"],
-	[
-		"For some, PUBMON are loyal companions.",
-		"Others use them for friendly battle.",
-	],
+	["For some, PUBMON are companions.", "Others use them for friendly battle."],
 	["Myself... I study PUBMON behaviour", "and the drinks that draw them out."],
 	["But before we get to all that…", "Let's get to know YOU, trainer!"],
 ];
@@ -446,23 +445,9 @@ export function ProfessorScene({ onDone }: { onDone: () => void }) {
 export function GenderScene({
 	onPick,
 }: {
-	onPick: (kind: "boy" | "girl") => void;
+	onPick: (kind: Gender) => void;
 }) {
 	const [sel, setSel] = useState(0);
-
-	const confirm = useCallback(() => {
-		onPick(sel === 0 ? "boy" : "girl");
-	}, [sel, onPick]);
-
-	useEffect(() => {
-		const k = (e: KeyboardEvent) => {
-			if (e.key === "ArrowLeft") setSel(0);
-			else if (e.key === "ArrowRight") setSel(1);
-			else if (e.key === "Enter" || e.key === " ") confirm();
-		};
-		window.addEventListener("keydown", k);
-		return () => window.removeEventListener("keydown", k);
-	}, [sel, confirm]);
 
 	const genders = [
 		{
@@ -479,7 +464,30 @@ export function GenderScene({
 			colorDark: "#601848",
 			sprite: "lyra",
 		},
+		{
+			id: "mystery" as const,
+			label: "???",
+			color: "#7048c0",
+			colorDark: "#3a2470",
+			sprite: "red",
+		},
 	];
+
+	const confirm = useCallback(() => {
+		onPick(genders[sel].id);
+	}, [sel, onPick]);
+
+	useEffect(() => {
+		const k = (e: KeyboardEvent) => {
+			if (e.key === "ArrowLeft")
+				setSel((i) => (i - 1 + genders.length) % genders.length);
+			else if (e.key === "ArrowRight")
+				setSel((i) => (i + 1) % genders.length);
+			else if (e.key === "Enter" || e.key === " ") confirm();
+		};
+		window.addEventListener("keydown", k);
+		return () => window.removeEventListener("keydown", k);
+	}, [sel, confirm]);
 
 	return (
 		<div style={{ position: "absolute", inset: 0 }}>
@@ -488,13 +496,11 @@ export function GenderScene({
 			<div
 				style={{
 					position: "absolute",
-					right: 14,
-					top: 40,
-					bottom: 70,
+					right: 16,
+					top: 52,
 					display: "flex",
-					flexDirection: "column",
-					gap: 6,
-					width: 110,
+					flexDirection: "row",
+					gap: 8,
 				}}
 			>
 				{genders.map((g, i) => (
@@ -506,7 +512,7 @@ export function GenderScene({
 						}}
 						onMouseEnter={() => setSel(i)}
 						style={{
-							flex: 1,
+							width: 60,
 							background: i === sel ? g.color : "#f8f8f8",
 							color: i === sel ? "#f8f8f8" : "#282828",
 							border: `2px solid ${i === sel ? g.colorDark : "#282828"}`,
@@ -543,6 +549,11 @@ export function GenderScene({
 									height: 54,
 									imageRendering: "pixelated",
 									objectFit: "contain",
+									// "???" is an unknown trainer — render as a silhouette
+									filter:
+										g.id === "mystery"
+											? "brightness(0) opacity(0.85)"
+											: undefined,
 								}}
 							/>
 						</div>
@@ -581,9 +592,11 @@ const NAME_MAX = 7;
 export function NameScene({
 	kind,
 	onDone,
+	onBack,
 }: {
-	kind: "boy" | "girl";
+	kind: Gender;
 	onDone: (name: string) => void;
+	onBack?: () => void;
 }) {
 	const [name, setName] = useState("");
 	const inputRef = useCallback((el: HTMLInputElement | null) => {
@@ -598,7 +611,9 @@ export function NameScene({
 	};
 
 	const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const val = e.target.value.replace(/[^A-Za-z0-9.\-]/g, "").slice(0, NAME_MAX);
+		const val = e.target.value
+			.replace(/[^A-Za-z0-9.-]/g, "")
+			.slice(0, NAME_MAX);
 		setName(val);
 	};
 
@@ -606,6 +621,9 @@ export function NameScene({
 		if (e.key === "Enter") {
 			e.preventDefault();
 			finish();
+		} else if (e.key === "Escape" && onBack) {
+			e.preventDefault();
+			onBack();
 		}
 	};
 
@@ -651,13 +669,18 @@ export function NameScene({
 				}}
 			>
 				<img
-					src={getTrainerSpritePath(getFallbackTrainerSprite(kind))}
+					src={getTrainerSpritePath(resolveTrainerSprite(name, kind))}
 					alt="Trainer"
 					style={{
 						width: 48,
 						height: 60,
 						imageRendering: "pixelated",
 						objectFit: "contain",
+						// Unknown "???" trainer with no custom portrait → silhouette
+						filter:
+							kind === "mystery" && !hasCustomTrainerSprite(name)
+								? "brightness(0) opacity(0.85)"
+								: undefined,
 					}}
 				/>
 				<div
@@ -798,6 +821,11 @@ export function NameScene({
 					justifyContent: "center",
 				}}
 			>
+				{onBack && (
+					<IntroButton onClick={onBack} variant="default">
+						◀ BACK
+					</IntroButton>
+				)}
 				<IntroButton
 					onClick={finish}
 					variant="yellow"
@@ -820,7 +848,7 @@ export function ConfirmNameScene({
 	onDone,
 }: {
 	name: string;
-	kind: "boy" | "girl";
+	kind: Gender;
 	onDone: () => void;
 }) {
 	const [step, setStep] = useState(0);
@@ -888,13 +916,18 @@ export function ConfirmNameScene({
 					}}
 				>
 					<img
-						src={getTrainerSpritePath(getFallbackTrainerSprite(kind))}
+						src={getTrainerSpritePath(resolveTrainerSprite(name, kind))}
 						alt="Trainer"
 						style={{
 							width: 56,
 							height: 72,
 							imageRendering: "pixelated",
 							objectFit: "contain",
+							// Unknown "???" trainer with no custom portrait → silhouette
+							filter:
+								kind === "mystery" && !hasCustomTrainerSprite(name)
+									? "brightness(0) opacity(0.85)"
+									: undefined,
 						}}
 					/>
 				</div>
@@ -997,13 +1030,16 @@ export function StarterIntroScene({
 }) {
 	const [step, setStep] = useState(0);
 	const lines: [string, string][] = [
-		[`Now, ${name}, listen carefully.`, "In this world, drinks call PUBMON."],
-		["Each drink draws out a different", "type of pubmon to battle alongside."],
+		[
+			`Now, ${name}, listen carefully.`,
+			"In this world, drinks contain PUBMON.",
+		],
+		["Each one draws out a different", "type of pubmon to battle alongside."],
 		[
 			"Tradition says every new trainer",
 			"picks a STARTER pubmon as a partner.",
 		],
-		["I have FIVE pokeballs here.", "Choose your first companion!"],
+		["So, go order a drink!", "Choose your first companion!"],
 	];
 
 	const advance = useCallback(() => {
