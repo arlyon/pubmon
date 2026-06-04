@@ -284,6 +284,25 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 		}
 	}, []);
 
+	// Pause BGM when the tab is hidden, resume when it returns
+	useEffect(() => {
+		const wasPlayingRef = { current: false };
+		const handleVisibilityChange = () => {
+			if (document.hidden) {
+				if (bgmRef.current?.playing()) {
+					wasPlayingRef.current = true;
+					bgmRef.current.pause();
+				}
+			} else if (wasPlayingRef.current) {
+				wasPlayingRef.current = false;
+				bgmRef.current?.play();
+			}
+		};
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		return () =>
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+	}, []);
+
 	// Pre-load intro + battle audio on mount
 	useEffect(() => {
 		preloadTrack("title-screen");
