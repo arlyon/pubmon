@@ -99,69 +99,100 @@ function RunScreen({
 
 	return (
 		<div
-			className="w-full flex flex-col items-center gap-gba-[12] px-gba-[14] py-gba-[20]"
+			className="w-full flex flex-col items-center gap-gba-[12] px-gba-[14] py-gba-[16]"
 			style={{ background: "#262b44", minHeight: "100%" }}
 		>
-			{/* Receipt card */}
+			{/* Banner */}
+			<div
+				className="w-full text-center border-gba-[1] border-foreground px-gba-[10] py-gba-[10]"
+				style={{
+					background: "#1b2a4a",
+					boxShadow:
+						"inset 2px 2px 0 rgba(255,255,255,0.12), inset -2px -2px 0 rgba(0,0,0,0.5), 3px 3px 0 0 rgba(0,0,0,0.4)",
+					animation: "battle-fade-up 0.35s ease-out both",
+				}}
+			>
+				<div className="font-sans font-palette-white text-gba-[7] mb-gba-[5] opacity-80">
+					─────　ESCAPED　─────
+				</div>
+				<div
+					className="font-sans font-palette-yellow text-gba-[16]"
+					style={{ letterSpacing: 1.5, textShadow: "2px 2px 0 #1a1c2c" }}
+				>
+					GOT AWAY SAFELY!
+				</div>
+			</div>
+
+			{/* Receipt / tab summary */}
 			<div
 				className="w-full relative"
 				style={{
 					background: "#f8f8f8",
-					color: "#282828",
 					border: "3px solid #181010",
-					padding: "10px 12px",
-					fontFamily: "inherit",
+					padding: "10px 12px 20px",
 					boxShadow: "2px 2px 0 0 rgba(0,0,0,0.4)",
-					paddingBottom: 20,
+					animation: "battle-fade-up 0.4s ease-out both",
 				}}
 			>
 				<div
-					className=" text-gba-[9] text-center pb-gba-[6] mb-gba-[8]"
+					className="font-sans font-palette-default text-gba-[9] text-center pb-gba-[6] mb-gba-[8]"
 					style={{ borderBottom: "2px dashed #282828" }}
 				>
 					THE LEAKY TAP
-					<br />
-					<span className=" text-gba-[7]" style={{ color: "#586878" }}>
+					<div className="font-sans font-palette-default text-gba-[7] opacity-60 mt-gba-[2]">
 						— TAB SUMMARY —
-					</span>
+					</div>
 				</div>
 
-				<div>
-					<div
-						className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
-						style={{ borderBottom: "1px dashed #c8c8c8" }}
-					>
-						<span className=" text-gba-[8]" style={{ color: "#586878" }}>
-							OPPONENT
-						</span>
-						<span className=" text-gba-[8]">
-							{ranFromPubmon.name.toUpperCase()}
-						</span>
+				{/* Opponent fled from */}
+				<div
+					className="flex items-center gap-gba-[8] pb-gba-[6] mb-gba-[4]"
+					style={{ borderBottom: "1px dashed #c8c8c8" }}
+				>
+					<div className="w-gba-[36] h-gba-[36] flex items-center justify-center bg-secondary border-gba-[1] border-foreground shrink-0">
+						<PixelSprite
+							name={ranFromPubmon.sprite}
+							variant={ranFromPubmon.spriteVariant ?? 1}
+							size={30}
+						/>
 					</div>
-					<div
-						className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
-						style={{ borderBottom: "1px dashed #c8c8c8" }}
-					>
-						<span className=" text-gba-[8]" style={{ color: "#586878" }}>
-							TURNS
-						</span>
-						<span className=" text-gba-[8]">{ranBattleTurns}</span>
-					</div>
-					{hpTaken !== null && (
-						<div
-							className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
-							style={{ borderBottom: "1px dashed #c8c8c8" }}
-						>
-							<span className=" text-gba-[8]" style={{ color: "#586878" }}>
-								HP TAKEN
-							</span>
-							<span className=" text-gba-[8]">{hpTaken}</span>
+					<div className="flex-1 min-w-0">
+						<div className="font-sans font-palette-default text-gba-[7] opacity-60">
+							FLED FROM
 						</div>
-					)}
+						<div className="font-sans font-palette-default text-gba-[9] truncate">
+							{ranFromPubmon.name.toUpperCase()}
+						</div>
+					</div>
 				</div>
 
 				<div
-					className="mt-gba-[8] p-gba-[6] text-center  text-gba-[8]"
+					className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
+					style={{ borderBottom: "1px dashed #c8c8c8" }}
+				>
+					<span className="font-sans font-palette-default text-gba-[8] opacity-60">
+						TURNS
+					</span>
+					<span className="font-sans font-palette-default text-gba-[8]">
+						{ranBattleTurns}
+					</span>
+				</div>
+				{hpTaken !== null && (
+					<div
+						className="flex justify-between items-baseline py-gba-[4] px-gba-[2]"
+						style={{ borderBottom: "1px dashed #c8c8c8" }}
+					>
+						<span className="font-sans font-palette-default text-gba-[8] opacity-60">
+							HP TAKEN
+						</span>
+						<span className="font-sans font-palette-default text-gba-[8]">
+							{hpTaken}
+						</span>
+					</div>
+				)}
+
+				<div
+					className="mt-gba-[8] p-gba-[6] text-center font-sans font-palette-default text-gba-[8]"
 					style={{ border: "2px solid #282828", background: "#f0e0a0" }}
 				>
 					STATUS: TAB DODGED ✗
@@ -181,22 +212,13 @@ function RunScreen({
 				/>
 			</div>
 
-			<p
-				className=" text-gba-[10] text-center"
-				style={{ color: "#f8d030", lineHeight: 1.6 }}
-			>
-				GOT AWAY SAFELY!
-			</p>
-			<p
-				className=" text-gba-[7] text-center"
-				style={{ color: "#a8b0b8", lineHeight: 1.7 }}
-			>
+			<div className="font-sans font-palette-muted text-gba-[8] text-center leading-relaxed px-gba-[6]">
 				Slipped out the back before
 				<br />
 				the bouncer could clock you.
-			</p>
+			</div>
 
-			<PixelButton variant="default" onClick={onContinue} className="w-full">
+			<PixelButton variant="primary" onClick={onContinue} className="w-full">
 				BACK TO CRAWL
 			</PixelButton>
 		</div>

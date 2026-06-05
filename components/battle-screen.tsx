@@ -89,6 +89,7 @@ export function BattleScreen({
 		playerPokemon,
 		createEngine,
 		onCatchSuccess: onCatch,
+		onCatchFailure: () => setShowCatchAnim(false),
 		onRunSuccess: onRun,
 	});
 

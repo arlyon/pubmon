@@ -24,6 +24,9 @@ function identSide(ident: string | undefined): "p1" | "p2" | null {
 const otherSide = (side: "p1" | "p2"): "p1" | "p2" =>
 	side === "p1" ? "p2" : "p1";
 
+/** How long the thrown pokeball wobbles before the catch result is revealed. */
+const CATCH_WOBBLE_MS = 1500;
+
 export type BattleMenu = "main" | "fight" | "message";
 
 export interface MoveSlot {
@@ -62,6 +65,7 @@ interface UseBattleProps {
 	 */
 	createEngine?: () => BattleEngine;
 	onCatchSuccess?: () => void; // Called when catch succeeds in sim
+	onCatchFailure?: () => void; // Called when catch fails (ball breaks open)
 	onRunSuccess?: () => void; // Called when run succeeds in sim
 }
 
@@ -70,6 +74,7 @@ export function useBattle({
 	playerPokemon,
 	createEngine,
 	onCatchSuccess,
+	onCatchFailure,
 	onRunSuccess,
 }: UseBattleProps) {
 	const [menu, setMenu] = useState<BattleMenu>("main");
@@ -606,19 +611,25 @@ export function useBattle({
 
 				// --- Catch / Run handling (native, not via |win|/|tie|) ---
 
-				// Catch success: shake3 means the pokeball held
+				// Catch success: shake3 means the pokeball held. Delay the result so
+				// the thrown pokeball gets time to wobble on screen before we
+				// declare the catch and leave the battle.
 				if (line.startsWith("|-activate|") && line.includes("shake3")) {
 					messageQueueRef.current.push({
 						text: "Gotcha! The PubMon was caught!",
+						delay: CATCH_WOBBLE_MS,
 						onDisplay: () => onCatchSuccess?.(),
 					});
 					continue;
 				}
-				// Catch failure: shake1 means it broke free
+				// Catch failure: shake1 means it broke free. Same wobble delay, then
+				// pop the ball open (onCatchFailure) so the wild sprite returns.
 				if (line.startsWith("|-activate|") && line.includes("shake1")) {
 					lastMoveUsedRef.current = null; // Reset so faint/win aren't suppressed
 					messageQueueRef.current.push({
 						text: "Oh no! The PubMon broke free!",
+						delay: CATCH_WOBBLE_MS,
+						onDisplay: () => onCatchFailure?.(),
 					});
 					continue;
 				}
