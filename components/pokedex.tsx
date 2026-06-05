@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
-import { PixelBox } from "./pixel-box";
 import PixelHeader from "./pixel/PixelHeader";
+import { PixelBox } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { PubMonDetailPanel } from "./pubmon-detail";
 
@@ -223,6 +223,7 @@ export function Pokedex({ seenIds, caughtIds, showHeader }: PokedexProps) {
 					<PubMonDetailPanel
 						mon={selected}
 						onCry={() => playPokemonCry(selected.id)}
+						description={isCaught ? selected.description : undefined}
 						stats={
 							isCaught
 								? [
@@ -234,27 +235,22 @@ export function Pokedex({ seenIds, caughtIds, showHeader }: PokedexProps) {
 								: undefined
 						}
 					>
-						<div className="flex items-center gap-gba-[4] mt-gba-[2]">
+						<div className="flex items-center gap-gba-[4]">
 							{isCaught ? (
-								<div className="flex items-center gap-gba-[2]">
-									<div className="size-gba-[6]">
+								<div className="flex items-center gap-gba-[3]">
+									<div className="size-gba-[8]">
 										<PubBallIcon caught />
 									</div>
-									<span className="font-sans font-palette-yellow text-gba-[5]">
+									<span className="font-sans font-palette-yellow text-gba-[7]">
 										CAUGHT
 									</span>
 								</div>
 							) : (
-								<span className="font-sans font-palette-muted text-gba-[5]">
+								<span className="font-sans font-palette-muted text-gba-[7]">
 									NOT CAUGHT
 								</span>
 							)}
 						</div>
-						{isCaught && (
-							<p className="font-sans font-palette-blue text-gba-[5] leading-tight mt-gba-[2]">
-								{selected.description}
-							</p>
-						)}
 					</PubMonDetailPanel>
 				</div>
 			)}

@@ -163,6 +163,7 @@ export function TeamManagement({
 					<PubMonDetailPanel
 						mon={selected}
 						onCry={() => playPokemonCry(selected.id)}
+						description={selected.description}
 						stats={[
 							{ label: "HP", value: selected.maxHp },
 							{ label: "ATK", value: selected.attack },
@@ -173,8 +174,9 @@ export function TeamManagement({
 							<>
 								{selectedIdx !== activeIndex && (
 									<button
+										type="button"
 										onClick={() => onSetActive(selectedIdx)}
-										className="mt-gba-[4] w-full px-gba-[4] py-gba-[2] font-sans font-palette-blue text-gba-[6] border-gba-[2] border-pixel-white bg-pixel-blue-dark hover:bg-pixel-yellow hover:font-palette-default hover:border-pixel-black cursor-pointer transition-colors"
+										className="w-full px-gba-[4] py-gba-[4] font-sans font-palette-blue text-gba-[8] border-[2px] border-pixel-white bg-pixel-blue-dark hover:bg-pixel-yellow hover:font-palette-default hover:border-pixel-black cursor-pointer transition-colors"
 									>
 										SET AS LEAD
 									</button>
@@ -182,14 +184,11 @@ export function TeamManagement({
 							</>
 						}
 					>
-						<div className="flex items-center gap-gba-[4] mt-gba-[2]">
-							<span className="font-sans font-palette-muted text-gba-[5]">
+						<div className="flex items-center gap-gba-[4]">
+							<span className="font-sans font-palette-muted text-gba-[7]">
 								LV {selected.level}
 							</span>
 						</div>
-						<p className="font-sans font-palette-blue text-gba-[5] leading-tight mt-gba-[2]">
-							{selected.description}
-						</p>
 					</PubMonDetailPanel>
 				</div>
 			)}
