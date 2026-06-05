@@ -4,6 +4,7 @@ import React, {
 	useCallback,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import { useBattle } from "@/hooks/use-battle";
@@ -30,6 +31,8 @@ interface BattleScreenProps {
 
 const SLIDE_FRAMES = 80;
 const FRAME_MS = 16;
+// Pokeball throw arc (~0.45s) + three wobbles (~1.2s) before the result shows.
+const CATCH_ANIM_MS = 1650;
 
 export function BattleScreen({
 	wildPokemon,
@@ -88,8 +91,15 @@ export function BattleScreen({
 		wildPokemon,
 		playerPokemon,
 		createEngine,
-		onCatchSuccess: onCatch,
-		onCatchFailure: () => setShowCatchAnim(false),
+		// The sim resolves the catch synchronously; we only RECORD the outcome
+		// here. The throw/shake/flash animation in handleCatch decides when to
+		// actually navigate (success) or pop the ball open (failure).
+		onCatchSuccess: () => {
+			catchOutcomeRef.current = "success";
+		},
+		onCatchFailure: () => {
+			catchOutcomeRef.current = "fail";
+		},
 		onRunSuccess: onRun,
 	});
 
@@ -98,6 +108,10 @@ export function BattleScreen({
 	const [slideFrame, setSlideFrame] = useState(0);
 	const [showMenu, setShowMenu] = useState(false);
 	const [showCatchAnim, setShowCatchAnim] = useState(false);
+	const [catchFlash, setCatchFlash] = useState(false);
+	// Outcome recorded by the sim during a catch attempt; read after the wobble.
+	const catchOutcomeRef = useRef<"success" | "fail" | null>(null);
+	const catchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Pick a scene once per battle based on both pokemon types. Seed it with a
 	// stable key (battleId for P2P, else the wild mon) so both clients in a
@@ -124,6 +138,7 @@ export function BattleScreen({
 	useEffect(() => {
 		if (enemyAttacking || battleEnded) {
 			setShowCatchAnim(false);
+			setCatchFlash(false);
 		}
 	}, [enemyAttacking, battleEnded]);
 
@@ -225,9 +240,44 @@ export function BattleScreen({
 			return;
 		}
 
+		// Orchestrate the catch: throw the ball + wobble (CATCH_ANIM_MS), THEN
+		// resolve the attempt in the sim. We delay the *action*, not the messages,
+		// so the animation always plays before the outcome is revealed.
+		catchOutcomeRef.current = null;
+		setIsAnimating(true);
+		setMenu("message"); // hide the action menu during the throw
 		setShowCatchAnim(true);
-		handleAttack(catchMoveIndex);
-	}, [battleMode, denyAction, isAnimating, protocolRequest, handleAttack]);
+
+		if (catchTimerRef.current) clearTimeout(catchTimerRef.current);
+		catchTimerRef.current = setTimeout(() => {
+			handleAttack(catchMoveIndex); // resolves synchronously → sets catchOutcomeRef
+			if (catchOutcomeRef.current === "success") {
+				// Flash the locked ball, then hand off to the "caught" celebration.
+				setMenu("message");
+				setCatchFlash(true);
+				catchTimerRef.current = setTimeout(() => onCatch(), 450);
+			} else {
+				// Ball bursts open — the wild sprite returns and "broke free" shows.
+				setShowCatchAnim(false);
+			}
+		}, CATCH_ANIM_MS);
+	}, [
+		battleMode,
+		denyAction,
+		isAnimating,
+		protocolRequest,
+		handleAttack,
+		onCatch,
+		setIsAnimating,
+		setMenu,
+	]);
+
+	// Clean up a pending catch timer on unmount.
+	useEffect(() => {
+		return () => {
+			if (catchTimerRef.current) clearTimeout(catchTimerRef.current);
+		};
+	}, []);
 
 	const introComplete = slideFrame >= SLIDE_FRAMES && showMenu;
 
@@ -280,6 +330,7 @@ export function BattleScreen({
 			introComplete={introComplete}
 			slideProgress={Math.min(1, slideFrame / SLIDE_FRAMES)}
 			showCatchAnim={showCatchAnim}
+			catchFlash={catchFlash}
 			moves={moves}
 			battleLog={battleLog}
 			SceneBg={SceneBg}

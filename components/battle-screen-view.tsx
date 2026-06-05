@@ -48,8 +48,10 @@ export interface BattleScreenViewProps {
 	introComplete?: boolean;
 	/** Entrance slide progress, 0 (off-screen) → 1 (in place). */
 	slideProgress?: number;
-	/** Whether to show the catch animation */
+	/** Whether to show the catch animation (thrown pokeball) */
 	showCatchAnim?: boolean;
+	/** Whether the ball just locked a successful catch (flash) */
+	catchFlash?: boolean;
 	/** Available moves for fight menu */
 	moves?: MoveInfo[];
 	/** Battle log entries */
@@ -99,6 +101,7 @@ export function BattleScreenView({
 	introComplete = true,
 	slideProgress = 1,
 	showCatchAnim = false,
+	catchFlash = false,
 	moves = [],
 	battleLog = [],
 	SceneBg = DefaultSceneBg,
@@ -187,16 +190,33 @@ export function BattleScreenView({
 					}}
 				>
 					{showCatchAnim ? (
-						<img
-							src="/sprites/POKEBALL.png"
-							alt="Pokeball"
-							width={60}
-							height={60}
-							style={{
-								imageRendering: "pixelated",
-								animation: "pokeball-shake 0.6s steps(3, end) infinite",
-							}}
-						/>
+						<div className="relative">
+							<img
+								src="/sprites/POKEBALL.png"
+								alt="Pokeball"
+								width={60}
+								height={60}
+								style={{
+									imageRendering: "pixelated",
+									// Arc the throw in, then wobble three times.
+									animation: catchFlash
+										? undefined
+										: "pokeball-throw 0.45s ease-out, pokeball-shake 0.4s steps(3, end) 0.45s 3",
+									filter: catchFlash ? "brightness(2.4)" : undefined,
+								}}
+							/>
+							{/* Capture flash on a successful lock */}
+							{catchFlash && (
+								<div
+									className="absolute inset-0 pointer-events-none"
+									style={{
+										background:
+											"radial-gradient(circle, #fff 0%, rgba(255,255,255,0.6) 40%, transparent 70%)",
+										animation: "catch-flash 0.45s ease-out forwards",
+									}}
+								/>
+							)}
+						</div>
 					) : (
 						<>
 							<div
