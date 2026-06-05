@@ -412,8 +412,8 @@ export function IntroProfessor({
 			}}
 		>
 			<img
-				src="/sprites/pubtrainers/profbarley.png"
-				alt="Professor Barley"
+				src="/sprites/pubtrainers/alex.png"
+				alt="Alex"
 				style={{
 					width: "100%",
 					height: "100%",

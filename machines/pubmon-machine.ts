@@ -429,6 +429,18 @@ export const pubmonMachine = setup({
 				}
 				return "collection";
 			},
+			// Returning to the collection phase means the tournament was reset:
+			// drop any stale bracket / active battle so the client is fully clean.
+			tournamentState: ({ context, event }) => {
+				if (event.type === "GYM_UPDATE" && event.gamePhase === "collection") {
+					return {
+						...context.tournamentState,
+						bracket: null,
+						activeBattle: null,
+					};
+				}
+				return context.tournamentState;
+			},
 		}),
 
 		updateTournamentBracket: assign({

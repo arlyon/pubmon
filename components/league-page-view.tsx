@@ -1,9 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { GYMS } from "@/lib/gym-data";
+import {
+	type Gender,
+	getTrainerSpritePath,
+	resolveTrainerSprite,
+} from "@/lib/trainer-sprites";
 import { PixelButton } from "./pixel-box";
 import PixelHeader from "./pixel/PixelHeader";
-import PixelHPBar from "./pixel/PixelHPBar";
 
 // ============================================================================
 // TYPES
@@ -60,6 +65,12 @@ export interface TournamentFeedViewProps {
 	completedMatches: TournamentMatchView[];
 	roundLabel: string;
 	onBack: () => void;
+	/** Current player's name — used to flag their own live match. */
+	playerName?: string;
+	/** Whether the player can jump into their live match right now. */
+	canJoin?: boolean;
+	/** Jump straight into the player's live tournament match. */
+	onJoinMatch?: () => void;
 }
 
 export interface CeremonyPodiumViewProps {
@@ -76,7 +87,7 @@ export interface CeremonyPodiumViewProps {
 // SHARED HELPERS
 // ============================================================================
 
-function BadgeDots({ count, total = 8 }: { count: number; total?: number }) {
+function BadgeDots({ count, total = GYMS.length }: { count: number; total?: number }) {
 	return (
 		<span className="inline-flex gap-[1px]">
 			{Array.from({ length: total }).map((_, i) => (
@@ -88,6 +99,61 @@ function BadgeDots({ count, total = 8 }: { count: number; total?: number }) {
 				/>
 			))}
 		</span>
+	);
+}
+
+/**
+ * Renders text on a single line, auto-scrolling horizontally (ping-pong) only
+ * when the content is wider than its container. Prevents leaderboard names from
+ * being cropped while keeping short names static.
+ */
+function MarqueeText({
+	children,
+	className,
+}: {
+	children: React.ReactNode;
+	className?: string;
+}) {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const contentRef = useRef<HTMLSpanElement>(null);
+	const [overflow, setOverflow] = useState(0);
+
+	useEffect(() => {
+		const measure = () => {
+			const c = containerRef.current;
+			const t = contentRef.current;
+			if (!c || !t) return;
+			setOverflow(Math.max(0, t.scrollWidth - c.clientWidth));
+		};
+		measure();
+		const ro = new ResizeObserver(measure);
+		if (containerRef.current) ro.observe(containerRef.current);
+		if (contentRef.current) ro.observe(contentRef.current);
+		return () => ro.disconnect();
+	}, [children]);
+
+	const scrolling = overflow > 0;
+	// Pace the scroll by distance so long names don't whip past.
+	const duration = Math.max(2, overflow / 12 + 1.5);
+
+	return (
+		<div ref={containerRef} className={`overflow-hidden ${className ?? ""}`}>
+			<span
+				ref={contentRef}
+				className="inline-block whitespace-nowrap"
+				style={
+					scrolling
+						? {
+								animation: `lb-marquee ${duration}s ease-in-out infinite alternate`,
+								// expose the scroll distance to the keyframe
+								["--lb-shift" as string]: `-${overflow}px`,
+							}
+						: undefined
+				}
+			>
+				{children}
+			</span>
+		</div>
 	);
 }
 
@@ -188,25 +254,24 @@ function PlayerAvatar({
 	highlight?: boolean;
 }) {
 	const s = AVATAR[size];
+	// `sprite` carries the player's gender ("boy"/"girl"/"mystery"), not a path.
+	// Resolve it (plus any custom name portrait) the same way every other page
+	// does via the shared trainer-sprite helpers.
+	const gender: Gender =
+		sprite === "girl" ? "girl" : sprite === "mystery" ? "mystery" : "boy";
+	const spritePath = getTrainerSpritePath(resolveTrainerSprite(name, gender));
 	return (
 		<div
-			className={`bg-[#d0e8f0] border-[3px] border-pixel-black flex items-end justify-center overflow-hidden shrink-0 ${s.outer} ${
+			className={`bg-[#d0e8f0] border-[3px] border-pixel-black flex items-start justify-center overflow-hidden shrink-0 ${s.outer} ${
 				highlight ? "shadow-[0_0_0_2px_#f8d030]" : ""
 			}`}
 		>
-			{sprite ? (
-				<img
-					src={sprite}
-					alt={name}
-					className={`pixel-perfect ${s.inner}`}
-				/>
-			) : (
-				<span
-					className={`font-heading text-pixel-black flex items-center justify-center w-full h-full ${s.text}`}
-				>
-					{name.slice(0, 2)}
-				</span>
-			)}
+			<img
+				src={spritePath}
+				alt={name}
+				className="pixel-perfect w-full"
+				style={{ imageRendering: "pixelated" }}
+			/>
 		</div>
 	);
 }
@@ -381,21 +446,25 @@ export function LeaguePageView({
 			<div className="flex-1 overflow-y-auto pixel-scroll bg-pixel-gray-light">
 				{/* Info strip */}
 				<div
-					className="font-heading text-gba-[7] flex justify-between px-gba-[8] py-gba-[5]"
-					style={{ background: "#101828", color: "#78b8f0" }}
+					className="font-sans font-palette-blue text-gba-[8] flex justify-between px-gba-[8] py-gba-[5]"
+					style={{ background: "#101828" }}
 				>
 					<span>
 						RANKS {hasPodium ? "4" : "1"}–{sorted.length}
 					</span>
-					<span>{concluded ? "TOURNAMENT OVER" : "QUAL: TOP 8"}</span>
+					<span>
+						{concluded
+							? "TOURNAMENT OVER"
+							: `${sorted.length} TRAINER${sorted.length === 1 ? "" : "S"}`}
+					</span>
 				</div>
 
 				{/* Tournament opt-in strip — hidden once the tournament has
 				    concluded and the hall of fame is live. */}
 				{concluded ? (
 					<div
-						className="w-full flex items-center justify-center font-heading text-gba-[7] px-gba-[8] py-gba-[6] border-b-[2px] border-pixel-black"
-						style={{ background: "#282828", color: "#f8d858" }}
+						className="w-full flex items-center justify-center font-sans font-palette-yellow text-gba-[8] px-gba-[8] py-gba-[6] border-b-[2px] border-pixel-black"
+						style={{ background: "#282828" }}
 					>
 						★ CHAMPIONS CROWNED — SEE HALL OF FAME
 					</div>
@@ -403,11 +472,10 @@ export function LeaguePageView({
 					<button
 						type="button"
 						onClick={onToggleOptIn}
-						className="w-full flex items-center justify-between font-heading text-gba-[7] px-gba-[8] py-gba-[6] border-b-[2px] border-pixel-black"
-						style={{
-							background: optedIn ? "#50b058" : "#fff",
-							color: optedIn ? "#fff" : "#282828",
-						}}
+						className={`w-full flex items-center justify-between font-sans text-gba-[8] px-gba-[8] py-gba-[6] border-b-[2px] border-pixel-black ${
+							optedIn ? "font-palette-white" : "font-palette-default"
+						}`}
+						style={{ background: optedIn ? "#50b058" : "#fff" }}
 					>
 						<span>
 							{optedIn
@@ -415,11 +483,8 @@ export function LeaguePageView({
 								: "TAP TO JOIN TOURNAMENT"}
 						</span>
 						<span
-							className="text-gba-[7] px-gba-[6] py-gba-[2] border-[2px] border-pixel-black"
-							style={{
-								background: optedIn ? "#fff" : "#d8e0e8",
-								color: optedIn ? "#50b058" : "#686868",
-							}}
+							className="font-palette-default text-gba-[7] px-gba-[6] py-gba-[2] border-[2px] border-pixel-black"
+							style={{ background: optedIn ? "#fff" : "#d8e0e8" }}
 						>
 							{optedIn ? "ON" : "OFF"}
 						</span>
@@ -429,26 +494,18 @@ export function LeaguePageView({
 				{(hasPodium ? rest : sorted).map((entry, i) => {
 					const rank = (hasPodium ? 4 : 1) + i;
 					const isYou = entry.name === playerName;
-					const qualified = rank <= 8;
 					const wr = winRate(entry);
 
 					return (
 						<div
 							key={entry.name}
-							className="flex items-center font-heading gap-gba-[6] px-gba-[8] py-gba-[4]"
+							className="flex items-center gap-gba-[6] px-gba-[8] py-gba-[4]"
 							style={{
-								borderBottom:
-									rank === 8
-										? "2px dashed #d03838"
-										: "1px solid rgba(168,176,184,0.5)",
-								background: isYou
-									? "#fff"
-									: qualified
-										? "rgba(80,176,88,0.1)"
-										: "transparent",
+								borderBottom: "1px solid rgba(168,176,184,0.5)",
+								background: isYou ? "#fff" : "transparent",
 							}}
 						>
-							<span className="w-gba-[20] shrink-0 text-gba-[9] text-[#686868]">
+							<span className="w-gba-[20] shrink-0 font-sans font-palette-muted text-gba-[10] text-center">
 								{rank}
 							</span>
 							<div className="shrink-0">
@@ -458,16 +515,19 @@ export function LeaguePageView({
 									size={22}
 								/>
 							</div>
-							<div className="flex-1 min-w-0 text-gba-[8]">
-								<div className="text-pixel-black truncate">
+							<div className="flex-1 min-w-0">
+								<MarqueeText className="font-sans font-palette-default text-gba-[9] leading-none">
 									{entry.name}
 									{isYou && (
-										<span className="text-pixel-blue text-gba-[6] ml-gba-[4]">
-											(YOU)
+										<span
+											className="font-palette-blue text-gba-[6] px-gba-[3] py-px ml-gba-[3]"
+											style={{ background: "#305098" }}
+										>
+											YOU
 										</span>
 									)}
-								</div>
-								<div className="text-gba-[6] text-[#686868] flex items-center gap-gba-[4] mt-gba-[2]">
+								</MarqueeText>
+								<div className="font-sans font-palette-muted text-gba-[7] flex items-center gap-gba-[4] mt-gba-[2] leading-none">
 									{entry.battlesWon}W·
 									{entry.totalBattles - entry.battlesWon}L
 								</div>
@@ -475,24 +535,15 @@ export function LeaguePageView({
 							<div className="shrink-0">
 								<BadgeDots count={entry.badges.length} />
 							</div>
-							<span className="w-gba-[28] shrink-0 text-gba-[9] text-pixel-black text-right">
+							<span className="w-gba-[28] shrink-0 font-sans font-palette-default text-gba-[9] text-right">
 								{wr}%
 							</span>
 						</div>
 					);
 				})}
 
-				{/* Cut-line legend */}
-				{sorted.length > 8 && !concluded && (
-					<div className="font-heading text-center text-gba-[7] text-[#686868] p-gba-[8] leading-relaxed">
-						- - - QUALIFICATION CUT-LINE - - -
-						<br />
-						TOP 8 ENTER THE TOURNAMENT.
-					</div>
-				)}
-
 				{sorted.length === 0 && (
-					<div className="font-heading text-center text-gba-[8] text-[#686868] py-gba-[20] px-gba-[10]">
+					<div className="font-sans font-palette-muted text-center text-gba-[9] py-gba-[20] px-gba-[10]">
 						NO TRAINERS YET
 					</div>
 				)}
@@ -522,10 +573,11 @@ function RoundChip({
 		<button
 			type="button"
 			onClick={onClick}
-			className="shrink-0 font-heading text-left text-gba-[7] px-gba-[8] py-gba-[6] leading-tight"
+			className={`shrink-0 font-sans text-left text-gba-[8] px-gba-[8] py-gba-[6] leading-tight ${
+				active ? "font-palette-white" : "font-palette-default"
+			}`}
 			style={{
 				background: active ? color : "#fff",
-				color: active ? "#fff" : "#282828",
 				border: `2px solid ${active ? color : "#282828"}`,
 				boxShadow: active
 					? "inset 1px 1px 0 rgba(255,255,255,0.4), inset -1px -1px 0 rgba(0,0,0,0.3)"
@@ -539,9 +591,17 @@ function RoundChip({
 	);
 }
 
-function LiveBattleCard({ match }: { match: TournamentMatchView }) {
-	const hpMax = match.hpMax ?? 30;
-
+function LiveBattleCard({
+	match,
+	isMine = false,
+	canJoin = false,
+	onJoin,
+}: {
+	match: TournamentMatchView;
+	isMine?: boolean;
+	canJoin?: boolean;
+	onJoin?: () => void;
+}) {
 	return (
 		<div
 			className="relative flex flex-col p-gba-[8] gap-gba-[6] bg-pixel-white"
@@ -553,7 +613,7 @@ function LiveBattleCard({ match }: { match: TournamentMatchView }) {
 		>
 			{/* Live ribbon */}
 			<div
-				className="absolute font-heading text-gba-[7] text-pixel-white px-gba-[6] py-gba-[3] border-[2px] border-pixel-black"
+				className="absolute font-sans font-palette-white text-gba-[7] px-gba-[6] py-gba-[3] border-[2px] border-pixel-black"
 				style={{
 					top: -3,
 					left: -3,
@@ -567,24 +627,14 @@ function LiveBattleCard({ match }: { match: TournamentMatchView }) {
 
 			<div className="grid grid-cols-[1fr_auto_1fr] items-center gap-gba-[6]">
 				{/* Player A */}
-				<div className="flex flex-col items-center gap-gba-[3]">
+				<div className="flex flex-col items-center gap-gba-[4]">
 					<PlayerAvatar
 						name={match.playerA.name}
 						sprite={match.playerA.sprite}
 						size={42}
 					/>
-					<div className="font-heading text-gba-[8]">
+					<div className="font-sans font-palette-default text-gba-[9] text-center leading-none">
 						{match.playerA.name}
-					</div>
-					<div className="w-full">
-						<PixelHPBar
-							current={match.hpA ?? hpMax}
-							max={hpMax}
-							showNumbers={false}
-						/>
-					</div>
-					<div className="font-heading text-gba-[7]">
-						{match.scoreA} WIN
 					</div>
 				</div>
 
@@ -597,37 +647,44 @@ function LiveBattleCard({ match }: { match: TournamentMatchView }) {
 				</div>
 
 				{/* Player B */}
-				<div className="flex flex-col items-center gap-gba-[3]">
+				<div className="flex flex-col items-center gap-gba-[4]">
 					<PlayerAvatar
 						name={match.playerB.name}
 						sprite={match.playerB.sprite}
 						size={42}
 					/>
-					<div className="font-heading text-gba-[8]">
+					<div className="font-sans font-palette-default text-gba-[9] text-center leading-none">
 						{match.playerB.name}
-					</div>
-					<div className="w-full">
-						<PixelHPBar
-							current={match.hpB ?? hpMax}
-							max={hpMax}
-							showNumbers={false}
-						/>
-					</div>
-					<div className="font-heading text-gba-[7]">
-						{match.scoreB} WIN
 					</div>
 				</div>
 			</div>
 
 			{/* Info strip */}
 			<div
-				className="font-heading text-gba-[7] flex justify-between px-gba-[6] py-gba-[3]"
-				style={{ background: "#101828", color: "#78b8f0" }}
+				className="font-sans font-palette-blue text-gba-[7] flex justify-between px-gba-[6] py-gba-[3]"
+				style={{ background: "#101828" }}
 			>
-				<span>{match.round} · BO3</span>
+				<span>{match.round}</span>
 				<span>{match.label}</span>
-				<span>● FIGHTING</span>
+				<span>{isMine ? "● YOUR MATCH" : "● FIGHTING"}</span>
 			</div>
+
+			{/* Jump straight into your own live match */}
+			{isMine && canJoin && onJoin && (
+				<button
+					type="button"
+					onClick={onJoin}
+					className="w-full font-sans font-palette-white text-gba-[9] px-gba-[8] py-gba-[6] border-[2px] border-pixel-black"
+					style={{
+						background: "#d03838",
+						boxShadow:
+							"inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.3)",
+						animation: "pixel-blink 1.2s step-end infinite",
+					}}
+				>
+					▶ JOIN YOUR MATCH
+				</button>
+			)}
 		</div>
 	);
 }
@@ -637,17 +694,19 @@ function CompletedRow({ match }: { match: TournamentMatchView }) {
 
 	return (
 		<div
-			className="flex items-center bg-pixel-white font-heading gap-gba-[6] px-gba-[8] py-gba-[5]"
+			className="flex items-center bg-pixel-white gap-gba-[6] px-gba-[8] py-gba-[5]"
 			style={{ borderBottom: "1px solid #a8b0b8" }}
 		>
-			<span className="w-gba-[20] shrink-0 text-gba-[6] text-[#686868]">
+			<span className="w-gba-[20] shrink-0 font-sans font-palette-muted text-gba-[6]">
 				{match.round}
 			</span>
 			<div
-				className="flex-1 flex items-center justify-end gap-gba-[4]"
+				className="flex-1 flex items-center justify-end gap-gba-[4] min-w-0"
 				style={{ opacity: winA ? 1 : 0.5 }}
 			>
-				<span className="text-gba-[8]">{match.playerA.name}</span>
+				<span className="font-sans font-palette-default text-gba-[9] truncate">
+					{match.playerA.name}
+				</span>
 				<PlayerAvatar
 					name={match.playerA.name}
 					sprite={match.playerA.sprite}
@@ -655,13 +714,13 @@ function CompletedRow({ match }: { match: TournamentMatchView }) {
 				/>
 			</div>
 			<div
-				className="w-gba-[36] shrink-0 text-center text-gba-[8] text-pixel-yellow px-gba-[5] py-gba-[2]"
+				className="w-gba-[36] shrink-0 text-center font-sans font-palette-yellow text-gba-[8] px-gba-[5] py-gba-[2]"
 				style={{ background: "#282828" }}
 			>
 				{match.scoreA}-{match.scoreB}
 			</div>
 			<div
-				className="flex-1 flex items-center gap-gba-[4]"
+				className="flex-1 flex items-center gap-gba-[4] min-w-0"
 				style={{ opacity: winA ? 0.5 : 1 }}
 			>
 				<PlayerAvatar
@@ -669,11 +728,14 @@ function CompletedRow({ match }: { match: TournamentMatchView }) {
 					sprite={match.playerB.sprite}
 					size={20}
 				/>
-				<span className="text-gba-[8]">{match.playerB.name}</span>
+				<span className="font-sans font-palette-default text-gba-[9] truncate">
+					{match.playerB.name}
+				</span>
 			</div>
 			<span
-				className="text-gba-[8] shrink-0"
-				style={{ color: winA ? "#206020" : "#a02020" }}
+				className={`font-sans text-gba-[8] shrink-0 ${
+					winA ? "font-palette-green" : "font-palette-red"
+				}`}
 			>
 				{winA ? "←W" : "W→"}
 			</span>
@@ -685,9 +747,15 @@ export function TournamentFeedView({
 	liveMatches,
 	completedMatches,
 	roundLabel,
-	onBack,
+	playerName,
+	canJoin = false,
+	onJoinMatch,
 }: TournamentFeedViewProps) {
 	const [roundFilter, setRoundFilter] = useState("ALL");
+
+	const isMyMatch = (m: TournamentMatchView) =>
+		!!playerName &&
+		(m.playerA.name === playerName || m.playerB.name === playerName);
 
 	const rounds = useMemo(() => {
 		const seen = new Set<string>();
@@ -709,43 +777,11 @@ export function TournamentFeedView({
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			{/* Header */}
-			<div
-				className="font-heading flex justify-between items-center px-gba-[10] py-gba-[8] border-b-[3px] border-pixel-black"
-				style={{
-					background: "#d03838",
-					boxShadow:
-						"inset 2px 2px 0 rgba(255,255,255,0.25), inset -2px -2px 0 rgba(0,0,0,0.25)",
-				}}
-			>
-				<div className="flex items-center gap-gba-[8]">
-					<TrophyIcon size={20} fill="#f8d030" />
-					<div className="leading-relaxed">
-						<div className="text-gba-[10] text-pixel-white">
-							THE TOURNAMENT
-						</div>
-						<div className="text-gba-[7] text-pixel-white opacity-85">
-							{roundLabel}
-						</div>
-					</div>
-				</div>
-				<div className="flex items-center gap-gba-[8]">
-					{liveMatches.length > 0 && (
-						<span
-							className="font-heading text-gba-[7] text-pixel-red px-gba-[4] py-gba-[2] border-[2px] border-pixel-white"
-							style={{ background: "#fff" }}
-						>
-							● LIVE
-						</span>
-					)}
-					<button
-						type="button"
-						onClick={onBack}
-						className="font-heading text-gba-[7] text-pixel-white"
-					>
-						← BACK
-					</button>
-				</div>
-			</div>
+			<PixelHeader
+				title="THE TOURNAMENT"
+				subtitle={roundLabel}
+				variant="dark"
+			/>
 
 			{/* Live section */}
 			{liveMatches.length > 0 && (
@@ -754,16 +790,22 @@ export function TournamentFeedView({
 					style={{ background: "#fef0f0" }}
 				>
 					<div className="flex justify-between items-center">
-						<div className="font-heading text-gba-[9] text-[#a82828]">
+						<div className="font-sans font-palette-default text-gba-[9]">
 							● ACTIVE NOW
 						</div>
-						<div className="font-heading text-gba-[7] text-[#a82828]">
+						<div className="font-sans font-palette-default text-gba-[8]">
 							{liveMatches.length} BATTLE
 							{liveMatches.length !== 1 ? "S" : ""}
 						</div>
 					</div>
 					{liveMatches.map((m) => (
-						<LiveBattleCard key={m.id} match={m} />
+						<LiveBattleCard
+							key={m.id}
+							match={m}
+							isMine={isMyMatch(m)}
+							canJoin={canJoin}
+							onJoin={onJoinMatch}
+						/>
 					))}
 				</div>
 			)}
@@ -793,17 +835,15 @@ export function TournamentFeedView({
 
 			{/* Completed list */}
 			<div className="flex-1 overflow-y-auto pixel-scroll bg-pixel-white">
-				<div className="font-heading text-gba-[8] flex justify-between px-gba-[8] py-gba-[5] border-b-[2px] border-pixel-black bg-pixel-gray-light">
+				<div className="font-sans font-palette-default text-gba-[9] flex justify-between px-gba-[8] py-gba-[5] border-b-[2px] border-pixel-black bg-pixel-gray-light">
 					<span>COMPLETED</span>
-					<span className="text-[#686868]">
-						{filtered.length} MATCHES
-					</span>
+					<span className="font-palette-muted">{filtered.length} MATCHES</span>
 				</div>
 				{filtered.map((m) => (
 					<CompletedRow key={m.id} match={m} />
 				))}
 				{filtered.length === 0 && (
-					<div className="font-heading text-center text-gba-[8] text-[#686868] py-gba-[20] px-gba-[10]">
+					<div className="font-sans font-palette-muted text-center text-gba-[9] py-gba-[20] px-gba-[10]">
 						NO MATCHES YET
 					</div>
 				)}

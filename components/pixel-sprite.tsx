@@ -68,6 +68,7 @@ export function TypeBadge({ type }: { type: PubType }) {
 		wine: { label: "WINE", element: "FAIRY", bg: "bg-type-wine" },
 		water: { label: "WATER", element: "WATER", bg: "bg-type-water" },
 		cocktail: { label: "CKTL", element: "GRASS", bg: "bg-type-cocktail" },
+		food: { label: "FOOD", element: "ELECTRIC", bg: "bg-type-food" },
 	}[type];
 
 	return (

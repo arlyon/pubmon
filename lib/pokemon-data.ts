@@ -1,7 +1,13 @@
 import type { ModData } from "@pkmn/dex-types";
 import { Dex } from "@pkmn/sim";
 
-export type PubType = "beer" | "shot" | "wine" | "water" | "cocktail";
+export type PubType =
+	| "beer"
+	| "shot"
+	| "wine"
+	| "water"
+	| "cocktail"
+	| "food";
 
 export interface PubMon {
 	id: number;
@@ -54,6 +60,12 @@ export const TYPE_INFO: Record<
 		element: "Grass",
 		color: "#63c74d",
 		bgColor: "#1a3d14",
+	},
+	food: {
+		label: "Food",
+		element: "Electric",
+		color: "#f6d743",
+		bgColor: "#3d3414",
 	},
 };
 
@@ -312,6 +324,18 @@ export const MOVE_MAPPINGS: Record<string, string> = {
 	caffeinerush: "agility",
 	taurinetail: "slam",
 	blueraspburn: "ember",
+
+	// ==========================================
+	// FOOD (Electric / Fast)
+	// ==========================================
+	voltbite: "thunderbolt",
+	fizzshock: "thundershock",
+	staticpop: "thunderwave",
+	caffeinejolt: "quickattack",
+	energyslam: "bodyslam",
+	snacksmash: "tackle",
+	sherbetzap: "thunder",
+	gummiguard: "agility",
 };
 
 /**
@@ -339,6 +363,23 @@ export function getPubMonSprite(spriteId: string, variant: number = 1): string {
  */
 export function getMissingnoSprite(): string {
 	return "/sprites/pubmon/Missingno.png";
+}
+
+/** Normalize a species/name to the packed-team id form (lowercase alnum). */
+function normalizeSpecies(value: string): string {
+	return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/**
+ * Resolve a battle-protocol species string (e.g. "Mojitoad" or the packed
+ * "mojitoad") back to its PubMon definition. Used to render the correct
+ * opponent sprite/type in PvP battles, where the opponent's species is only
+ * known from the live battle stream.
+ */
+export function getPubMonBySpecies(species: string): PubMon | undefined {
+	if (!species) return undefined;
+	const target = normalizeSpecies(species);
+	return ALL_PUBMON.find((mon) => normalizeSpecies(mon.name) === target);
 }
 export const ALL_PUBMON: PubMon[] = [
 	// ==========================================
@@ -1421,6 +1462,68 @@ export const ALL_PUBMON: PubMon[] = [
 		visuals:
 			"a fakemon, a twitchy, serpentine eastern dragon bursting with blinding neon blue and bright red metallic scales. It vibrates constantly with chaotic, caffeinated energy, with electric-blue static popping around its jagged, metallic whiskers.",
 	},
+
+	// ==========================================
+	// FOOD (Electric) — wild-only, fast & frail
+	// NOTE: sprite ids are reused placeholders until dedicated art exists.
+	// ==========================================
+	{
+		id: 152,
+		name: "Voltbite",
+		type: "food",
+		hp: 38,
+		maxHp: 38,
+		level: 5,
+		xp: 0,
+		attack: 16,
+		defense: 7,
+		moves: ["Fizz Shock", "Caffeine Jolt", "Static Pop", "Snack Smash"],
+		sprite: "sagondroop",
+		spriteVariant: 1,
+		description:
+			"A jittery snack-sprite crackling with carbonated static. It never stops vibrating.",
+		visuals:
+			"a fakemon, a small round energy-drink creature with a glossy aluminium-can body, sparking with bright electric-yellow static. Fizzy bubbles and tiny lightning arcs crackle across its hyperactive, twitchy frame.",
+		cry: 25,
+	},
+	{
+		id: 153,
+		name: "Zappuccino",
+		type: "food",
+		hp: 44,
+		maxHp: 44,
+		level: 5,
+		xp: 0,
+		attack: 15,
+		defense: 9,
+		moves: ["Volt Bite", "Energy Slam", "Static Pop", "Gummi Guard"],
+		sprite: "martini",
+		spriteVariant: 5,
+		description:
+			"A frothy, caffeinated brute that runs on pure sugar and voltage. Wired and ready to brawl.",
+		visuals:
+			"a fakemon, a steaming paper-cup creature crowned with crackling electric foam. Warm coffee-brown tones clash with arcs of bright yellow current dancing across its jittery, over-caffeinated body.",
+		cry: 26,
+	},
+	{
+		id: 154,
+		name: "Crispark",
+		type: "food",
+		hp: 40,
+		maxHp: 40,
+		level: 5,
+		xp: 0,
+		attack: 18,
+		defense: 6,
+		moves: ["Volt Bite", "Sherbet Zap", "Fizz Shock", "Caffeine Jolt"],
+		sprite: "tequilar",
+		spriteVariant: 1,
+		description:
+			"A bag of static-charged crisps that shocks anything that reaches inside. Lightning-fast.",
+		visuals:
+			"a fakemon, a crinkled foil snack-bag creature bursting with golden crisps, each one snapping with tiny lightning. A bright electric-yellow palette and sharp crackling sparks give it a fast, frenetic energy.",
+		cry: 101,
+	},
 ];
 
 export function getRandomPubMon(type: PubType): PubMon {
@@ -1436,6 +1539,30 @@ export const PUBMON_TYPE_MAP: Record<PubType, string> = {
 	wine: "Poison", // Fairy doesn't exist in Gen 1
 	water: "Water",
 	cocktail: "Grass",
+	food: "Electric",
+};
+
+/**
+ * Per-class stat identity. The battle engine reads these to give each type a
+ * distinct feel beyond the type chart:
+ *  - spe: base speed -> turn order (previously a flat 50 for everything)
+ *  - atkMul / defMul: scale the creature's authored attack/defense to bias it
+ *    toward an offensive or defensive role.
+ *
+ * Roles: Beer = slow bulky tank, Shot = fast glass cannon, Wine = balanced
+ * status/special, Water = slow wall, Cocktail = fast tricky, Food = hyper-fast
+ * frail sweeper.
+ */
+export const PUBMON_STAT_PROFILE: Record<
+	PubType,
+	{ spe: number; atkMul: number; defMul: number }
+> = {
+	beer: { spe: 35, atkMul: 1.0, defMul: 1.25 },
+	shot: { spe: 95, atkMul: 1.25, defMul: 0.8 },
+	wine: { spe: 60, atkMul: 1.05, defMul: 1.15 },
+	water: { spe: 45, atkMul: 0.95, defMul: 1.25 },
+	cocktail: { spe: 80, atkMul: 1.1, defMul: 0.9 },
+	food: { spe: 120, atkMul: 1.2, defMul: 0.7 },
 };
 
 // 2. Generate the ModData required by @pkmn/dex and @pkmn/sim
@@ -1520,6 +1647,11 @@ Moves['catch'] = {
 			learnset[moveId] = ["8L1"]; // Learn at level 1 in generation 8
 		});
 
+		// Apply the per-class stat identity (speed tier + offense/defense bias).
+		const profile = PUBMON_STAT_PROFILE[mon.type];
+		const atk = Math.max(1, Math.round(mon.attack * profile.atkMul));
+		const def = Math.max(1, Math.round(mon.defense * profile.defMul));
+
 		// Create the Species entry
 		Species[speciesId] = {
 			inherit: false,
@@ -1528,11 +1660,11 @@ Moves['catch'] = {
 			types: [PUBMON_TYPE_MAP[mon.type]],
 			baseStats: {
 				hp: mon.maxHp,
-				atk: mon.attack,
-				def: mon.defense,
-				spa: mon.attack, // Mirrored for Gen 1 'Special' calc
-				spd: mon.defense, // Mirrored for Gen 1 'Special' calc
-				spe: 50, // Arbitrary default speed so they can take turns
+				atk,
+				def,
+				spa: atk, // Mirror atk -> special attack (Gen 1 special calc)
+				spd: def, // Mirror def -> special defense (Gen 1 special calc)
+				spe: profile.spe, // Per-class speed tier
 			},
 			weightkg: 10, // Arbitrary weight
 			abilities: { 0: "No Ability" }, // Gen 1 didn't have abilities

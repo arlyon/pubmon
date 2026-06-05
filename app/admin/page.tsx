@@ -17,6 +17,7 @@ import {
 	type CSSProperties,
 	type ReactNode,
 } from "react";
+import { GYMS } from "@/lib/gym-data";
 import { getPubMonSprite } from "@/lib/pokemon-data";
 import "./admin-console.css";
 
@@ -81,9 +82,11 @@ interface BattleState {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const GYM_TYPES = [
-	"Normal", "Water", "Bug", "Electric", "Grass", "Ghost", "Ice", "Psychic", "Normal", "Water",
-];
+// Canonical gym list (id, name, badge sprite) lives in lib/gym-data.ts so the
+// admin console paces the crawl against the real pubs rather than a fixed count.
+function gymById(id: number) {
+	return GYMS[id - 1] ?? GYMS[0];
+}
 
 const RIBBONS = [
 	{ name: "champion", label: "Champion", color: "#e8c170", path: "/sprites/ribbons/champion-ribbon.png" },
@@ -476,16 +479,16 @@ function SecretField({ secret, authError, onChange }: { secret: string; authErro
 function GymSelector({ currentGymId, pending, setPending, onSet }: {
 	currentGymId: number; pending: number; setPending: (n: number) => void; onSet: () => void;
 }) {
-	const gType = GYM_TYPES[(pending - 1) % GYM_TYPES.length];
+	const gym = gymById(pending);
 	const dirty = pending !== currentGymId;
 	return (
 		<div className="cb-group">
 			<span className="cb-label">Gym</span>
 			<div className="gym-select">
-				<span className="gicon"><img src={"/gyms/" + gType + ".png"} alt={gType} /></span>
+				<span className="gicon"><img src={gym.badgeSprite} alt={gym.name} /></span>
 				<select value={pending} onChange={(e) => setPending(parseInt(e.target.value, 10))}>
-					{Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-						<option key={n} value={n}>{String(n).padStart(2, "0")} · {GYM_TYPES[(n - 1) % GYM_TYPES.length]}</option>
+					{GYMS.map((g) => (
+						<option key={g.id} value={g.id}>{String(g.id).padStart(2, "0")} · {g.name}</option>
 					))}
 				</select>
 			</div>
@@ -787,7 +790,7 @@ function CollectionWorkspace({ snapshot, pending, setPending, act }: {
 	const optedIn = order.filter((id) => snapshot.players[id].tournamentOptIn);
 	const withParty = order.filter((id) => snapshot.players[id].party.length > 0);
 	const eligible = order.filter((id) => snapshot.players[id].tournamentOptIn && snapshot.players[id].party.length > 0);
-	const gType = GYM_TYPES[(pending - 1) % GYM_TYPES.length];
+	const gym = gymById(pending);
 	const dirty = pending !== snapshot.currentGymId;
 	const pct = order.length ? Math.round((optedIn.length / order.length) * 100) : 0;
 
@@ -796,18 +799,18 @@ function CollectionWorkspace({ snapshot, pending, setPending, act }: {
 			<div className="sec-head"><h2>Crawl Pacing</h2><span className="rule" /></div>
 			<div className="big-card">
 				<div className="gym-hero">
-					<div className="gym-badge"><img className="sprite" src={"/gyms/" + gType + ".png"} alt={gType} /></div>
+					<div className="gym-badge"><img className="sprite" src={gym.badgeSprite} alt={gym.name} /></div>
 					<div className="ginfo" style={{ flex: 1 }}>
 						<div className="gk">Current Gym</div>
-						<div className="gv">{String(pending).padStart(2, "0")} · {gType}</div>
+						<div className="gv">{String(gym.id).padStart(2, "0")} · {gym.name}</div>
 						<div className="gd">Pace the crowd from pub to pub. Set the gym to move everyone's crawl forward.</div>
 					</div>
 					{dirty && <Btn variant="primary" icon="check" onClick={() => act("admin_set_gym", { gymId: pending })}>Set Gym {String(pending).padStart(2, "0")}</Btn>}
 				</div>
 				<div className="gym-steps">
-					{Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
-						const cls = n === pending ? "cur" : n < snapshot.currentGymId ? "done" : "";
-						return <button key={n} className={"gym-step " + cls} onClick={() => setPending(n)}>{n}</button>;
+					{GYMS.map((g) => {
+						const cls = g.id === pending ? "cur" : g.id < snapshot.currentGymId ? "done" : "";
+						return <button key={g.id} className={"gym-step " + cls} onClick={() => setPending(g.id)}>{g.id}</button>;
 					})}
 				</div>
 			</div>

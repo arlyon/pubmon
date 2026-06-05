@@ -275,6 +275,7 @@ export function IntroSequence({
       view = (
         <StarterIntroScene
           name={player.name}
+          kind={player.kind}
           onDone={() => goto("starterPick")}
         />
       );

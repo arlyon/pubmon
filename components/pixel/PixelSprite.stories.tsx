@@ -37,7 +37,7 @@ export const Large: SpriteStory = {
 export const AllTypes: SpriteStory = {
 	render: () => (
 		<div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
-			{(["beer", "shot", "wine", "water", "cocktail"] as PubType[]).map((type) => (
+			{(["beer", "shot", "wine", "water", "cocktail", "food"] as PubType[]).map((type) => (
 				<div key={type} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
 					<TypeBadge type={type} />
 				</div>

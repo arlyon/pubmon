@@ -31,9 +31,12 @@ export async function GET(
 		outcome = res.ok ? await res.json() : { status: "error" };
 	} catch {
 		outcome = { status: "error" };
-	}
+  }
 
-	const response = NextResponse.redirect(new URL("/", request.url));
+	const response = new NextResponse(null, {
+		status: 307,
+		headers: { Location: "/" },
+	});
 	// Consumed and cleared by GameShell on the next load.
 	response.cookies.set("pubmon_ball_outcome", JSON.stringify(outcome), {
 		path: "/",

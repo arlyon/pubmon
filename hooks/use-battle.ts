@@ -35,6 +35,8 @@ export interface MoveSlot {
 
 export interface ActivePokemon {
 	name: string;
+	/** Species forme (e.g. "Mojitoad") used to resolve the correct sprite/type. */
+	species: string;
 	hp: number;
 	maxhp: number;
 	status: string | null;
@@ -387,6 +389,12 @@ export function useBattle({
 
 				return {
 					name: pokemon.name || pokemon.species || "Unknown",
+					species:
+						pokemon.speciesForme ||
+						pokemon.baseSpeciesForme ||
+						pokemon.species ||
+						pokemon.name ||
+						"",
 					hp: hp > 0 ? hp : 0,
 					maxhp,
 					status,

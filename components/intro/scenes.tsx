@@ -10,8 +10,8 @@ import {
 } from "@/lib/pokemon-data";
 import {
 	type Gender,
-	hasCustomTrainerSprite,
 	getTrainerSpritePath,
+	hasCustomTrainerSprite,
 	resolveTrainerSprite,
 } from "@/lib/trainer-sprites";
 import {
@@ -359,7 +359,7 @@ export function TitleScene({ onStart }: { onStart: () => void }) {
 // ═══════════════════════════════════════════════════════════════════
 const PROF_LINES: [string, string][] = [
 	["Hello there!", "Welcome to the world of PUBMON!"],
-	["My name is BARLEY.", "Folks call me the PUB PROFESSOR."],
+	["My name is ALEX.", "Folks call me the PUB PROFESSOR."],
 	["This world is inhabited far and wide", "by creatures called PUBMON!"],
 	["For some, PUBMON are companions.", "Others use them for friendly battle."],
 	["Myself... I study PUBMON behaviour", "and the drinks that draw them out."],
@@ -442,11 +442,7 @@ export function ProfessorScene({ onDone }: { onDone: () => void }) {
 // ═══════════════════════════════════════════════════════════════════
 // GENDER SCENE
 // ═══════════════════════════════════════════════════════════════════
-export function GenderScene({
-	onPick,
-}: {
-	onPick: (kind: Gender) => void;
-}) {
+export function GenderScene({ onPick }: { onPick: (kind: Gender) => void }) {
 	const [sel, setSel] = useState(0);
 
 	const genders = [
@@ -481,8 +477,7 @@ export function GenderScene({
 		const k = (e: KeyboardEvent) => {
 			if (e.key === "ArrowLeft")
 				setSel((i) => (i - 1 + genders.length) % genders.length);
-			else if (e.key === "ArrowRight")
-				setSel((i) => (i + 1) % genders.length);
+			else if (e.key === "ArrowRight") setSel((i) => (i + 1) % genders.length);
 			else if (e.key === "Enter" || e.key === " ") confirm();
 		};
 		window.addEventListener("keydown", k);
@@ -1023,9 +1018,11 @@ const STARTERS: {
 
 export function StarterIntroScene({
 	name,
+	kind,
 	onDone,
 }: {
 	name: string;
+	kind: Gender;
 	onDone: () => void;
 }) {
 	const [step, setStep] = useState(0);
@@ -1058,7 +1055,39 @@ export function StarterIntroScene({
 	return (
 		<div style={{ position: "absolute", inset: 0 }}>
 			<ProfBackground />
-			<IntroProfessor mood="bob" />
+			{/* Player trainer — listening on the left, facing right toward Alex */}
+			<div
+				style={{
+					position: "absolute",
+					bottom: 60,
+					left: 60,
+					width: 70,
+					height: 110,
+					animation: "intro-bob 1.4s steps(2) infinite",
+				}}
+			>
+				<img
+					src={getTrainerSpritePath(resolveTrainerSprite(name, kind))}
+					alt="Trainer"
+					style={{
+						width: "100%",
+						height: "100%",
+						imageRendering: "pixelated",
+						objectFit: "contain",
+						// Sprites are left-facing — flip to face right toward Alex
+						transform: "scaleX(-1)",
+						// Unknown "???" trainer with no custom portrait → silhouette
+						filter:
+							kind === "mystery" && !hasCustomTrainerSprite(name)
+								? "brightness(0) opacity(0.85)"
+								: undefined,
+					}}
+				/>
+			</div>
+			<IntroProfessor
+				mood="bob"
+				style={{ left: "auto", right: 66, transform: "none" }}
+			/>
 			<IntroDialog key={step} lines={lines[step]} onContinue={advance} />
 		</div>
 	);

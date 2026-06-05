@@ -95,6 +95,22 @@ const DRINK_TYPES: {
 			"..####..",
 		],
 	},
+	{
+		type: "food",
+		label: "FOOD",
+		element: "Electric Type",
+		color: "#f6d743",
+		icon: [
+			"...aa...",
+			"..aa....",
+			".aaa....",
+			"aaaaaa..",
+			"...aaa..",
+			"..aa....",
+			".aa.....",
+			"aa......",
+		],
+	},
 ];
 
 function DrinkIcon({

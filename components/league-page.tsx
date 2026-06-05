@@ -166,6 +166,9 @@ export function LeaguePage({
 				completedMatches={completedMatches}
 				roundLabel={label}
 				onBack={onBack}
+				playerName={playerName}
+				canJoin={!!activeBattle}
+				onJoinMatch={onReturnToBattle}
 			/>
 		);
 	}

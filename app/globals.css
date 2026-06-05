@@ -112,6 +112,7 @@
   --type-wine: #f4a4c0;
   --type-water: #63c6e1;
   --type-cocktail: #63c74d;
+  --type-food: #f6d743;
 
   --sidebar: #262b44;
   --sidebar-foreground: #f4f4f4;
@@ -184,6 +185,7 @@
   --color-type-wine: var(--type-wine);
   --color-type-water: var(--type-water);
   --color-type-cocktail: var(--type-cocktail);
+  --color-type-food: var(--type-food);
 
   --color-pixel-white: rgb(var(--pixel-white));
   --color-pixel-black: rgb(var(--pixel-black));
@@ -321,6 +323,14 @@
   33% { transform: rotate(0deg); }
   66% { transform: rotate(20deg); }
   100% { transform: rotate(-20deg); }
+}
+
+/* Leaderboard name auto-scroll: only runs when content overflows its row.
+   --lb-shift is the negative overflow distance set inline per-row. Paired with
+   `alternate` so the text gently ping-pongs and pauses at each end. */
+@keyframes lb-marquee {
+  0%, 12% { transform: translateX(0); }
+  88%, 100% { transform: translateX(var(--lb-shift, 0)); }
 }
 
 @keyframes encounter-flash {

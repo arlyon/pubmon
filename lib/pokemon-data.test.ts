@@ -4,6 +4,7 @@ import {
 	MOVE_MAPPINGS,
 	TYPE_INFO,
 	PUBMON_TYPE_MAP,
+	PUBMON_STAT_PROFILE,
 	getBaseMoveForAudio,
 	getPubMonSprite,
 	getMissingnoSprite,
@@ -13,7 +14,14 @@ import {
 	type PubType,
 } from "./pokemon-data";
 
-const ALL_TYPES: PubType[] = ["beer", "shot", "wine", "water", "cocktail"];
+const ALL_TYPES: PubType[] = [
+	"beer",
+	"shot",
+	"wine",
+	"water",
+	"cocktail",
+	"food",
+];
 
 // ==========================================
 // 1. ALL_PUBMON Data Integrity
@@ -52,7 +60,7 @@ describe("ALL_PUBMON Data Integrity", () => {
 		expect(new Set(names).size).toBe(names.length);
 	});
 
-	test("every PubMon type is one of beer, shot, wine, water, cocktail", () => {
+	test("every PubMon type is one of beer, shot, wine, water, cocktail, food", () => {
 		for (const mon of ALL_PUBMON) {
 			expect(ALL_TYPES).toContain(mon.type);
 		}
@@ -171,7 +179,7 @@ describe("MOVE_MAPPINGS", () => {
 // 3. TYPE_INFO
 // ==========================================
 describe("TYPE_INFO", () => {
-	test("has entries for all 5 types", () => {
+	test("has entries for all types", () => {
 		for (const type of ALL_TYPES) {
 			expect(TYPE_INFO[type]).toBeDefined();
 		}
@@ -201,6 +209,7 @@ describe("TYPE_INFO", () => {
 		expect(TYPE_INFO.wine.label).toBe("Wine");
 		expect(TYPE_INFO.water.label).toBe("Water");
 		expect(TYPE_INFO.cocktail.label).toBe("Cocktail");
+		expect(TYPE_INFO.food.label).toBe("Food");
 	});
 });
 
@@ -208,7 +217,7 @@ describe("TYPE_INFO", () => {
 // 4. PUBMON_TYPE_MAP
 // ==========================================
 describe("PUBMON_TYPE_MAP", () => {
-	test("maps all 5 PubTypes to Pokemon types", () => {
+	test("maps all PubTypes to Pokemon types", () => {
 		for (const type of ALL_TYPES) {
 			expect(PUBMON_TYPE_MAP[type]).toBeDefined();
 		}
@@ -232,6 +241,10 @@ describe("PUBMON_TYPE_MAP", () => {
 
 	test("cocktail maps to Grass", () => {
 		expect(PUBMON_TYPE_MAP.cocktail).toBe("Grass");
+	});
+
+	test("food maps to Electric", () => {
+		expect(PUBMON_TYPE_MAP.food).toBe("Electric");
 	});
 });
 
@@ -338,7 +351,7 @@ describe("getRandomPubMon", () => {
 		}
 	});
 
-	test("works for all 5 types", () => {
+	test("works for all types", () => {
 		for (const type of ALL_TYPES) {
 			const mon = getRandomPubMon(type);
 			expect(mon).toBeDefined();
@@ -420,15 +433,23 @@ describe("generatePubMonModData", () => {
 		expect(typeof grainslam.pp).toBe("number");
 	});
 
-	test("species entries have baseStats", () => {
+	test("species entries have baseStats with per-class profile applied", () => {
 		const species = modData.Species as Record<string, any>;
 		for (const mon of ALL_PUBMON) {
 			const speciesId = mon.name.toLowerCase().replace(/[^a-z0-9]+/g, "");
 			const entry = species[speciesId];
+			const profile = PUBMON_STAT_PROFILE[mon.type];
+			const atk = Math.max(1, Math.round(mon.attack * profile.atkMul));
+			const def = Math.max(1, Math.round(mon.defense * profile.defMul));
 			expect(entry.baseStats).toBeDefined();
 			expect(entry.baseStats.hp).toBe(mon.maxHp);
-			expect(entry.baseStats.atk).toBe(mon.attack);
-			expect(entry.baseStats.def).toBe(mon.defense);
+			expect(entry.baseStats.atk).toBe(atk);
+			expect(entry.baseStats.def).toBe(def);
+			// spa/spd mirror atk/def for Gen 1 special calc.
+			expect(entry.baseStats.spa).toBe(atk);
+			expect(entry.baseStats.spd).toBe(def);
+			// Speed is the per-class tier, not the old flat 50.
+			expect(entry.baseStats.spe).toBe(profile.spe);
 		}
 	});
 });

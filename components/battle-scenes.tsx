@@ -950,6 +950,7 @@ const SCENE_MAP: Record<string, React.FC> = {
 	wine: WineScene,
 	beer: BeerScene,
 	cocktail: CocktailScene,
+	food: ClubScene,
 };
 
 const VENUE_SCENES: React.FC[] = [BarScene, PubScene, ClubScene];

@@ -7,7 +7,7 @@ import React, {
 	useState,
 } from "react";
 import { useBattle } from "@/hooks/use-battle";
-import type { PubMon } from "@/lib/pokemon-data";
+import { getPubMonBySpecies, type PubMon } from "@/lib/pokemon-data";
 import { useAudio } from "./audio-manager";
 import { pickBattleScene } from "./battle-scenes";
 import { BattleScreenView } from "./battle-screen-view";
@@ -180,7 +180,28 @@ export function BattleScreen({
 		}, 1500);
 	}, [isAnimating, setIsAnimating, setMenu, setMessage]);
 
+	// Flash a denial message (used to block catch/run in tournament battles)
+	// without consuming a turn, then return to the main menu.
+	const denyAction = useCallback(
+		(text: string) => {
+			if (isAnimating) return;
+			setIsAnimating(true);
+			setMenu("message");
+			setMessage(text);
+			setTimeout(() => {
+				setIsAnimating(false);
+				setMenu("main");
+				setMessage(null);
+			}, 1400);
+		},
+		[isAnimating, setIsAnimating, setMenu, setMessage],
+	);
+
 	const handleRun = useCallback(() => {
+		if (battleMode === "p2p") {
+			denyAction("You can't run now!");
+			return;
+		}
 		if (isAnimating || !protocolRequest?.active?.[0]?.moves) return;
 
 		const runMoveIndex = protocolRequest.active[0].moves.findIndex(
@@ -193,9 +214,13 @@ export function BattleScreen({
 		}
 
 		handleAttack(runMoveIndex);
-	}, [isAnimating, protocolRequest, handleAttack]);
+	}, [battleMode, denyAction, isAnimating, protocolRequest, handleAttack]);
 
 	const handleCatch = useCallback(() => {
+		if (battleMode === "p2p") {
+			denyAction("You can't catch now!");
+			return;
+		}
 		if (isAnimating || !protocolRequest?.active?.[0]?.moves) return;
 
 		const catchMoveIndex = protocolRequest.active[0].moves.findIndex(
@@ -209,9 +234,21 @@ export function BattleScreen({
 
 		setShowCatchAnim(true);
 		handleAttack(catchMoveIndex);
-	}, [isAnimating, protocolRequest, handleAttack]);
+	}, [battleMode, denyAction, isAnimating, protocolRequest, handleAttack]);
 
 	const introComplete = slideFrame >= SLIDE_FRAMES && showMenu;
+
+	// In P2P the `wildPokemon` prop is only a placeholder (the opponent's real
+	// team lives server-side). Resolve the actual opponent species from the live
+	// battle stream so the arena shows the correct sprite/type/name. Falls back
+	// to the placeholder until the first switch-in arrives.
+	const enemyDisplayPokemon = useMemo(() => {
+		if (battleMode === "p2p" && enemyActivePokemon?.species) {
+			const resolved = getPubMonBySpecies(enemyActivePokemon.species);
+			if (resolved) return resolved;
+		}
+		return wildPokemon;
+	}, [battleMode, enemyActivePokemon?.species, wildPokemon]);
 
 	const moves = protocolRequest?.active?.[0]?.moves ?? [];
 
@@ -230,7 +267,7 @@ export function BattleScreen({
 
 	return (
 		<BattleScreenView
-			wildPokemon={wildPokemon}
+			wildPokemon={enemyDisplayPokemon}
 			playerPokemon={playerPokemon}
 			menu={menu}
 			message={message}

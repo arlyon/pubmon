@@ -8,14 +8,16 @@ import {
 	TYPE_INFO,
 } from "@/lib/pokemon-data";
 import { useAudio } from "./audio-manager";
+import { TypePokeball } from "./images/TypePokeball";
 import PixelMenu from "./pixel/PixelMenu";
 import PixelTextBox from "./pixel/PixelTextBox";
 import { PixelBox } from "./pixel-box";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { TrainerSprite } from "./trainer-sprite";
-import { TypePokeball } from "./images/TypePokeball";
 
-const STARTERS: Record<PubType, string> = {
+// Food has no starter (wild-only), so this is a partial map and TYPE_ORDER
+// deliberately omits "food".
+const STARTERS: Partial<Record<PubType, string>> = {
 	beer: "Hoppsin",
 	shot: "Tequilar",
 	wine: "Charderan",
@@ -31,7 +33,7 @@ interface StarterSelectProps {
 }
 
 function ProfessorSprite() {
-	return <TrainerSprite sprite="profbarley" size={96} />;
+	return <TrainerSprite sprite="alex" size={96} />;
 }
 
 function PokeballRow() {
@@ -58,7 +60,7 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 
 	const introDialogs = [
 		`Welcome to the world of PUBMON, ${name}!`,
-		"My name is PROF. BARLEY. People call me the PubMon Professor!",
+		"My name is PROF. ALEX. People call me the PUB PROFESSOR!",
 		"This world is inhabited by creatures known as PUBMON!",
 		"People and PUBMON live together in pubs across the land.",
 		"Your very own PUBMON adventure is about to begin!",
@@ -206,7 +208,7 @@ export function StarterSelect({ onSelect, name }: StarterSelectProps) {
 													</span>
 												</div>
 												<p className=" text-[6px] text-pixel-black m-0">
-													{starterName.toUpperCase()}
+													{starter.name.toUpperCase()}
 												</p>
 											</div>
 											<span className=" text-[8px] opacity-0 group-hover:opacity-100">

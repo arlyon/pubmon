@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
 import { ALL_PUBMON, type PubType, TYPE_INFO } from "@/lib/pokemon-data";
 import { PixelBox } from "./pixel-box";
+import PixelHeader from "./pixel/PixelHeader";
 import { PixelSprite, TypeBadge } from "./pixel-sprite";
 import { PubMonDetailPanel } from "./pubmon-detail";
 
@@ -11,9 +12,18 @@ interface PokedexProps {
 	seenIds: Set<number>;
 	caughtIds: Set<number>;
 	onBack: () => void;
+	/** Render the PixelHeader. Off when embedded (e.g. tournament teaser). */
+	showHeader?: boolean;
 }
 
-const TYPE_ORDER: PubType[] = ["beer", "shot", "wine", "water", "cocktail"];
+const TYPE_ORDER: PubType[] = [
+	"beer",
+	"shot",
+	"wine",
+	"water",
+	"cocktail",
+	"food",
+];
 
 function PubBallIcon({
 	caught,
@@ -36,7 +46,7 @@ function PubBallIcon({
 	);
 }
 
-export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
+export function Pokedex({ seenIds, caughtIds, showHeader }: PokedexProps) {
 	const [selectedId, setSelectedId] = useState<number | null>(null);
 	const [filterType, setFilterType] = useState<PubType | "all">("all");
 	const { playPokemonCry } = usePokemonCry(ALL_PUBMON);
@@ -54,8 +64,26 @@ export function Pokedex({ seenIds, caughtIds }: PokedexProps) {
 	const isSeen = selected ? allUnlocked || seenIds.has(selected.id) : false;
 	const isCaught = selected ? allUnlocked || caughtIds.has(selected.id) : false;
 
+	const caughtCount = allUnlocked ? ALL_PUBMON.length : caughtIds.size;
+
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
+			{showHeader && (
+				<PixelHeader
+					title="PUBMON"
+					subtitle="PUBDEX"
+					variant="red"
+					right={
+						<div className="text-right">
+							<div className="text-gba-[6] font-palette-white">CAUGHT</div>
+							<div className="text-gba-[10] font-palette-yellow">
+								{caughtCount}/{ALL_PUBMON.length}
+							</div>
+						</div>
+					}
+				/>
+			)}
+
 			{/* Type filter tabs */}
 			<div className="flex gap-gba-[2] flex-wrap my-gba-[4] px-2">
 				<button

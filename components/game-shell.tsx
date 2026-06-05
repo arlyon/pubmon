@@ -15,7 +15,6 @@ import { BattleScreen } from "./battle-screen";
 import { DebugPanel } from "./debug-panel";
 import { DrinkSelect } from "./drink-select";
 import { GameNavbar } from "./game-navbar";
-import { HallOfFameViewer } from "./hall-of-fame-viewer";
 import { LeaguePage } from "./league-page";
 import PixelTransition, {
 	barBlindsTransition,
@@ -416,16 +415,9 @@ export function GameShell({
 		return undefined;
 	};
 
-	// Robust, always-visible alert when the player has an active tournament
-	// match and isn't already in the battle screen. Tracked globally in the
-	// machine's sync region, so it survives navigation and reconnects.
+	// The player's active tournament match (if any). Surfaced inline on the
+	// tournament feed as a "JOIN YOUR MATCH" button rather than a global banner.
 	const activeBattle = context.tournamentState.activeBattle;
-	const showBattleAlert =
-		!!activeBattle &&
-		!isTournamentBattle &&
-		!showBattleTransition &&
-		!isOnboarding &&
-		!isStarter;
 
 	// Before the tournament starts, the app is the title startup → countdown
 	// teaser, for everyone (logged in or not). After the deadline the countdown
@@ -457,30 +449,6 @@ export function GameShell({
 
 	return (
 		<div className="flex flex-col relative h-dvh bg-pixel-gray-light">
-			{/* Active tournament battle notification */}
-			{showBattleAlert && activeBattle && (
-				<button
-					type="button"
-					onClick={() =>
-						startBattleTransition(() => send({ type: "JOIN_BATTLE" }))
-					}
-					className="fixed top-0 inset-x-0 z-[900] font-heading text-pixel-white flex items-center justify-between gap-gba-[8] px-gba-[10] py-gba-[6] border-b-[3px] border-pixel-black"
-					style={{
-						background: "#d03838",
-						boxShadow:
-							"inset 2px 2px 0 rgba(255,255,255,0.25), inset -2px -2px 0 rgba(0,0,0,0.3)",
-					}}
-				>
-					<span className="flex items-center gap-gba-[6] text-gba-[8]">
-						<span style={{ animation: "pixel-blink 1s step-end infinite" }}>
-							●
-						</span>
-						MATCH READY · VS {activeBattle.opponentName}
-					</span>
-					<span className="text-gba-[8]">JOIN →</span>
-				</button>
-			)}
-
 			{/* Battle transition overlay */}
 			<div
 				className="fixed inset-0 pointer-events-none"
@@ -527,7 +495,9 @@ export function GameShell({
 						activeBattleOpponent={
 							context.tournamentState.activeBattle?.opponentName
 						}
-						onJoinBattle={() => send({ type: "NAVIGATE", phase: "tournament" })}
+						onJoinBattle={() =>
+							startBattleTransition(() => send({ type: "JOIN_BATTLE" }))
+						}
 					/>
 				)}
 
@@ -586,11 +556,12 @@ export function GameShell({
 						seenIds={seenIds}
 						caughtIds={caughtIds}
 						onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
+						showHeader
 					/>
 				)}
 
 				{!showSettings &&
-					(isLeague || isTournamentBracket) &&
+					(isLeague || isTournamentBracket || isHallOfFame) &&
 					context.playerInfo && (
 						<LeaguePage
 							socket={socket}
@@ -607,10 +578,6 @@ export function GameShell({
 							onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
 						/>
 					)}
-
-				{isHallOfFame && (
-					<HallOfFameViewer socket={socket} sessionId={sessionId} />
-				)}
 
 				{showSettings && (
 					<SettingsPanel

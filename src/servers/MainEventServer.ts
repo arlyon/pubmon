@@ -1045,6 +1045,10 @@ export class MainEventServer extends Server {
 			player.activeBattleOpponent = undefined;
 		}
 		this.gameState.tournamentBracket = undefined;
+		// Clear any previous hall-of-fame results so a fresh tournament doesn't
+		// inherit stale champions (calculateHallOfFame merges into this object).
+		// Player ribbons are intentionally left intact.
+		this.gameState.hallOfFame = undefined;
 		this.gameState.phase = "collection";
 
 		await this.persistState();

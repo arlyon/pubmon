@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { GameShell } from "@/components/game-shell";
 import PixelScreen from "@/components/pixel/PixelScreen";
 
+export const dynamic = "force-dynamic";
+
 async function getPlayerState() {
 	const cookieStore = await cookies();
 	const sessionId = cookieStore.get("pubmon_session_id")?.value;
