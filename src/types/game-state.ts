@@ -68,6 +68,7 @@ export interface GameState {
 export interface TournamentBracket {
 	round: number;
 	matches: TournamentMatch[];
+	matchHistory?: TournamentMatch[]; // completed matches from prior rounds
 	champion?: string; // sessionId of the final winner (set when tournament ends)
 	championName?: string; // display name of the champion
 }
@@ -80,6 +81,7 @@ export interface TournamentMatch {
 	winnerId?: string; // Set when battle completes
 	status: "pending" | "in_progress" | "completed" | "forfeited";
 	adminOverride?: boolean; // True if admin manually advanced a player
+	round?: number; // Round this match belonged to (set when archived)
 }
 
 // ============================================================================

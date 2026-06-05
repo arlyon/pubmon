@@ -307,14 +307,6 @@ describe("Navigation", () => {
     actor.stop();
   });
 
-  test("hallOfFame -> NAVIGATE(crawl) -> crawl", () => {
-    const { actor } = createTestActor({ initialPlayerState: makeInitialPlayerState() });
-    actor.send({ type: "HALL_OF_FAME_READY" });
-    expect(getViewState(actor)).toEqual({ mainLoop: "hallOfFame" });
-    actor.send({ type: "NAVIGATE", phase: "crawl" });
-    expect(getViewState(actor)).toEqual({ mainLoop: "crawl" });
-    actor.stop();
-  });
 });
 
 // ============================================================================
@@ -619,21 +611,6 @@ describe("Tournament Flow", () => {
     actor.stop();
   });
 
-  test("HALL_OF_FAME_READY transitions to mainLoop.hallOfFame from any mainLoop state", () => {
-    const { actor } = createTestActor({ initialPlayerState: makeInitialPlayerState() });
-    // From crawl
-    actor.send({ type: "HALL_OF_FAME_READY" });
-    expect(getViewState(actor)).toEqual({ mainLoop: "hallOfFame" });
-    actor.stop();
-  });
-
-  test("HALL_OF_FAME_READY from league view", () => {
-    const { actor } = createTestActor({ initialPlayerState: makeInitialPlayerState() });
-    actor.send({ type: "NAVIGATE", phase: "league" });
-    actor.send({ type: "HALL_OF_FAME_READY" });
-    expect(getViewState(actor)).toEqual({ mainLoop: "hallOfFame" });
-    actor.stop();
-  });
 });
 
 // ============================================================================
@@ -716,9 +693,17 @@ describe("Guards", () => {
     actor.stop();
   });
 
-  test("NAVIGATE guard prevents hall-of-fame direct navigation from crawl", () => {
+  test("NAVIGATE(settings) from crawl -> settings", () => {
     const { actor } = createTestActor({ initialPlayerState: makeInitialPlayerState() });
-    actor.send({ type: "NAVIGATE", phase: "hall-of-fame" });
+    actor.send({ type: "NAVIGATE", phase: "settings" });
+    expect(getViewState(actor)).toEqual({ mainLoop: "settings" });
+    actor.stop();
+  });
+
+  test("NAVIGATE(crawl) from settings -> crawl", () => {
+    const { actor } = createTestActor({ initialPlayerState: makeInitialPlayerState() });
+    actor.send({ type: "NAVIGATE", phase: "settings" });
+    actor.send({ type: "NAVIGATE", phase: "crawl" });
     expect(getViewState(actor)).toEqual({ mainLoop: "crawl" });
     actor.stop();
   });

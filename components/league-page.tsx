@@ -7,9 +7,11 @@ import type {
 	TournamentMatch,
 } from "@/machines/pubmon-machine";
 import {
+	type CeremonyPlayer,
+	CeremonyPodiumView,
+	type LeaderboardEntry,
 	LeaguePageView,
 	TournamentFeedView,
-	type LeaderboardEntry,
 	type TournamentMatchView,
 } from "./league-page-view";
 
@@ -149,12 +151,94 @@ export function LeaguePage({
 		const views = bracket.matches.map((m, i) =>
 			toMatchView(m, i, round, playerMap),
 		);
+
+		// Matches from prior rounds (archived server-side as the bracket
+		// advances). Label each by its own round's size so the round filter
+		// shows the whole tournament, not just the current bracket.
+		const history = bracket.matchHistory ?? [];
+		const countByRound = new Map<number, number>();
+		for (const m of history) {
+			const r = m.round ?? 0;
+			countByRound.set(r, (countByRound.get(r) ?? 0) + 1);
+		}
+		const historyViews = history.map((m, i) =>
+			toMatchView(
+				m,
+				i,
+				roundLabel(countByRound.get(m.round ?? 0) ?? 1, m.round ?? 0),
+				playerMap,
+			),
+		);
+
 		return {
 			liveMatches: views.filter((v) => v.status === "live"),
-			completedMatches: views.filter((v) => v.status !== "live"),
+			completedMatches: [
+				...historyViews,
+				...views.filter((v) => v.status !== "live"),
+			],
 			label: round,
 		};
 	}, [bracket, playerMap]);
+
+	// Derive the finals podium (1st/2nd/3rd) for the hall-of-fame ceremony from
+	// the crowned bracket. 1st = champion, 2nd = the player they beat in the
+	// final, 3rd = a semifinal loser (falling back to the leaderboard).
+	const ceremony = useMemo(() => {
+		if (gamePhase !== "hall-of-fame" || !bracket?.champion) return null;
+
+		const championId = bracket.champion;
+		const finalMatch = bracket.matches.find((m) => m.winnerId === championId);
+		const runnerUpId = finalMatch
+			? finalMatch.player1SessionId === championId
+				? finalMatch.player2SessionId
+				: finalMatch.player1SessionId
+			: null;
+
+		const resolve = (id: string | null | undefined, fallbackName?: string) => {
+			if (id) {
+				const p = playerMap.get(id);
+				if (p) return p;
+			}
+			return fallbackName ? { name: fallbackName, sprite: undefined } : null;
+		};
+
+		const champ = resolve(championId, bracket.championName);
+		const runner = resolve(runnerUpId);
+		if (!champ || !runner) return null;
+
+		const exclude = new Set(
+			[championId, runnerUpId].filter((x): x is string => !!x),
+		);
+		const semiRound = bracket.round - 1;
+		const semiLosers = (bracket.matchHistory ?? [])
+			.filter((m) => (m.round ?? -1) === semiRound && m.winnerId)
+			.map((m) =>
+				m.winnerId === m.player1SessionId
+					? m.player2SessionId
+					: m.player1SessionId,
+			)
+			.filter((id): id is string => !!id && !exclude.has(id));
+		let thirdId: string | null = semiLosers[0] ?? null;
+		if (!thirdId) {
+			thirdId =
+				leaderboard.find((e) => e.sessionId && !exclude.has(e.sessionId))
+					?.sessionId ?? null;
+		}
+		const third = resolve(thirdId) ?? { name: "—", sprite: undefined };
+
+		const mk = (
+			p: { name: string; sprite?: string },
+			title: string,
+		): CeremonyPlayer => ({ name: p.name, sprite: p.sprite, title });
+
+		return {
+			first: mk(champ, "CHAMPION"),
+			second: mk(runner, "RUNNER-UP"),
+			third: mk(third, "3RD"),
+			finalScore: "1 - 0",
+			finalDetails: `${champ.name} defeated ${runner.name}`,
+		};
+	}, [gamePhase, bracket, playerMap, leaderboard]);
 
 	// When a tournament is running, the league tab becomes the tournament hub.
 	// The "active battle" alert is handled globally by the shell so it shows on
@@ -169,6 +253,20 @@ export function LeaguePage({
 				playerName={playerName}
 				canJoin={!!activeBattle}
 				onJoinMatch={onReturnToBattle}
+			/>
+		);
+	}
+
+	// Hall of Fame: show the champions ceremony once a champion is crowned.
+	// Falls back to the final-standings list if the podium can't be resolved.
+	if (gamePhase === "hall-of-fame" && ceremony) {
+		return (
+			<CeremonyPodiumView
+				first={ceremony.first}
+				second={ceremony.second}
+				third={ceremony.third}
+				finalScore={ceremony.finalScore}
+				finalDetails={ceremony.finalDetails}
 			/>
 		);
 	}

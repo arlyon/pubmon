@@ -7,8 +7,8 @@ import {
 	getTrainerSpritePath,
 	resolveTrainerSprite,
 } from "@/lib/trainer-sprites";
-import { PixelButton } from "./pixel-box";
 import PixelHeader from "./pixel/PixelHeader";
+import { PixelButton } from "./pixel-box";
 
 // ============================================================================
 // TYPES
@@ -45,7 +45,6 @@ export interface TournamentMatchView {
 export interface CeremonyPlayer {
 	name: string;
 	sprite?: string;
-	prize: string;
 	title: string;
 }
 
@@ -87,7 +86,13 @@ export interface CeremonyPodiumViewProps {
 // SHARED HELPERS
 // ============================================================================
 
-function BadgeDots({ count, total = GYMS.length }: { count: number; total?: number }) {
+function BadgeDots({
+	count,
+	total = GYMS.length,
+}: {
+	count: number;
+	total?: number;
+}) {
 	return (
 		<span className="inline-flex gap-[1px]">
 			{Array.from({ length: total }).map((_, i) => (
@@ -159,12 +164,7 @@ function MarqueeText({
 
 function PixelCrown() {
 	return (
-		<svg
-			viewBox="0 0 14 8"
-			width={28}
-			height={16}
-			shapeRendering="crispEdges"
-		>
+		<svg viewBox="0 0 14 8" width={28} height={16} shapeRendering="crispEdges">
 			<rect x="0" y="3" width="14" height="3" fill="#f8d030" />
 			<rect x="0" y="2" width="2" height="2" fill="#f8d030" />
 			<rect x="6" y="2" width="2" height="2" fill="#f8d030" />
@@ -174,32 +174,6 @@ function PixelCrown() {
 		</svg>
 	);
 }
-
-function TrophyIcon({
-	size = 18,
-	fill = "#f0e070",
-}: { size?: number; fill?: string }) {
-	return (
-		<svg
-			viewBox="0 0 12 12"
-			width={size}
-			height={size}
-			shapeRendering="crispEdges"
-		>
-			<rect x="2" y="1" width="8" height="1" fill={fill} />
-			<rect x="2" y="2" width="1" height="4" fill={fill} />
-			<rect x="9" y="2" width="1" height="4" fill={fill} />
-			<rect x="3" y="2" width="6" height="4" fill={fill} />
-			<rect x="0" y="2" width="2" height="2" fill={fill} />
-			<rect x="10" y="2" width="2" height="2" fill={fill} />
-			<rect x="4" y="6" width="4" height="1" fill="#a88820" />
-			<rect x="5" y="7" width="2" height="2" fill={fill} />
-			<rect x="3" y="9" width="6" height="1" fill={fill} />
-			<rect x="2" y="10" width="8" height="1" fill="#a88820" />
-		</svg>
-	);
-}
-
 
 // Pre-defined avatar sizes — static class names so Tailwind can detect them
 const AVATAR = {
@@ -295,11 +269,7 @@ function PodiumStep({
 }) {
 	const { bg, dark } = PODIUM_COLORS[rank];
 	const heightClass =
-		rank === 1
-			? "h-gba-[56]"
-			: rank === 2
-				? "h-gba-[36]"
-				: "h-gba-[24]";
+		rank === 1 ? "h-gba-[56]" : rank === 2 ? "h-gba-[36]" : "h-gba-[24]";
 
 	return (
 		<div className="flex flex-col items-center flex-1 gap-gba-[3]">
@@ -359,9 +329,7 @@ export function LeaguePageView({
 	const hasPodium = top3.length >= 3;
 
 	const winRate = (e: LeaderboardEntry) =>
-		e.totalBattles > 0
-			? Math.round((e.battlesWon / e.totalBattles) * 100)
-			: 0;
+		e.totalBattles > 0 ? Math.round((e.battlesWon / e.totalBattles) * 100) : 0;
 
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
@@ -478,9 +446,7 @@ export function LeaguePageView({
 						style={{ background: optedIn ? "#50b058" : "#fff" }}
 					>
 						<span>
-							{optedIn
-								? "★ TOURNAMENT: OPTED IN"
-								: "TAP TO JOIN TOURNAMENT"}
+							{optedIn ? "★ TOURNAMENT: OPTED IN" : "TAP TO JOIN TOURNAMENT"}
 						</span>
 						<span
 							className="font-palette-default text-gba-[7] px-gba-[6] py-gba-[2] border-[2px] border-pixel-black"
@@ -732,13 +698,6 @@ function CompletedRow({ match }: { match: TournamentMatchView }) {
 					{match.playerB.name}
 				</span>
 			</div>
-			<span
-				className={`font-sans text-gba-[8] shrink-0 ${
-					winA ? "font-palette-green" : "font-palette-red"
-				}`}
-			>
-				{winA ? "←W" : "W→"}
-			</span>
 		</div>
 	);
 }
@@ -909,11 +868,11 @@ function ChampionBanner() {
 					"inset 2px 2px 0 rgba(255,255,255,0.4), inset -2px -2px 0 #a88820, 2px 2px 0 0 rgba(0,0,0,0.3)",
 			}}
 		>
-			<div className="font-heading text-gba-[7] text-[#a88820] mb-gba-[4]">
-				────── CONGRATULATIONS ──────
+			<div className="font-sans font-palette-default text-gba-[8] mb-gba-[4]">
+				─── CONGRATULATIONS ───
 			</div>
 			<div
-				className="font-heading text-gba-[18] text-pixel-black tracking-wide leading-tight"
+				className="font-heading text-gba-[13] text-pixel-black tracking-wide leading-tight"
 				style={{ textShadow: "2px 2px 0 #a88820" }}
 			>
 				CHAMPION!
@@ -937,43 +896,42 @@ function CeremonyPodiumLane({
 }) {
 	const avatarSize: AvatarSize = rank === 1 ? 64 : 52;
 	const heightClass =
-		rank === 1
-			? "h-gba-[64]"
-			: rank === 2
-				? "h-gba-[42]"
-				: "h-gba-[28]";
+		rank === 1 ? "h-gba-[64]" : rank === 2 ? "h-gba-[42]" : "h-gba-[28]";
+
+	// `player.sprite` carries the gender ("boy"/"girl"); resolve it (plus any
+	// custom name portrait) to a real path like every other avatar.
+	const gender: Gender =
+		player.sprite === "girl"
+			? "girl"
+			: player.sprite === "mystery"
+				? "mystery"
+				: "boy";
+	const spritePath = getTrainerSpritePath(
+		resolveTrainerSprite(player.name, gender),
+	);
 
 	return (
 		<div className="flex flex-col items-center flex-1 gap-gba-[4]">
 			{rank === 1 && <PixelCrown />}
 			<div
-				className={`bg-[#d0e8f0] border-[3px] border-pixel-black flex items-end justify-center overflow-hidden ${AVATAR[avatarSize].outer} ${
+				className={`bg-[#d0e8f0] border-[3px] border-pixel-black flex items-start justify-center overflow-hidden ${AVATAR[avatarSize].outer} ${
 					rank === 1
 						? "shadow-[0_0_0_3px_#f8d030,2px_2px_0_0_rgba(0,0,0,0.3)]"
 						: "shadow-[2px_2px_0_0_rgba(0,0,0,0.3)]"
 				}`}
 				style={{
 					animation:
-						rank === 1
-							? "pixel-bounce 1.4s steps(4,end) infinite"
-							: "none",
+						rank === 1 ? "pixel-bounce 1.4s steps(4,end) infinite" : "none",
 				}}
 			>
-				{player.sprite ? (
-					<img
-						src={player.sprite}
-						alt={player.name}
-						className={`pixel-perfect ${AVATAR[avatarSize].inner}`}
-					/>
-				) : (
-					<span
-						className={`font-heading text-pixel-black flex items-center justify-center w-full h-full ${AVATAR[avatarSize].text}`}
-					>
-						{player.name.slice(0, 2)}
-					</span>
-				)}
+				<img
+					src={spritePath}
+					alt={player.name}
+					className="pixel-perfect w-full"
+					style={{ imageRendering: "pixelated" }}
+				/>
 			</div>
-			<div className="font-heading text-gba-[9] text-pixel-black">
+			<div className="font-sans font-palette-default text-gba-[9]">
 				{player.name}
 			</div>
 			<div
@@ -989,12 +947,9 @@ function CeremonyPodiumLane({
 				>
 					{rank}
 				</div>
-				<div className="font-heading text-gba-[6] text-pixel-black opacity-85">
-					{player.title}
-				</div>
 			</div>
-			<div className="font-heading text-gba-[7] text-[#206020] mt-gba-[2]">
-				{player.prize}
+			<div className="font-sans font-palette-default text-gba-[7] mt-gba-[2]">
+				{player.title}
 			</div>
 		</div>
 	);
@@ -1012,27 +967,16 @@ export function CeremonyPodiumView({
 	return (
 		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
 			{/* Header */}
-			<div
-				className="font-heading flex justify-between items-center px-gba-[10] py-gba-[8] border-b-[3px] border-pixel-black"
-				style={{
-					background: "#262b44",
-					boxShadow:
-						"inset 2px 2px 0 rgba(255,255,255,0.25), inset -2px -2px 0 rgba(0,0,0,0.25)",
-				}}
-			>
-				<div className="flex items-center gap-gba-[8]">
-					<TrophyIcon size={22} fill="#f8d858" />
-					<div className="leading-relaxed">
-						<div className="text-gba-[10] text-[#f8d858]">
-							HALL OF FAME
-						</div>
-						<div className="text-gba-[7] text-[#a8c8f0] opacity-85">
-							LEAGUE FINALS
-						</div>
-					</div>
-				</div>
-				<span className="text-gba-[7] text-[#a8c8f0]">★★★</span>
-			</div>
+			<PixelHeader
+				title="HALL OF FAME"
+				subtitle="LEAGUE FINALS"
+				variant="dark"
+				right={
+					<span className="font-sans font-palette-yellow text-gba-[8]">
+						★★★
+					</span>
+				}
+			/>
 
 			{/* Content with gradient + confetti */}
 			<div
@@ -1077,8 +1021,7 @@ export function CeremonyPodiumView({
 						className="flex flex-col p-gba-[8] gap-gba-[6] bg-pixel-white"
 						style={{
 							border: "3px solid #282828",
-							boxShadow:
-								"inset 2px 2px 0 #d8e0e8, inset -2px -2px 0 #a8b0b8",
+							boxShadow: "inset 2px 2px 0 #d8e0e8, inset -2px -2px 0 #a8b0b8",
 						}}
 					>
 						<div className="font-heading text-center text-gba-[8] text-[#a82828]">
@@ -1091,7 +1034,7 @@ export function CeremonyPodiumView({
 									sprite={first.sprite}
 									size={28}
 								/>
-								<span className="font-heading text-gba-[8]">
+								<span className="font-sans font-palette-default text-gba-[9]">
 									{first.name}
 								</span>
 							</div>
@@ -1110,12 +1053,12 @@ export function CeremonyPodiumView({
 									sprite={second.sprite}
 									size={28}
 								/>
-								<span className="font-heading text-gba-[8]">
+								<span className="font-sans font-palette-default text-gba-[9]">
 									{second.name}
 								</span>
 							</div>
 						</div>
-						<div className="font-heading text-center text-gba-[7] text-[#686868]">
+						<div className="font-sans font-palette-muted text-center text-gba-[8]">
 							{finalDetails}
 						</div>
 					</div>

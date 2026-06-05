@@ -28,11 +28,13 @@ export interface TournamentMatch {
 	winnerId?: string;
 	status: "pending" | "in_progress" | "completed" | "forfeited";
 	adminOverride?: boolean;
+	round?: number;
 }
 
 export interface TournamentBracket {
 	round: number;
 	matches: TournamentMatch[];
+	matchHistory?: TournamentMatch[];
 	champion?: string;
 	championName?: string;
 }
@@ -91,7 +93,7 @@ export type GameEvent =
 				| "pokedex"
 				| "league"
 				| "tournament"
-				| "hall-of-fame";
+				| "settings";
 	  }
 	| { type: "PLAYER_CREATED"; playerInfo: PlayerInfo; existingState?: any }
 	// Server Events (Background Sync)
@@ -106,7 +108,6 @@ export type GameEvent =
 	| { type: "MATCH_STARTED"; battleId: string; opponentName: string }
 	| { type: "MATCH_COMPLETED"; battleId: string }
 	| { type: "JOIN_BATTLE" }
-	| { type: "HALL_OF_FAME_READY" }
 	| { type: "PLAYER_STATE_UPDATE"; playerState: any }
 	// Internal Events
 	| { type: "NEXT" }
@@ -874,6 +875,10 @@ export const pubmonMachine = setup({
 										guard: ({ event }) => event.phase === "league",
 										target: "league",
 									},
+									{
+										guard: ({ event }) => event.phase === "settings",
+										target: "settings",
+									},
 								],
 							},
 						},
@@ -892,6 +897,10 @@ export const pubmonMachine = setup({
 									{
 										guard: ({ event }) => event.phase === "league",
 										target: "league",
+									},
+									{
+										guard: ({ event }) => event.phase === "settings",
+										target: "settings",
 									},
 								],
 								SET_ACTIVE_MON: "settingActiveMon",
@@ -934,6 +943,10 @@ export const pubmonMachine = setup({
 										guard: ({ event }) => event.phase === "league",
 										target: "league",
 									},
+									{
+										guard: ({ event }) => event.phase === "settings",
+										target: "settings",
+									},
 								],
 							},
 						},
@@ -971,6 +984,10 @@ export const pubmonMachine = setup({
 										guard: ({ event }) => event.phase === "tournament",
 										target: "tournament",
 									},
+									{
+										guard: ({ event }) => event.phase === "settings",
+										target: "settings",
+									},
 								],
 							},
 						},
@@ -992,10 +1009,16 @@ export const pubmonMachine = setup({
 												}),
 											}),
 										},
-										NAVIGATE: {
-											guard: ({ event }) => event.phase === "crawl",
-											target: "#pubmon.view.mainLoop.crawl",
-										},
+										NAVIGATE: [
+											{
+												guard: ({ event }) => event.phase === "crawl",
+												target: "#pubmon.view.mainLoop.crawl",
+											},
+											{
+												guard: ({ event }) => event.phase === "settings",
+												target: "#pubmon.view.mainLoop.settings",
+											},
+										],
 									},
 								},
 
@@ -1016,12 +1039,26 @@ export const pubmonMachine = setup({
 							},
 						},
 
-						hallOfFame: {
+						settings: {
 							on: {
-								NAVIGATE: {
-									guard: ({ event }) => event.phase === "crawl",
-									target: "crawl",
-								},
+								NAVIGATE: [
+									{
+										guard: ({ event }) => event.phase === "crawl",
+										target: "crawl",
+									},
+									{
+										guard: ({ event }) => event.phase === "team",
+										target: "team",
+									},
+									{
+										guard: ({ event }) => event.phase === "pokedex",
+										target: "pokedex",
+									},
+									{
+										guard: ({ event }) => event.phase === "league",
+										target: "league",
+									},
+								],
 							},
 						},
 
@@ -1221,7 +1258,6 @@ export const pubmonMachine = setup({
 					},
 
 					on: {
-						HALL_OF_FAME_READY: ".hallOfFame",
 						// Available from any main-loop view: jump into the player's
 						// active tournament battle when they accept the notification.
 						JOIN_BATTLE: {

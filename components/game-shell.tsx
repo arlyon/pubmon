@@ -1,6 +1,7 @@
 "use client";
 
 import { useMachine } from "@xstate/react";
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	ALL_PUBMON,
@@ -8,6 +9,7 @@ import {
 	type PubMon,
 	type PubType,
 } from "@/lib/pokemon-data";
+import { SKIP_TEASER, TOURNAMENT_START } from "@/lib/tournament";
 import { pubmonMachine } from "@/machines/pubmon-machine";
 import { useAudio } from "./audio-manager";
 import { Badge3D } from "./Badge3D";
@@ -15,25 +17,20 @@ import { BattleScreen } from "./battle-screen";
 import { DebugPanel } from "./debug-panel";
 import { DrinkSelect } from "./drink-select";
 import { GameNavbar } from "./game-navbar";
+import { IntroSequence, type PlayerInfo } from "./intro";
 import { LeaguePage } from "./league-page";
 import PixelTransition, {
 	barBlindsTransition,
 	circleWipeTransition,
 } from "./pixel/PixelTransition";
 import { PixelBox } from "./pixel-box";
-import { IntroSequence, type PlayerInfo } from "./intro";
+import { PlayCanvas } from "./play-canvas";
+import { PokeballMessage, type PokeballMessageKind } from "./pokeball-message";
 import { Pokedex } from "./pokedex";
 import { PostBattle } from "./post-battle";
 import { SettingsPanel } from "./settings-panel";
-import { AnimatePresence } from "framer-motion";
 import { TeamManagement } from "./team-management";
-import { PlayCanvas } from "./play-canvas";
 import { TournamentTeaser } from "./tournament-teaser";
-import { SKIP_TEASER, TOURNAMENT_START } from "@/lib/tournament";
-import {
-	PokeballMessage,
-	type PokeballMessageKind,
-} from "./pokeball-message";
 
 // Stable no-op so the intro startup's child effects (which depend on their
 // callback props) don't re-fire when GameShell re-renders.
@@ -73,7 +70,6 @@ export function GameShell({
 	// Reported up by BattleScreen once the field (opponent + HP) is populated;
 	// gates the battle-entry wipe's reveal so we un-wipe only when data is ready.
 	const [battleReady, setBattleReady] = useState(false);
-	const [showSettings, setShowSettings] = useState(false);
 	const [playingPubmon, setPlayingPubmon] = useState<PubMon | null>(null);
 	// Pre-tournament teaser: before the start time the whole app is just the
 	// title startup followed by a live countdown. `teaserStarted` flips once the
@@ -350,10 +346,6 @@ export function GameShell({
 				send({ type: "MATCH_COMPLETED", battleId: msg.battleId });
 			}
 
-			if (msg.type === "hall_of_fame_ready") {
-				send({ type: "HALL_OF_FAME_READY" });
-			}
-
 			if (msg.type === "leaderboard_sync") {
 				send({ type: "LEADERBOARD_SYNC", players: msg.players });
 			}
@@ -388,7 +380,7 @@ export function GameShell({
 		stateValue.view?.mainLoop === "settingActiveMon";
 	const isPokedex = stateValue.view?.mainLoop === "pokedex";
 	const isLeague = stateValue.view?.mainLoop === "league";
-	const isHallOfFame = stateValue.view?.mainLoop === "hallOfFame";
+	const isSettings = stateValue.view?.mainLoop === "settings";
 	const isCaught = stateValue.view?.mainLoop?.celebration === "caught";
 	const isXP = stateValue.view?.mainLoop?.celebration === "xpGain";
 	const isBadgeReward =
@@ -407,7 +399,7 @@ export function GameShell({
 		| "league"
 		| "settings"
 		| undefined => {
-		if (showSettings) return "settings";
+		if (isSettings) return "settings";
 		if (isCrawl) return "crawl";
 		if (isPokedex) return "pokedex";
 		if (isTeam) return "team";
@@ -415,17 +407,10 @@ export function GameShell({
 		return undefined;
 	};
 
-	// The player's active tournament match (if any). Surfaced inline on the
-	// tournament feed as a "JOIN YOUR MATCH" button rather than a global banner.
-	const activeBattle = context.tournamentState.activeBattle;
-
 	// Before the tournament starts, the app is the title startup → countdown
 	// teaser, for everyone (logged in or not). After the deadline the countdown
 	// hard-reloads and normal play resumes.
 	if (beforeTournament) {
-		// NOTE: do not set --pixel-scale here. GameShell is rendered inside
-		// <PixelScreen> (app/page.tsx), which provides the correct scale for the
-		// 320px-logical GBA UI. Overriding it with uiScale=1 makes everything tiny.
 		return (
 			<div className="flex flex-col relative h-dvh bg-pixel-gray-light">
 				{teaserStarted ? (
@@ -476,7 +461,7 @@ export function GameShell({
 					/>
 				)}
 
-				{!showSettings && isCrawl && (
+				{isCrawl && (
 					<DrinkSelect
 						onSelect={handleDrinkSelect}
 						onSelectGym={(gymId) =>
@@ -535,14 +520,12 @@ export function GameShell({
 							socket={socket}
 							sessionId={sessionId}
 							playerName={context.playerInfo?.name}
-							opponentName={
-								context.tournamentState.activeBattle.opponentName
-							}
+							opponentName={context.tournamentState.activeBattle.opponentName}
 							onReady={handleBattleReady}
 						/>
 					)}
 
-				{!showSettings && isTeam && (
+				{isTeam && (
 					<TeamManagement
 						team={context.party}
 						onBack={() => send({ type: "NAVIGATE", phase: "crawl" })}
@@ -551,7 +534,7 @@ export function GameShell({
 					/>
 				)}
 
-				{!showSettings && isPokedex && (
+				{isPokedex && (
 					<Pokedex
 						seenIds={seenIds}
 						caughtIds={caughtIds}
@@ -560,8 +543,7 @@ export function GameShell({
 					/>
 				)}
 
-				{!showSettings &&
-					(isLeague || isTournamentBracket || isHallOfFame) &&
+				{(isLeague || isTournamentBracket) &&
 					context.playerInfo && (
 						<LeaguePage
 							socket={socket}
@@ -579,7 +561,7 @@ export function GameShell({
 						/>
 					)}
 
-				{showSettings && (
+				{isSettings && (
 					<SettingsPanel
 						isMuted={isMuted}
 						onToggleMute={toggleMute}
@@ -630,14 +612,7 @@ export function GameShell({
 			<GameNavbar
 				isHidden={isStarter || isOnboarding || isBattle}
 				activeTab={getActiveTab() || "crawl"}
-				onNavigate={(phase) => {
-					if (phase === "settings") {
-						setShowSettings(true);
-					} else {
-						setShowSettings(false);
-						send({ type: "NAVIGATE", phase });
-					}
-				}}
+				onNavigate={(phase) => send({ type: "NAVIGATE", phase })}
 			/>
 
 			{/* Debug Panel - only shows in development */}

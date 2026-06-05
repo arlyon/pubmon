@@ -1681,8 +1681,20 @@ export class MainEventServer extends Server {
 			.map((id) => this.gameState.players.get(id))
 			.filter(Boolean) as PlayerState[];
 
+		// Archive the round we're leaving so the tournament feed can show the
+		// full match history, not just the current round.
+		const completedRound = this.gameState.tournamentBracket.round;
+		const archived = this.gameState.tournamentBracket.matches.map((m) => ({
+			...m,
+			round: completedRound,
+		}));
+
 		const nextBracket = this.createBracket(nextRoundPlayers);
-		nextBracket.round = this.gameState.tournamentBracket.round + 1;
+		nextBracket.round = completedRound + 1;
+		nextBracket.matchHistory = [
+			...(this.gameState.tournamentBracket.matchHistory ?? []),
+			...archived,
+		];
 		this.gameState.tournamentBracket = nextBracket;
 
 		await this.persistState();
