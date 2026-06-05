@@ -332,11 +332,13 @@
   100% { transform: rotate(-20deg); }
 }
 
-/* Pokeball thrown into the encounter: arcs in from the player's side. */
+/* Pokeball thrown into the encounter: a real arc — up from the lower-left,
+   over a peak, then down to settle on the target. */
 @keyframes pokeball-throw {
-  0%   { transform: translate(-90px, -40px) scale(0.5) rotate(-540deg); opacity: 0; }
-  40%  { opacity: 1; }
-  100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  0%   { transform: translate(-110px, 70px) scale(0.5) rotate(0deg); opacity: 0; }
+  25%  { opacity: 1; }
+  55%  { transform: translate(-45px, -55px) scale(0.95) rotate(360deg); opacity: 1; }
+  100% { transform: translate(0, 0) scale(1) rotate(720deg); opacity: 1; }
 }
 
 /* Bright burst when a catch locks, just before the celebration screen. */

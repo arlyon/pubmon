@@ -194,14 +194,15 @@ export function BattleScreenView({
 							<img
 								src="/sprites/POKEBALL.png"
 								alt="Pokeball"
-								width={60}
-								height={60}
+								width={44}
+								height={44}
 								style={{
 									imageRendering: "pixelated",
-									// Arc the throw in, then wobble three times.
+									// Arc the throw in, then keep wobbling until the player
+									// dismisses the message (which resolves the attempt).
 									animation: catchFlash
 										? undefined
-										: "pokeball-throw 0.45s ease-out, pokeball-shake 0.4s steps(3, end) 0.45s 3",
+										: "pokeball-throw 0.45s ease-out, pokeball-shake 0.5s steps(3, end) 0.45s infinite",
 									filter: catchFlash ? "brightness(2.4)" : undefined,
 								}}
 							/>

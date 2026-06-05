@@ -31,8 +31,6 @@ interface BattleScreenProps {
 
 const SLIDE_FRAMES = 80;
 const FRAME_MS = 16;
-// Pokeball throw arc (~0.45s) + three wobbles (~1.2s) before the result shows.
-const CATCH_ANIM_MS = 1650;
 
 export function BattleScreen({
 	wildPokemon,
@@ -112,6 +110,9 @@ export function BattleScreen({
 	// Outcome recorded by the sim during a catch attempt; read after the wobble.
 	const catchOutcomeRef = useRef<"success" | "fail" | null>(null);
 	const catchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Catch move index awaiting resolution once the "you try to catch" message
+	// is dismissed (the throw animation plays meanwhile).
+	const pendingCatchRef = useRef<number | null>(null);
 
 	// Pick a scene once per battle based on both pokemon types. Seed it with a
 	// stable key (battleId for P2P, else the wild mon) so both clients in a
@@ -167,7 +168,17 @@ export function BattleScreen({
 					// Play enemy cry when animation completes
 					playCry(wildPokemon.cry);
 
-					setTimeout(() => setShowMenu(true), 200);
+					setTimeout(() => {
+						setShowMenu(true);
+						// Wild battles open with a "Wild X appeared!" line; the action
+						// menu stays hidden until the player dismisses it.
+						if (battleMode !== "p2p") {
+							setMenu("message");
+							setMessage(
+								`Wild ${wildPokemon.name.toUpperCase()} appeared!`,
+							);
+						}
+					}, 200);
 					return;
 				}
 			}
@@ -182,7 +193,7 @@ export function BattleScreen({
 				cancelAnimationFrame(animationId);
 			}
 		};
-	}, [wildPokemon.cry]);
+	}, [wildPokemon.cry, wildPokemon.name, battleMode, setMenu, setMessage]);
 
 	const handleBag = useCallback(() => {
 		if (isAnimating) return;
@@ -224,6 +235,26 @@ export function BattleScreen({
 		handleAttack(runMoveIndex);
 	}, [battleMode, denyAction, isAnimating, protocolRequest, handleAttack]);
 
+	// Resolve a catch attempt in the sim (called when the player dismisses the
+	// "you try to catch" message). The throw/wobble has already been playing.
+	const resolveCatch = useCallback(
+		(catchMoveIndex: number) => {
+			catchOutcomeRef.current = null;
+			handleAttack(catchMoveIndex); // resolves synchronously → sets catchOutcomeRef
+			if (catchOutcomeRef.current === "success") {
+				// Flash the locked ball, then hand off to the "caught" celebration.
+				setMenu("message");
+				setCatchFlash(true);
+				if (catchTimerRef.current) clearTimeout(catchTimerRef.current);
+				catchTimerRef.current = setTimeout(() => onCatch(), 450);
+			} else {
+				// Ball bursts open — the wild sprite returns and "broke free" shows.
+				setShowCatchAnim(false);
+			}
+		},
+		[handleAttack, onCatch, setMenu],
+	);
+
 	const handleCatch = useCallback(() => {
 		if (battleMode === "p2p") {
 			denyAction("You can't catch now!");
@@ -240,37 +271,37 @@ export function BattleScreen({
 			return;
 		}
 
-		// Orchestrate the catch: throw the ball + wobble (CATCH_ANIM_MS), THEN
-		// resolve the attempt in the sim. We delay the *action*, not the messages,
-		// so the animation always plays before the outcome is revealed.
-		catchOutcomeRef.current = null;
+		// Throw the ball + show the attempt message. The ball wobbles while the
+		// message is up; resolution happens when the player dismisses it
+		// (handleContinueMessage), so the action is gated on the animation.
+		pendingCatchRef.current = catchMoveIndex;
 		setIsAnimating(true);
-		setMenu("message"); // hide the action menu during the throw
 		setShowCatchAnim(true);
-
-		if (catchTimerRef.current) clearTimeout(catchTimerRef.current);
-		catchTimerRef.current = setTimeout(() => {
-			handleAttack(catchMoveIndex); // resolves synchronously → sets catchOutcomeRef
-			if (catchOutcomeRef.current === "success") {
-				// Flash the locked ball, then hand off to the "caught" celebration.
-				setMenu("message");
-				setCatchFlash(true);
-				catchTimerRef.current = setTimeout(() => onCatch(), 450);
-			} else {
-				// Ball bursts open — the wild sprite returns and "broke free" shows.
-				setShowCatchAnim(false);
-			}
-		}, CATCH_ANIM_MS);
+		setMenu("message");
+		setMessage(`You try to catch wild ${wildPokemon.name.toUpperCase()}!`);
 	}, [
 		battleMode,
 		denyAction,
 		isAnimating,
 		protocolRequest,
-		handleAttack,
-		onCatch,
+		wildPokemon.name,
 		setIsAnimating,
 		setMenu,
+		setMessage,
 	]);
+
+	// Dismissing the "you try to catch" message resolves the attempt; otherwise
+	// advance the normal battle message queue.
+	const handleContinueMessage = useCallback(() => {
+		if (pendingCatchRef.current != null) {
+			const idx = pendingCatchRef.current;
+			pendingCatchRef.current = null;
+			setMessage(null);
+			resolveCatch(idx);
+			return;
+		}
+		continueMessage();
+	}, [resolveCatch, continueMessage, setMessage]);
 
 	// Clean up a pending catch timer on unmount.
 	useEffect(() => {
@@ -340,7 +371,7 @@ export function BattleScreen({
 			onRun={handleRun}
 			onSelectMove={handleAttack}
 			onBackToMain={() => setMenu("main")}
-			onContinueMessage={continueMessage}
+			onContinueMessage={handleContinueMessage}
 		/>
 	);
 }
