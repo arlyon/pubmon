@@ -1,37 +1,13 @@
 #!/usr/bin/env bash
+# Thin wrapper around the Python sprite pipeline.
+# Removes backgrounds (rembg), clamps alpha to binary 0/255 for crisp
+# pixel-art edges, and nearest-neighbour downscales (aspect-preserving).
+#
+#   pubmon      -> 64x64 box
+#   pubtrainers -> 86x86 box (3:4 portraits land at 64x86)
+#
+# Pass through any args, e.g. `./scripts/process-sprites.sh --force pubmon`.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-RAW_DIR="$REPO_ROOT/public/sprites/raw"
-OUT_DIR="$REPO_ROOT/public/sprites"
-
-PUBMON_SIZE="64x64"
-TRAINER_SIZE="160x160"
-
-process() {
-  local category="$1" size="$2"
-  local src_dir="$RAW_DIR/$category"
-  local dst_dir="$OUT_DIR/$category"
-
-  mkdir -p "$dst_dir"
-
-  for img in "$src_dir"/*.png; do
-    [ -f "$img" ] || continue
-    local name
-    name="$(basename "$img")"
-    local out="$dst_dir/$name"
-
-    if [ "$out" -nt "$img" ]; then
-      echo "SKIP $category/$name (up to date)"
-      continue
-    fi
-
-    echo "PROC $category/$name -> ${size}"
-    rembg i "$img" - | magick - -filter Point -resize "$size" "$out"
-  done
-}
-
-process pubmon "$PUBMON_SIZE"
-process pubtrainers "$TRAINER_SIZE"
-
-echo "Done."
+exec python3 "$REPO_ROOT/scripts/process_sprites.py" "$@"

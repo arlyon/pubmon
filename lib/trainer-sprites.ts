@@ -11,15 +11,28 @@ export type Gender = "boy" | "girl" | "mystery";
  * instead of the generic gender fallback.
  */
 export const CUSTOM_TRAINER_SPRITES = new Set([
+	"ale",
 	"alex",
 	"ali",
+	"amani",
+	"ashley",
 	"calum",
 	"chloe",
 	"emilie",
-	"joe",
+	"emily",
+	"emma",
+	"gus",
+	"jack",
+	"jackson",
+	"kat",
+	"kitty",
 	"luke",
 	"nadia",
-	"olli",
+	"oli",
+	"ornella",
+	"quitterie",
+	"theo",
+	"tom",
 ]);
 
 /**

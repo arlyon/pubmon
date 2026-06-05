@@ -13,3 +13,7 @@ node_modules/
 
 *storybook.log
 storybook-static
+
+# sprite pipeline artifacts
+sprite-previews/
+scripts/__pycache__/
