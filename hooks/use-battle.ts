@@ -718,8 +718,19 @@ export function useBattle({
 				} else if (line.startsWith("|-resisted|")) {
 					messageQueueRef.current.push({ text: "It's not very effective..." });
 				} else if (line.startsWith("|faint|")) {
-					const pkmn = line.split("|")[2].substring(4);
-					messageQueueRef.current.push({ text: `${pkmn} fainted!`, delay: 600 });
+					const parts = line.split("|");
+					const pkmn = parts[2].substring(4);
+					const isPlayer = identSide(parts[2]) === mySide;
+					const isEnemy = identSide(parts[2]) === foe;
+					// Drain the fainted side's bar to 0 here — the killing |-damage|
+					// can leave it just above empty, and "VICTORY" would otherwise
+					// show over a non-zero bar.
+					messageQueueRef.current.push({
+						text: `${pkmn} fainted!`,
+						delay: 600,
+						playerHp: isPlayer ? 0 : undefined,
+						enemyHp: isEnemy ? 0 : undefined,
+					});
 				} else if (line.startsWith("|win|")) {
 					const winner = line.split("|")[2];
 					if (winner === "Player") {

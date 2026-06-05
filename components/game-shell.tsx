@@ -387,6 +387,14 @@ export function GameShell({
 		stateValue.view?.mainLoop?.celebration === "badgeReward";
 	const isRan = stateValue.view?.mainLoop?.celebration === "ran";
 	const isDefeated = stateValue.view?.mainLoop?.celebration === "defeated";
+	// Transient states between a battle action and its celebration screen
+	// (server round-trips). Bridged with a dark screen so we don't flash the
+	// main loop / navbar before the post-battle UI mounts.
+	const isResolving =
+		stateValue.view?.mainLoop === "resolvingEncounter" ||
+		stateValue.view?.mainLoop === "resolvingCatch" ||
+		stateValue.view?.mainLoop === "resolvingRun" ||
+		stateValue.view?.mainLoop === "resolvingBattle";
 
 	// The bracket/league views auto-enter a battle on MATCH_STARTED; track that
 	// so the socket handler can cover the swap with the wipe.
@@ -487,7 +495,10 @@ export function GameShell({
 					/>
 				)}
 
-				{isBattle && context.activeEncounter.wildPubmon && (
+				{/* Keep the battle screen mounted through the post-battle resolve
+				    (server round-trip for xp/badge) so it holds its last frame and
+				    swaps straight to the celebration — no flash of the main loop. */}
+				{(isBattle || isResolving) && context.activeEncounter.wildPubmon && (
 					<BattleScreen
 						wildPokemon={context.activeEncounter.wildPubmon}
 						playerPokemon={activePokemon}
@@ -616,6 +627,7 @@ export function GameShell({
 						enemyPokemon={context.activeEncounter.wildPubmon}
 					/>
 				)}
+
 			</main>
 
 			{/* Bottom nav — hidden on non-navigable, full-screen flows
@@ -625,6 +637,7 @@ export function GameShell({
 					isStarter ||
 					isOnboarding ||
 					isBattle ||
+					isResolving ||
 					isCaught ||
 					isXP ||
 					isBadgeReward ||
