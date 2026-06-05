@@ -11,6 +11,9 @@ interface PixelSpriteProps {
 	flipped?: boolean;
 	animated?: boolean;
 	variant?: number;
+	/** Explicit idle-bob delay (seconds). Overrides the size-derived default so
+	 *  two sprites can be staggered out of phase. */
+	bobDelay?: number;
 }
 
 export function PixelSprite({
@@ -20,6 +23,7 @@ export function PixelSprite({
 	flipped = false,
 	animated = false,
 	variant = 1,
+	bobDelay,
 }: PixelSpriteProps) {
 	const [imgError, setImgError] = useState(false);
 	const spriteKey = name.toLowerCase();
@@ -29,7 +33,7 @@ export function PixelSprite({
 		? getMissingnoSprite()
 		: getPubMonSprite(spriteKey, variant);
 
-	const offset = 0.5 * (size % 7);
+	const offset = bobDelay ?? 0.5 * (size % 7);
 
 	return (
 		<div

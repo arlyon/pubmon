@@ -173,26 +173,18 @@ export function BattleScreen({
 		setIsAnimating(true);
 		setMenu("message");
 		setMessage("Oi! No drugs allowed on the premises!");
-		setTimeout(() => {
-			setIsAnimating(false);
-			setMenu("main");
-			setMessage(null);
-		}, 1500);
+		// No auto-dismiss: the message stays until the player taps to continue
+		// (handled by continueMessage, which clears the empty queue → main menu).
 	}, [isAnimating, setIsAnimating, setMenu, setMessage]);
 
 	// Flash a denial message (used to block catch/run in tournament battles)
-	// without consuming a turn, then return to the main menu.
+	// without consuming a turn. Stays until the player taps to continue.
 	const denyAction = useCallback(
 		(text: string) => {
 			if (isAnimating) return;
 			setIsAnimating(true);
 			setMenu("message");
 			setMessage(text);
-			setTimeout(() => {
-				setIsAnimating(false);
-				setMenu("main");
-				setMessage(null);
-			}, 1400);
 		},
 		[isAnimating, setIsAnimating, setMenu, setMessage],
 	);
@@ -285,6 +277,7 @@ export function BattleScreen({
 			playerName={playerName}
 			opponentName={opponentName}
 			introComplete={introComplete}
+			slideProgress={Math.min(1, slideFrame / SLIDE_FRAMES)}
 			showCatchAnim={showCatchAnim}
 			moves={moves}
 			battleLog={battleLog}

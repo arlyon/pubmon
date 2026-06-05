@@ -824,15 +824,15 @@ const CONFETTI_COLORS = [
 	"#fff",
 ];
 
-function Confetti({ count = 40 }: { count?: number }) {
+function Confetti({ count = 100 }: { count?: number }) {
 	const items = useMemo(
 		() =>
 			Array.from({ length: count }).map((_, i) => ({
 				x: Math.floor(Math.random() * 100),
-				delay: Math.random() * 1.5,
+				delay: Math.random() * 6,
 				color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-				size: 2 + Math.floor(Math.random() * 3),
-				duration: 2.4 + Math.random() * 1.5,
+				size: 4 + Math.floor(Math.random() * 3),
+				duration: 5 + Math.random() * 3,
 			})),
 		[count],
 	);
@@ -845,11 +845,11 @@ function Confetti({ count = 40 }: { count?: number }) {
 					className="absolute"
 					style={{
 						left: `${p.x}%`,
-						top: -20,
+						top: -200,
 						width: p.size,
 						height: p.size,
 						background: p.color,
-						animation: `confetti-fall ${p.duration}s steps(8,end) ${p.delay}s infinite`,
+						animation: `confetti-fall ${p.duration}s steps(100,end) ${p.delay}s infinite`,
 					}}
 				/>
 			))}

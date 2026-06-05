@@ -46,6 +46,8 @@ export interface BattleScreenViewProps {
 	opponentName?: string;
 	/** Whether the intro slide-in is complete */
 	introComplete?: boolean;
+	/** Entrance slide progress, 0 (off-screen) → 1 (in place). */
+	slideProgress?: number;
 	/** Whether to show the catch animation */
 	showCatchAnim?: boolean;
 	/** Available moves for fight menu */
@@ -95,6 +97,7 @@ export function BattleScreenView({
 	playerName,
 	opponentName,
 	introComplete = true,
+	slideProgress = 1,
 	showCatchAnim = false,
 	moves = [],
 	battleLog = [],
@@ -110,13 +113,27 @@ export function BattleScreenView({
 	const [showDebug, setShowDebug] = useState(false);
 	const debugEndRef = useRef<HTMLDivElement>(null);
 
-	const playerOffset = introComplete ? 0 : 320;
-	const enemyOffset = introComplete ? 0 : 320;
+	// Drive the entrance slide from the continuous progress (0 → 1) so the
+	// combatants actually slide in from off-screen instead of popping. The
+	// container ticks `slideProgress` each frame; transforms keep `transition:
+	// none` so per-frame updates read as a crisp pixel slide. An ease-out curve
+	// (fast in, gentle settle) gives it weight instead of a linear glide.
+	const eased = 1 - (1 - slideProgress) ** 3;
+	const slide = Math.round((1 - eased) * 320);
+	const playerOffset = slide;
+	const enemyOffset = slide;
 
 	const showMenu = introComplete;
 
 	return (
-		<div className="w-full max-w-md mx-auto flex flex-col">
+		// While a message is showing, a click anywhere advances the chat (not
+		// just on the text box). The menu blocks only render when there's no
+		// message, so this never swallows menu/button clicks.
+		<div
+			className="w-full max-w-md mx-auto flex flex-col"
+			onClick={message ? () => onContinueMessage?.() : undefined}
+			style={message ? { cursor: "pointer" } : undefined}
+		>
 			{/* Battle arena */}
 			<div className="relative aspect-[4/3] overflow-hidden">
 				{/* Scene background */}
@@ -141,14 +158,16 @@ export function BattleScreenView({
 					}}
 				>
 					{introComplete && (
-						<PixelStatCard
-							pokemon={wildPokemon}
-							currentHp={enemyHp}
-							maxHp={enemyActivePokemon?.maxhp}
-							status={enemyActivePokemon?.status}
-							showHpNumbers={false}
-							nameOverride={opponentName}
-						/>
+						<div style={{ animation: "battle-fade-up 0.3s ease-out both" }}>
+							<PixelStatCard
+								pokemon={wildPokemon}
+								currentHp={enemyHp}
+								maxHp={enemyActivePokemon?.maxhp}
+								status={enemyActivePokemon?.status}
+								showHpNumbers={false}
+								nameOverride={opponentName}
+							/>
+						</div>
 					)}
 				</div>
 
@@ -192,6 +211,7 @@ export function BattleScreenView({
 									name={wildPokemon.sprite}
 									size={48}
 									animated
+									bobDelay={0}
 									variant={wildPokemon.spriteVariant}
 								/>
 							</div>
@@ -221,14 +241,16 @@ export function BattleScreenView({
 							}}
 						>
 							{introComplete && (
-								<PixelStatCard
-									pokemon={playerPokemon}
-									currentHp={playerHp}
-									maxHp={playerActivePokemon?.maxhp}
-									status={playerActivePokemon?.status}
-									showHpNumbers
-									nameOverride={playerName}
-								/>
+								<div style={{ animation: "battle-fade-up 0.3s ease-out both" }}>
+									<PixelStatCard
+										pokemon={playerPokemon}
+										currentHp={playerHp}
+										maxHp={playerActivePokemon?.maxhp}
+										status={playerActivePokemon?.status}
+										showHpNumbers
+										nameOverride={playerName}
+									/>
+								</div>
 							)}
 						</div>
 
@@ -261,6 +283,7 @@ export function BattleScreenView({
 									size={56}
 									flipped
 									animated
+									bobDelay={0.5}
 									variant={playerPokemon.spriteVariant}
 								/>
 							</div>
@@ -281,15 +304,20 @@ export function BattleScreenView({
 			</div>
 
 			{/* Bottom UI panel */}
-			<div className="p-2">
-				{/* Message display */}
+			<div
+				className="p-2"
+				style={
+					introComplete
+						? { animation: "battle-fade-up 0.35s ease-out both" }
+						: undefined
+				}
+			>
+				{/* Message display — advancing is handled by the root click
+				    handler so a tap anywhere progresses the chat. */}
 				{message && (
-					<button
-						onClick={onContinueMessage}
-						className="w-full mb-2 text-left cursor-pointer border-none bg-transparent p-0 flex flex-col focus:outline-none"
-					>
+					<div className="w-full mb-2 flex flex-col">
 						<PixelTextBox text={message} showContinue={true} rows={2} />
-					</button>
+					</div>
 				)}
 
 				{/* Main menu */}

@@ -1176,8 +1176,7 @@ export const pubmonMachine = setup({
 								onDone: [
 									{
 										guard: ({ event }) => event.output.outcome === "loss",
-										target: "crawl",
-										actions: "clearEncounter",
+										target: "celebration.defeated",
 									},
 									{
 										guard: ({ event }) => event.output.awardedBadgeId != null,
@@ -1250,6 +1249,15 @@ export const pubmonMachine = setup({
 													ranBattleTurns: 0,
 												}),
 											],
+										},
+									},
+								},
+
+								defeated: {
+									on: {
+										CONTINUE: {
+											target: "#pubmon.view.mainLoop.crawl",
+											actions: "clearEncounter",
 										},
 									},
 								},

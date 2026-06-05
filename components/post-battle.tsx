@@ -99,7 +99,7 @@ function RunScreen({
 
 	return (
 		<div
-			className="flex flex-col items-center gap-gba-[12] px-gba-[14] py-gba-[20]"
+			className="w-full flex flex-col items-center gap-gba-[12] px-gba-[14] py-gba-[20]"
 			style={{ background: "#262b44", minHeight: "100%" }}
 		>
 			{/* Receipt card */}
@@ -226,7 +226,7 @@ function CatchScreen({
 
 	return (
 		<div
-			className="flex flex-col gap-gba-[10] px-gba-[12] py-gba-[12]"
+			className="w-full flex flex-col gap-gba-[10] px-gba-[12] py-gba-[12]"
 			style={{ background: "#d03838", minHeight: "100%" }}
 		>
 			{/* PUBDEX +1 header */}
@@ -392,7 +392,7 @@ function WinScreen({
 
 	return (
 		<div
-			className="flex flex-col items-center gap-gba-[10] px-gba-[12] py-gba-[12]"
+			className="w-full flex flex-col items-center gap-gba-[10] px-gba-[12] py-gba-[12]"
 			style={{ background: "#1a1c2c", minHeight: "100%" }}
 		>
 			{/* Victory banner */}
@@ -472,6 +472,115 @@ function WinScreen({
 	);
 }
 
+function DefeatScreen({
+	playerPokemon,
+	enemyPokemon,
+	onContinue,
+}: {
+	playerPokemon: PubMon | null;
+	enemyPokemon: PubMon | null;
+	onContinue: () => void;
+}) {
+	return (
+		<div
+			className="w-full flex flex-col items-center gap-gba-[12] px-gba-[12] py-gba-[16]"
+			style={{ background: "#1a1c2c", minHeight: "100%" }}
+		>
+			{/* Defeat banner */}
+			<div
+				className="w-full text-center border-gba-[1] border-foreground px-gba-[10] py-gba-[10]"
+				style={{
+					background: "#7a1f1f",
+					boxShadow:
+						"inset 2px 2px 0 rgba(255,255,255,0.12), inset -2px -2px 0 rgba(0,0,0,0.5), 3px 3px 0 0 rgba(0,0,0,0.4)",
+					animation: "battle-fade-up 0.35s ease-out both",
+				}}
+			>
+				<div className="font-sans font-palette-white text-gba-[7] mb-gba-[5] opacity-80">
+					─────　K.O.　─────
+				</div>
+				<div
+					className="font-sans font-palette-white text-gba-[18]"
+					style={{ letterSpacing: 2, textShadow: "2px 2px 0 #3a0c0c" }}
+				>
+					DEFEATED
+				</div>
+			</div>
+
+			{/* Matchup: your fainted lead vs the victor */}
+			<PixelBox className="w-full p-gba-[10]">
+				<div className="flex items-center justify-between gap-gba-[6]">
+					{/* Your fainted lead */}
+					<div className="flex flex-col items-center gap-gba-[4] flex-1 min-w-0">
+						<div
+							className="flex items-center justify-center w-gba-[60] h-gba-[60] bg-secondary border-gba-[1] border-foreground"
+							style={{ filter: "grayscale(1) brightness(0.5)" }}
+						>
+							{playerPokemon && (
+								<PixelSprite
+									name={playerPokemon.sprite}
+									variant={playerPokemon.spriteVariant ?? 1}
+									size={52}
+								/>
+							)}
+						</div>
+						<div className="font-sans font-palette-default text-gba-[8] text-center truncate w-full">
+							{playerPokemon?.name.toUpperCase() ?? "—"}
+						</div>
+						<div
+							className="font-sans font-palette-white text-gba-[7] px-gba-[4] py-gba-[1]"
+							style={{ background: "#a82828" }}
+						>
+							FAINTED
+						</div>
+					</div>
+
+					{/* Divider */}
+					<div className="font-sans font-palette-muted text-gba-[12] shrink-0">
+						▶
+					</div>
+
+					{/* The victor */}
+					<div className="flex flex-col items-center gap-gba-[4] flex-1 min-w-0">
+						<div className="flex items-center justify-center w-gba-[60] h-gba-[60] bg-secondary border-gba-[1] border-foreground">
+							{enemyPokemon && (
+								<PixelSprite
+									name={enemyPokemon.sprite}
+									variant={enemyPokemon.spriteVariant ?? 1}
+									size={52}
+									animated
+								/>
+							)}
+						</div>
+						<div className="font-sans font-palette-default text-gba-[8] text-center truncate w-full">
+							{enemyPokemon?.name.toUpperCase() ?? "WILD"}
+						</div>
+						<div
+							className="font-sans font-palette-white text-gba-[7] px-gba-[4] py-gba-[1]"
+							style={{ background: "#307838" }}
+						>
+							WINNER
+						</div>
+					</div>
+				</div>
+			</PixelBox>
+
+			{/* Flavor */}
+			<div className="font-sans font-palette-muted text-gba-[8] text-center leading-relaxed px-gba-[6]">
+				{enemyPokemon
+					? `${enemyPokemon.name.toUpperCase()} WAS TOO STRONG!`
+					: "YOU BLACKED OUT!"}
+				<br />
+				Patch up and get back out there.
+			</div>
+
+			<PixelButton variant="primary" onClick={onContinue} className="w-full">
+				CONTINUE CRAWL
+			</PixelButton>
+		</div>
+	);
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 type PostBattleProps =
@@ -493,9 +602,24 @@ type PostBattleProps =
 			ranFromPubmon: PubMon;
 			ranBattleTurns: number;
 			playerPokemon: PubMon | null;
+	  }
+	| {
+			variant: "defeated";
+			onContinue: () => void;
+			playerPokemon: PubMon | null;
+			enemyPokemon: PubMon | null;
 	  };
 
 export function PostBattle(props: PostBattleProps) {
+	if (props.variant === "defeated") {
+		return (
+			<DefeatScreen
+				playerPokemon={props.playerPokemon}
+				enemyPokemon={props.enemyPokemon}
+				onContinue={props.onContinue}
+			/>
+		);
+	}
 	if (props.variant === "caught") {
 		return (
 			<CatchScreen

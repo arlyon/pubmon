@@ -386,6 +386,7 @@ export function GameShell({
 	const isBadgeReward =
 		stateValue.view?.mainLoop?.celebration === "badgeReward";
 	const isRan = stateValue.view?.mainLoop?.celebration === "ran";
+	const isDefeated = stateValue.view?.mainLoop?.celebration === "defeated";
 
 	// The bracket/league views auto-enter a battle on MATCH_STARTED; track that
 	// so the socket handler can cover the swap with the wipe.
@@ -606,11 +607,30 @@ export function GameShell({
 						playerPokemon={activePokemon ?? null}
 					/>
 				)}
+
+				{isDefeated && (
+					<PostBattle
+						variant="defeated"
+						onContinue={() => send({ type: "CONTINUE" })}
+						playerPokemon={activePokemon ?? null}
+						enemyPokemon={context.activeEncounter.wildPubmon}
+					/>
+				)}
 			</main>
 
-			{/* Bottom nav */}
+			{/* Bottom nav — hidden on non-navigable, full-screen flows
+			    (onboarding, battle, and every post-battle celebration). */}
 			<GameNavbar
-				isHidden={isStarter || isOnboarding || isBattle}
+				isHidden={
+					isStarter ||
+					isOnboarding ||
+					isBattle ||
+					isCaught ||
+					isXP ||
+					isBadgeReward ||
+					isRan ||
+					isDefeated
+				}
 				activeTab={getActiveTab() || "crawl"}
 				onNavigate={(phase) => send({ type: "NAVIGATE", phase })}
 			/>
