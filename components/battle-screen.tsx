@@ -31,8 +31,6 @@ interface BattleScreenProps {
 
 const SLIDE_FRAMES = 80;
 const FRAME_MS = 16;
-// Pokeball throw arc (~0.45s) + wobbles before the catch outcome is revealed.
-const CATCH_ANIM_MS = 1600;
 
 export function BattleScreen({
 	wildPokemon,
@@ -91,15 +89,15 @@ export function BattleScreen({
 		wildPokemon,
 		playerPokemon,
 		createEngine,
-		// The sim resolves the catch synchronously; we only RECORD the outcome
-		// here. The throw/shake/flash animation in handleCatch decides when to
-		// actually navigate (success) or pop the ball open (failure).
+		// Catch is driven by the message queue in protocol order: the throw
+		// animation plays on the "you try to catch" line, and the outcome
+		// (flash + navigate / ball burst) fires on the result line.
+		onCatchThrow: () => setShowCatchAnim(true),
 		onCatchSuccess: () => {
-			catchOutcomeRef.current = "success";
+			setCatchFlash(true);
+			pendingCatchDoneRef.current = true;
 		},
-		onCatchFailure: () => {
-			catchOutcomeRef.current = "fail";
-		},
+		onCatchFailure: () => setShowCatchAnim(false),
 		onRunSuccess: onRun,
 	});
 
@@ -109,14 +107,8 @@ export function BattleScreen({
 	const [showMenu, setShowMenu] = useState(false);
 	const [showCatchAnim, setShowCatchAnim] = useState(false);
 	const [catchFlash, setCatchFlash] = useState(false);
-	// Outcome recorded by the sim during a catch attempt; read after the wobble.
-	const catchOutcomeRef = useRef<"success" | "fail" | null>(null);
-	const catchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	// Catch move index awaiting resolution once the "you try to catch" message
-	// is dismissed (the throw animation plays meanwhile).
-	const pendingCatchRef = useRef<number | null>(null);
-	// Set once a catch succeeds: dismissing the "caught!" message navigates to
-	// the celebration screen.
+	// Set once a catch succeeds (on the "caught!" line): dismissing that message
+	// navigates to the celebration screen.
 	const pendingCatchDoneRef = useRef(false);
 
 	// Pick a scene once per battle based on both pokemon types. Seed it with a
@@ -240,27 +232,6 @@ export function BattleScreen({
 		handleAttack(runMoveIndex);
 	}, [battleMode, denyAction, isAnimating, protocolRequest, handleAttack]);
 
-	// Resolve a catch attempt in the sim (called when the player dismisses the
-	// "you try to catch" message). The throw/wobble has already been playing.
-	const resolveCatch = useCallback(
-		(catchMoveIndex: number) => {
-			catchOutcomeRef.current = null;
-			handleAttack(catchMoveIndex); // resolves synchronously → sets catchOutcomeRef
-			if (catchOutcomeRef.current === "success") {
-				// Flash the locked ball + show the catch result. Dismissing it hands
-				// off to the "caught" celebration (pendingCatchDoneRef).
-				setCatchFlash(true);
-				setMenu("message");
-				setMessage(`Gotcha! Wild ${wildPokemon.name.toUpperCase()} was caught!`);
-				pendingCatchDoneRef.current = true;
-			} else {
-				// Ball bursts open — the wild sprite returns and "broke free" shows.
-				setShowCatchAnim(false);
-			}
-		},
-		[handleAttack, wildPokemon.name, setMenu, setMessage],
-	);
-
 	const handleCatch = useCallback(() => {
 		if (battleMode === "p2p") {
 			denyAction("You can't catch now!");
@@ -277,52 +248,22 @@ export function BattleScreen({
 			return;
 		}
 
-		// Show the attempt message first. Dismissing it kicks off the throw /
-		// wobble / outcome sequence (handleContinueMessage).
-		pendingCatchRef.current = catchMoveIndex;
-		setIsAnimating(true);
-		setMenu("message");
-		setMessage(`You try to catch wild ${wildPokemon.name.toUpperCase()}!`);
-	}, [
-		battleMode,
-		denyAction,
-		isAnimating,
-		protocolRequest,
-		wildPokemon.name,
-		setIsAnimating,
-		setMenu,
-		setMessage,
-	]);
+		// Just send the move. The narration (enemy turn → "you try to catch" →
+		// result) plays in protocol order via the message queue, and the throw /
+		// flash animations are driven by those messages' onDisplay callbacks.
+		handleAttack(catchMoveIndex);
+	}, [battleMode, denyAction, isAnimating, protocolRequest, handleAttack]);
 
-	// Dismissing the "you try to catch" message resolves the attempt; otherwise
-	// advance the normal battle message queue.
+	// Dismissing the "Gotcha!" result navigates to the caught celebration;
+	// everything else advances the battle message queue normally.
 	const handleContinueMessage = useCallback(() => {
-		// Dismissing "you try to catch" → play the full throw/wobble sequence,
-		// then resolve the attempt once the animation finishes.
-		if (pendingCatchRef.current != null) {
-			const idx = pendingCatchRef.current;
-			pendingCatchRef.current = null;
-			setMessage(null);
-			setShowCatchAnim(true); // throw arc + wobble
-			if (catchTimerRef.current) clearTimeout(catchTimerRef.current);
-			catchTimerRef.current = setTimeout(() => resolveCatch(idx), CATCH_ANIM_MS);
-			return;
-		}
-		// Dismissing the "caught!" result → go to the celebration screen.
 		if (pendingCatchDoneRef.current) {
 			pendingCatchDoneRef.current = false;
 			onCatch();
 			return;
 		}
 		continueMessage();
-	}, [resolveCatch, continueMessage, onCatch, setMessage]);
-
-	// Clean up a pending catch animation timer on unmount.
-	useEffect(() => {
-		return () => {
-			if (catchTimerRef.current) clearTimeout(catchTimerRef.current);
-		};
-	}, []);
+	}, [continueMessage, onCatch]);
 
 	const introComplete = slideFrame >= SLIDE_FRAMES && showMenu;
 

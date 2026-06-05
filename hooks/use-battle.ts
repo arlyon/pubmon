@@ -61,6 +61,7 @@ interface UseBattleProps {
 	 * on the remount). If omitted, a LocalBattleEngine is used (wild battles).
 	 */
 	createEngine?: () => BattleEngine;
+	onCatchThrow?: () => void; // Called when the catch move is narrated (throw ball)
 	onCatchSuccess?: () => void; // Called when catch succeeds in sim
 	onCatchFailure?: () => void; // Called when catch fails (ball breaks open)
 	onRunSuccess?: () => void; // Called when run succeeds in sim
@@ -70,6 +71,7 @@ export function useBattle({
 	wildPokemon,
 	playerPokemon,
 	createEngine,
+	onCatchThrow,
 	onCatchSuccess,
 	onCatchFailure,
 	onRunSuccess,
@@ -608,20 +610,26 @@ export function useBattle({
 
 				// --- Catch / Run handling (native, not via |win|/|tie|) ---
 
-				// Catch success: shake3 means the pokeball held. Just signal the
-				// result — the battle screen owns the throw/shake/flash animation
-				// and triggers the actual catch (navigation) when it finishes.
+				// Catch success: shake3 means the pokeball held. Queue the result in
+				// protocol order; the flash/navigation fire when it's displayed.
 				if (line.startsWith("|-activate|") && line.includes("shake3")) {
-					onCatchSuccess?.();
+					const name =
+						wildPokemonRef.current?.name?.toUpperCase() ?? "THE PUBMON";
+					messageQueueRef.current.push({
+						text: `Gotcha! ${name} was caught!`,
+						onDisplay: () => onCatchSuccess?.(),
+					});
 					continue;
 				}
-				// Catch failure: shake1 means it broke free. Signal the result and
-				// queue the message (shown once the ball bursts open).
+				// Catch failure: shake1 means it broke free. Queue the message; the
+				// ball pops open (onCatchFailure) when it's displayed.
 				if (line.startsWith("|-activate|") && line.includes("shake1")) {
 					lastMoveUsedRef.current = null; // Reset so faint/win aren't suppressed
-					onCatchFailure?.();
+					const name =
+						wildPokemonRef.current?.name?.toUpperCase() ?? "THE PUBMON";
 					messageQueueRef.current.push({
-						text: "Oh no! The PubMon broke free!",
+						text: `Oh no! ${name} broke free!`,
+						onDisplay: () => onCatchFailure?.(),
 					});
 					continue;
 				}
@@ -670,9 +678,15 @@ export function useBattle({
 
 					const moveId = move.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
-					// Catch/Run: handle natively, skip "used X!" message
+					// Catch: narrate the throw in protocol order; the shake3/shake1
+					// line that follows queues the outcome.
 					if (moveId === "catch") {
-						// Message will come from shake1/shake3 handler above
+						const name =
+							wildPokemonRef.current?.name?.toUpperCase() ?? "PUBMON";
+						messageQueueRef.current.push({
+							text: `You try to catch wild ${name}!`,
+							onDisplay: () => onCatchThrow?.(),
+						});
 						continue;
 					}
 					if (moveId === "run") {
