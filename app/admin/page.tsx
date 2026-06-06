@@ -19,6 +19,7 @@ import {
 } from "react";
 import { GYMS } from "@/lib/gym-data";
 import { getPubMonSprite } from "@/lib/pokemon-data";
+import { CUSTOM_TRAINER_SPRITES, getTrainerSpritePath } from "@/lib/trainer-sprites";
 import "./admin-console.css";
 
 // ─── Wire-format types (subset the UI binds to) ──────────────────────────────
@@ -35,13 +36,19 @@ interface PartyMon {
 	maxHp?: number;
 	type?: string;
 }
+interface BattleLogEntry {
+	outcome: "win" | "caught" | "run" | "lose";
+	pokemon?: PartyMon;
+	startTime?: number;
+	endTime?: number;
+}
 interface PlayerState {
 	sessionId: string;
 	info: { name: string; sprite: string };
 	party: PartyMon[];
 	activeIndex: number;
 	badges: number[];
-	battleLog: { outcome: "win" | "caught" | "run" | "lose" }[];
+	battleLog: BattleLogEntry[];
 	tournamentOptIn: boolean;
 	ribbons: string[];
 	lastActivity: number;
@@ -133,6 +140,57 @@ function spriteFor(p?: PlayerState): string | null {
 function winsOf(p?: PlayerState): number {
 	return (p?.battleLog ?? []).filter((b) => b.outcome === "win").length;
 }
+function countOutcome(p: PlayerState | undefined, outcome: BattleLogEntry["outcome"]): number {
+	return (p?.battleLog ?? []).filter((b) => b.outcome === outcome).length;
+}
+function winRateOf(p?: PlayerState): number | null {
+	const w = countOutcome(p, "win");
+	const total = w + countOutcome(p, "lose");
+	return total ? Math.round((w / total) * 100) : null;
+}
+function uniqueMons(p: PlayerState | undefined, outcome?: BattleLogEntry["outcome"]): number {
+	const s = new Set<string>();
+	for (const e of p?.battleLog ?? []) {
+		if (outcome && e.outcome !== outcome) continue;
+		if (e.pokemon?.name) s.add(e.pokemon.name);
+	}
+	return s.size;
+}
+function seenOf(p?: PlayerState): number {
+	return uniqueMons(p);
+}
+function caughtOf(p?: PlayerState): number {
+	return uniqueMons(p, "caught");
+}
+
+// Player-list sort options. Selecting one sorts descending and surfaces the
+// matching stat on each row.
+type SortKey = "default" | "seen" | "caught" | "wins" | "winrate" | "badges";
+const SORTS: { key: SortKey; label: string }[] = [
+	{ key: "default", label: "Default order" },
+	{ key: "seen", label: "Pokémon seen" },
+	{ key: "caught", label: "Pokémon caught" },
+	{ key: "wins", label: "Battles won" },
+	{ key: "winrate", label: "Win rate" },
+	{ key: "badges", label: "Badge count" },
+];
+const SORT_STATS: Record<Exclude<SortKey, "default">, { value: (p: PlayerState) => number; display: (p: PlayerState) => string }> = {
+	seen: { value: seenOf, display: (p) => `${seenOf(p)} seen` },
+	caught: { value: caughtOf, display: (p) => `${caughtOf(p)} caught` },
+	wins: { value: winsOf, display: (p) => `${winsOf(p)} won` },
+	winrate: { value: (p) => winRateOf(p) ?? -1, display: (p) => { const r = winRateOf(p); return r == null ? "no battles" : `${r}% WR`; } },
+	badges: { value: (p) => p.badges.length, display: (p) => `${p.badges.length} badges` },
+};
+
+// Premade usernames = names with dedicated trainer portraits (lib/trainer-sprites).
+const PREMADE_NAMES = Array.from(CUSTOM_TRAINER_SPRITES).sort();
+
+const OUTCOME_META: Record<BattleLogEntry["outcome"], { label: string; color: string }> = {
+	win: { label: "Won", color: "var(--blue)" },
+	caught: { label: "Caught", color: "var(--amber)" },
+	run: { label: "Ran", color: "var(--ink-3)" },
+	lose: { label: "Lost", color: "#d23a43" },
+};
 
 // ─── Icons (clean line set; ported from the design) ──────────────────────────
 
@@ -680,24 +738,79 @@ function LiveBracket({ snapshot, bracket, battles, openedAt, now, act, confirm }
 
 // ─── Player directory ────────────────────────────────────────────────────────
 
+function StatTile({ label, value, accent }: { label: string; value: ReactNode; accent?: string }) {
+	return (
+		<div style={{ background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+			<div style={{ fontSize: 20, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: accent ?? "var(--ink)" }}>{value}</div>
+			<div style={{ fontSize: "var(--fs-xs)", textTransform: "uppercase", letterSpacing: ".5px", color: "var(--ink-3)", fontWeight: 700, marginTop: 2 }}>{label}</div>
+		</div>
+	);
+}
+
+function BattleLogList({ log }: { log: BattleLogEntry[] }) {
+	if (!log.length) return <div className="muted" style={{ fontSize: "var(--fs-xs)" }}>No battles logged yet.</div>;
+	const rows = [...log].reverse();
+	return (
+		<div className="scroll-y" style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 220 }}>
+			{rows.map((e, i) => {
+				const meta = OUTCOME_META[e.outcome];
+				const dur = e.startTime != null && e.endTime != null ? Math.max(0, e.endTime - e.startTime) : null;
+				return (
+					<div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: 6 }}>
+						<span style={{ width: 8, height: 8, borderRadius: 99, background: meta.color, flex: "none" }} />
+						<span style={{ fontWeight: 600, fontSize: "var(--fs-xs)", color: meta.color, minWidth: 44 }}>{meta.label}</span>
+						<span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--fs-xs)" }}>
+							{e.pokemon?.name ?? "—"}{e.pokemon?.level ? ` · L${e.pokemon.level}` : ""}
+						</span>
+						{dur != null && <span className="muted" style={{ fontSize: "var(--fs-xs)", fontFamily: "var(--mono)" }}>{fmtClock(dur)}</span>}
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
 function PlayerDetail({ p, snapshot, bracket, now, act, onClose }: {
 	p: PlayerState; snapshot: Snapshot; bracket: Bracket | null; now: number;
 	act: (type: string, extra?: Record<string, unknown>) => void; onClose: () => void;
 }) {
 	const [ribbon, setRibbon] = useState(RIBBONS[0].path);
+	const [showLog, setShowLog] = useState(false);
 	const held = p.ribbons.map((path) => RIBBON_BY_PATH[path]).filter(Boolean);
 	const inTournament = snapshot.phase === "tournament" && !!bracket?.matches.length;
 	const bstate = playerBracketState(bracket ?? undefined, snapshot.phase, p.sessionId);
 	const canReadd = inTournament && bstate !== "active" && bstate !== "champion";
+	const wins = winsOf(p);
+	const wr = winRateOf(p);
 	return (
 		<div className="pdetail scroll-y">
 			<div className="pd-head">
 				<Avatar player={p} />
 				<div>
 					<div className="pd-name">{p.info.name}</div>
-					<div className="pd-sub">{p.sessionId.slice(0, 12)} · Lv{levelOf(p)} · {winsOf(p)}/{p.battleLog.length} wins</div>
+					<div className="pd-sub">{p.sessionId.slice(0, 12)} · Lv{levelOf(p)} · {wins}/{p.battleLog.length} wins</div>
 				</div>
 				<span className="pd-close"><Btn size="sm" variant="ghost" icon="x" onClick={onClose} /></span>
+			</div>
+
+			<div className="pd-field">
+				<div className="l">Stats</div>
+				<div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+					<StatTile label="Win rate" value={wr == null ? "—" : wr + "%"} accent={wr == null ? undefined : wr >= 50 ? "var(--blue)" : "#d23a43"} />
+					<StatTile label="Wins" value={wins} />
+					<StatTile label="Losses" value={countOutcome(p, "lose")} />
+					<StatTile label="Caught" value={countOutcome(p, "caught")} />
+					<StatTile label="Ran" value={countOutcome(p, "run")} />
+					<StatTile label="Badges" value={p.badges.length} />
+				</div>
+			</div>
+
+			<div className="pd-field">
+				<div className="l" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+					<span>Battle Log</span>
+					<Btn size="sm" variant="ghost" icon={showLog ? "chevron-d" : "chevron"} onClick={() => setShowLog((s) => !s)}>{showLog ? "Hide" : "Show"} ({p.battleLog.length})</Btn>
+				</div>
+				{showLog && <BattleLogList log={p.battleLog} />}
 			</div>
 
 			{held.length > 0 && (
@@ -739,20 +852,49 @@ function PlayerDirectory({ snapshot, bracket, now, selected, setSelected, act }:
 	act: (type: string, extra?: Record<string, unknown>) => void;
 }) {
 	const [q, setQ] = useState("");
+	const [showNames, setShowNames] = useState(false);
+	const [sortKey, setSortKey] = useState<SortKey>("default");
 	const players = snapshot?.players ?? {};
 	const order = Object.keys(players);
 	const filtered = order.map((id) => players[id]).filter((p) => p.info.name.toLowerCase().includes(q.toLowerCase()));
+	const sorted = sortKey === "default" ? filtered : [...filtered].sort((a, b) => SORT_STATS[sortKey].value(b) - SORT_STATS[sortKey].value(a));
 	const sel = selected ? players[selected] : null;
+	const taken = new Set(order.map((id) => players[id].info.name.trim().toLowerCase()));
 
 	return (
 		<aside className="rail">
 			<div className="rail-head">
-				<div className="title"><Icon name="people" size={14} /> Players <span className="count">{order.length}</span></div>
+				<div className="title"><Icon name="people" size={14} /> Players <span className="count">{order.length}</span>
+					<Btn size="sm" variant="ghost" icon="people" style={{ marginLeft: "auto" }} onClick={() => setShowNames((s) => !s)}>Premade names</Btn>
+				</div>
 				<div className="search"><span className="ic"><Icon name="search" size={14} /></span>
 					<input placeholder="Filter players…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+				<div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 8 }}>
+					<span className="muted" style={{ fontSize: "var(--fs-xs)", textTransform: "uppercase", letterSpacing: ".5px", fontWeight: 700, flex: "none" }}>Sort</span>
+					<select className="select" value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
+						{SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+					</select>
+				</div>
 			</div>
+			{showNames && (
+				<div className="pd-field" style={{ padding: "10px 14px", borderBottom: "1px solid var(--line)", margin: 0 }}>
+					<div className="l">Premade Usernames <span className="count">{PREMADE_NAMES.length}</span></div>
+					<div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6 }}>
+						{PREMADE_NAMES.map((nm) => {
+							const used = taken.has(nm);
+							return (
+								<div key={nm} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 6px", background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: 6, opacity: used ? 0.5 : 1 }}>
+									<img src={getTrainerSpritePath(nm)} alt="" style={{ width: 18, height: 18, imageRendering: "pixelated", flex: "none" }} />
+									<span style={{ textTransform: "capitalize", fontSize: "var(--fs-xs)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nm}</span>
+									{used && <span className="muted" style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: ".5px" }}>taken</span>}
+								</div>
+							);
+						})}
+					</div>
+				</div>
+			)}
 			<div className="plist scroll-y">
-				{filtered.map((p) => {
+				{sorted.map((p) => {
 					const a = playerActivity(p, now);
 					const bstate = playerBracketState(bracket ?? undefined, snapshot!.phase, p.sessionId);
 					return (
@@ -770,11 +912,16 @@ function PlayerDirectory({ snapshot, bracket, now, selected, setSelected, act }:
 									{p.ribbons.length > 0 && <><span>·</span><span className="flex gap6" style={{ gap: 3 }}><Ribbon ribbon={RIBBON_BY_PATH[p.ribbons[0]]} size={12} />{p.ribbons.length}</span></>}
 								</div>
 							</div>
+							{sortKey !== "default" && (
+								<span style={{ flex: "none", fontSize: "var(--fs-xs)", fontWeight: 700, fontVariantNumeric: "tabular-nums", color: "var(--ink-2)", background: "var(--panel-3)", borderRadius: 99, padding: "2px 8px", whiteSpace: "nowrap" }}>
+									{SORT_STATS[sortKey].display(p)}
+								</span>
+							)}
 							<span className="pstate"><span className={"dot " + a.cls} />{a.t}</span>
 						</div>
 					);
 				})}
-				{filtered.length === 0 && <div className="empty-state"><div className="big">No players</div>{q ? `No name matches "${q}".` : "Enter the admin secret to load players."}</div>}
+				{sorted.length === 0 && <div className="empty-state"><div className="big">No players</div>{q ? `No name matches "${q}".` : "Enter the admin secret to load players."}</div>}
 			</div>
 			{sel && <PlayerDetail p={sel} snapshot={snapshot!} bracket={bracket} now={now} act={act} onClose={() => setSelected(null)} />}
 		</aside>
@@ -914,6 +1061,71 @@ function highlightJSON(obj: unknown): string {
 		return '<span class="' + cls + '">' + match + "</span>";
 	});
 	return json;
+}
+
+// ─── Global battle feed ──────────────────────────────────────────────────────
+
+interface FeedRow {
+	player: PlayerState;
+	entry: BattleLogEntry;
+}
+function buildBattleFeed(snapshot: Snapshot | null): FeedRow[] {
+	if (!snapshot) return [];
+	const rows: FeedRow[] = [];
+	for (const id of Object.keys(snapshot.players)) {
+		const p = snapshot.players[id];
+		for (const entry of p.battleLog) rows.push({ player: p, entry });
+	}
+	// Newest first. Entries without a timestamp sink to the bottom.
+	rows.sort((a, b) => (b.entry.startTime ?? 0) - (a.entry.startTime ?? 0));
+	return rows;
+}
+function fmtTimeOfDay(ms?: number): string {
+	if (ms == null) return "—";
+	return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function BattleFeed({ snapshot }: { snapshot: Snapshot | null }) {
+	const [open, setOpen] = useState(false);
+	const rows = useMemo(() => buildBattleFeed(snapshot), [snapshot]);
+	return (
+		<footer className="footer">
+			<div className={"footer-bar" + (open ? " open" : "")} onClick={() => setOpen((o) => !o)}>
+				<span className="twist"><Icon name="chevron" size={11} /></span>
+				<span className="ft">Battle feed</span>
+				<span className="fmeta">all players · {rows.length} battles · newest first</span>
+				<span className="spring" />
+				<span className="muted" style={{ fontSize: "var(--fs-xs)" }}>{open ? "Hide" : "Show"}</span>
+			</div>
+			{open && (
+				<div className="raw-body scroll-y" style={{ background: "var(--panel-2)", maxHeight: 320 }}>
+					{rows.length === 0 ? (
+						<div className="muted" style={{ fontSize: "var(--fs-xs)" }}>No battles logged yet.</div>
+					) : (
+						<div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+							{rows.map(({ player, entry }, i) => {
+								const meta = OUTCOME_META[entry.outcome];
+								const dur = entry.startTime != null && entry.endTime != null ? Math.max(0, entry.endTime - entry.startTime) : null;
+								return (
+									<div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 6 }}>
+										<span className="muted" style={{ fontSize: "var(--fs-xs)", fontFamily: "var(--mono)", minWidth: 64, flex: "none" }}>{fmtTimeOfDay(entry.startTime)}</span>
+										<Avatar player={player} className="sm" />
+										<span style={{ fontWeight: 600, fontSize: "var(--fs-xs)", minWidth: 90, flex: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{player.info.name}</span>
+										<span style={{ width: 8, height: 8, borderRadius: 99, background: meta.color, flex: "none" }} />
+										<span style={{ fontWeight: 600, fontSize: "var(--fs-xs)", color: meta.color, minWidth: 44, flex: "none" }}>{meta.label}</span>
+										<span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--fs-xs)" }}>
+											{entry.pokemon?.name ?? "—"}{entry.pokemon?.level ? ` · L${entry.pokemon.level}` : ""}
+										</span>
+										{dur != null && <span className="muted" style={{ fontSize: "var(--fs-xs)", fontFamily: "var(--mono)", flex: "none" }}>{fmtClock(dur)}</span>}
+									</div>
+								);
+							})}
+						</div>
+					)}
+				</div>
+			)}
+		</footer>
+	);
 }
 
 function RawState({ snapshot, onRefresh }: { snapshot: Snapshot | null; onRefresh: () => void }) {
@@ -1067,6 +1279,8 @@ export default function AdminPage() {
 				</main>
 				<PlayerDirectory snapshot={snapshot} bracket={bracket} now={now} selected={selected} setSelected={setSelected} act={act} />
 			</div>
+
+			<BattleFeed snapshot={snapshot} />
 
 			<RawState snapshot={snapshot} onRefresh={requestState} />
 
