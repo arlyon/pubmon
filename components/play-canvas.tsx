@@ -4,13 +4,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import Matter from "matter-js";
 import { useEffect, useRef, useState } from "react";
 import { usePokemonCry } from "@/hooks/use-pokemon-cry";
+import { MedalShaderGL } from "@/lib/medal-shader-gl";
 import { getSpriteHitbox, type Point, scaleHitbox } from "@/lib/physics-utils";
 import { getPubMonSprite, type PubMon } from "@/lib/pokemon-data";
+import { applyMedalShader, type Medal } from "@/lib/sprite-shader";
 
 interface PlayCanvasProps {
 	pubmon: PubMon;
 	onExit: () => void;
 	overlay?: boolean; // When true, renders as transparent click-through overlay
+	medal?: Medal | null; // Secret placement-ball shader (gold/silver/bronze)
 }
 
 type PubMonState = "walking" | "grabbed" | "free";
@@ -72,6 +75,7 @@ export function PlayCanvas({
 	pubmon,
 	onExit,
 	overlay = false,
+	medal = null,
 }: PlayCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const hitAreaRef = useRef<HTMLDivElement>(null);
@@ -144,6 +148,11 @@ export function PlayCanvas({
 		const engine = Matter.Engine.create();
 		engine.gravity.y = 1;
 		engineRef.current = engine;
+
+		// Secret medal shader (GPU recolor + sparkle; CPU recolor fallback).
+		const medalGL = medal ? new MedalShaderGL(SPRITE_SIZE) : null;
+		let cpuShaded: HTMLCanvasElement | null = null;
+		let cpuShadeTried = false;
 
 		// Create boundaries (walls)
 		const wallThickness = 50;
@@ -588,10 +597,34 @@ export function PlayCanvas({
 				// When flipped, negate the rotation so it rotates in the same direction as hitbox
 				ctx.rotate(isFlipped ? -body.angle : body.angle);
 
+				// Apply the secret medal shader if this mon came from a
+				// placement pokeball (gold/silver/bronze).
+				let spriteSource: HTMLImageElement | HTMLCanvasElement = spriteImg;
+				if (medal) {
+					if (medalGL?.ok) {
+						spriteSource = medalGL.render(
+							spriteImg,
+							medal,
+							performance.now() / 1000,
+						);
+					} else {
+						if (!cpuShadeTried) {
+							cpuShadeTried = true;
+							try {
+								cpuShaded = applyMedalShader(spriteImg, medal);
+							} catch (err) {
+								console.error("medal shader failed", err);
+								cpuShaded = null;
+							}
+						}
+						spriteSource = cpuShaded ?? spriteImg;
+					}
+				}
+
 				// Draw sprite centered at the hitbox centroid, not image center
 				ctx.imageSmoothingEnabled = false;
 				ctx.drawImage(
-					spriteImg,
+					spriteSource,
 					-spriteCentroidRef.current.x,
 					-spriteCentroidRef.current.y,
 					SPRITE_SIZE,
@@ -903,8 +936,9 @@ export function PlayCanvas({
 			window.removeEventListener("deviceorientation", handleOrientation);
 			window.removeEventListener("devicemotion", handleMotion);
 			window.removeEventListener("resize", handleResize);
+			medalGL?.dispose();
 		};
-	}, [pubmon, debugMode, overlay]);
+	}, [pubmon, debugMode, overlay, medal]);
 
 	return (
 		<>

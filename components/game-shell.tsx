@@ -25,6 +25,7 @@ import PixelTransition, {
 } from "./pixel/PixelTransition";
 import { PixelBox } from "./pixel-box";
 import { PlayCanvas } from "./play-canvas";
+import type { Medal } from "@/lib/sprite-shader";
 import { PokeballMessage, type PokeballMessageKind } from "./pokeball-message";
 import { Pokedex } from "./pokedex";
 import { PostBattle } from "./post-battle";
@@ -56,7 +57,11 @@ interface GameShellProps {
 	initialPlayerState?: any;
 	initialGymId?: number;
 	initialGamePhase?: "collection" | "tournament" | "hall-of-fame";
-	ballOutcome?: { status?: string; pubmon?: PubMon | null } | null;
+	ballOutcome?: {
+		status?: string;
+		pubmon?: PubMon | null;
+		medal?: Medal | null;
+	} | null;
 }
 
 export function GameShell({
@@ -71,6 +76,8 @@ export function GameShell({
 	// gates the battle-entry wipe's reveal so we un-wipe only when data is ready.
 	const [battleReady, setBattleReady] = useState(false);
 	const [playingPubmon, setPlayingPubmon] = useState<PubMon | null>(null);
+	// Secret placement-ball medal for the active play session (transient).
+	const [playingMedal, setPlayingMedal] = useState<Medal | null>(null);
 	// Pre-tournament teaser: before the start time the whole app is just the
 	// title startup followed by a live countdown. `teaserStarted` flips once the
 	// player taps START on the title screen. We compute `beforeTournament` once
@@ -264,6 +271,7 @@ export function GameShell({
 
 	const handleExitPlay = useCallback(() => {
 		setPlayingPubmon(null);
+		setPlayingMedal(null);
 	}, []);
 
 	// Consume a pokeball scan outcome handed over by /p/<id> (server-side
@@ -277,7 +285,10 @@ export function GameShell({
 		switch (ballOutcome.status) {
 			case "owner":
 			case "paired_now":
-				if (ballOutcome.pubmon) setPlayingPubmon(ballOutcome.pubmon);
+				if (ballOutcome.pubmon) {
+					setPlayingPubmon(ballOutcome.pubmon);
+					setPlayingMedal(ballOutcome.medal ?? null);
+				}
 				break;
 			case "foreign":
 				setBallMessage("foreign");
@@ -659,6 +670,7 @@ export function GameShell({
 						pubmon={playingPubmon}
 						onExit={handleExitPlay}
 						overlay={true}
+						medal={playingMedal}
 					/>
 				)}
 			</AnimatePresence>
