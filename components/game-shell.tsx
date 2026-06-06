@@ -218,6 +218,15 @@ export function GameShell({
 	// Whether the current view would auto-enter a battle on MATCH_STARTED (so we
 	// can cover that transition too, not just the explicit JOIN paths).
 	const autoEnterBattleViewRef = useRef(false);
+	// The server broadcasts `match_complete` the instant someone wins, which
+	// nulls `tournamentState.activeBattle`. We stash the battle here so the
+	// post-win BattleScreen survives that clear — playing its faint/win
+	// animation and holding its last frame through the resolve, instead of
+	// unmounting into a blank screen.
+	const tournamentBattleRef = useRef<{
+		battleId: string;
+		opponentName: string;
+	} | null>(null);
 
 	const startBattleTransition = useCallback((action: () => void) => {
 		pendingBattleActionRef.current = action;
@@ -411,6 +420,16 @@ export function GameShell({
 	// so the socket handler can cover the swap with the wipe.
 	autoEnterBattleViewRef.current = isLeague || isTournamentBracket;
 
+	// Capture the live tournament battle so its UI can outlive the server's
+	// `activeBattle` clear (see tournamentBattleRef). Drop it once we're back in
+	// a tournament view that isn't an active battle/resolve, so a stale battle
+	// can't bleed into the next match.
+	if (isTournamentBattle && context.tournamentState.activeBattle) {
+		tournamentBattleRef.current = context.tournamentState.activeBattle;
+	} else if (isTournamentBracket || isLeague) {
+		tournamentBattleRef.current = null;
+	}
+
 	// Determine active tab for navbar
 	const getActiveTab = ():
 		| "crawl"
@@ -522,8 +541,13 @@ export function GameShell({
 					/>
 				)}
 
+				{/* The battle is read from a ref, not tournamentState.activeBattle,
+				    because the server nulls activeBattle the instant the match
+				    completes — which would otherwise unmount this screen mid-win,
+				    cutting the faint/win animation to a blank frame before the state
+				    machine routes back to the bracket. */}
 				{isTournamentBattle &&
-					context.tournamentState.activeBattle &&
+					tournamentBattleRef.current &&
 					activePokemon && (
 						<BattleScreen
 							wildPokemon={activePokemon} // Use player's own pokemon as "opponent" placeholder for now
@@ -539,11 +563,11 @@ export function GameShell({
 								});
 							}}
 							battleMode="p2p"
-							battleId={context.tournamentState.activeBattle.battleId}
+							battleId={tournamentBattleRef.current.battleId}
 							socket={socket}
 							sessionId={sessionId}
 							playerName={context.playerInfo?.name}
-							opponentName={context.tournamentState.activeBattle.opponentName}
+							opponentName={tournamentBattleRef.current.opponentName}
 							onReady={handleBattleReady}
 						/>
 					)}

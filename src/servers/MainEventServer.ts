@@ -706,6 +706,13 @@ export class MainEventServer extends Server {
 		// RNG roll for PubMon encounter
 		const wildPubmon = getRandomPubMon(msg.drinkType);
 
+		// Wild enemies are one level below the player's highest party member
+		const playerLevel =
+			player.party.length > 0
+				? Math.max(...player.party.map((mon) => mon.level))
+				: 1;
+		wildPubmon.level = Math.max(1, playerLevel - 1);
+
 		// Update player stats
 		player.lastActivity = Date.now();
 

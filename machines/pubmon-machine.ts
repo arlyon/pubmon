@@ -1023,10 +1023,17 @@ export const pubmonMachine = setup({
 								},
 
 								tournamentBattle: {
-									// RUN and CATCH are intentionally omitted
+									// RUN and CATCH are intentionally omitted.
+									// PvP results are authoritative on the server (BattleServer
+									// reports to MainEventServer, which broadcasts match_complete /
+									// bracket_update). So we do NOT run the wild `fight`
+									// resolution here — that path expects a wild pubmonId and
+									// would error/hang for a PvP match. Once the win/loss
+									// animation has played, drop straight back to the bracket,
+									// which renders the outcome and the player's advancement.
 									on: {
 										FAINT_DETECTED: {
-											target: "#pubmon.view.mainLoop.resolvingBattle",
+											target: "bracketView",
 											actions: assign({
 												tournamentState: ({ context }) => ({
 													...context.tournamentState,
