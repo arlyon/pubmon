@@ -140,6 +140,12 @@ export function PlayCanvas({
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return;
 
+		// Guards the async hitbox/body creation against a stale effect run
+		// (e.g. React StrictMode's double-mount). Without this, a promise from
+		// a torn-down run can resolve last and overwrite pubmonBodyRef with a
+		// body attached to a dead engine -> no gravity, not draggable.
+		let cancelled = false;
+
 		// Set canvas size to window size
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
@@ -198,6 +204,7 @@ export function PlayCanvas({
 
 		getSpriteHitbox(spritePath, 64, 64)
 			.then((hitbox) => {
+				if (cancelled) return; // stale effect run; engine already torn down
 				// Scale hitbox to sprite display size
 				const scaledHitbox = scaleHitbox(
 					hitbox,
@@ -271,6 +278,7 @@ export function PlayCanvas({
 				};
 			})
 			.catch((err) => {
+				if (cancelled) return; // stale effect run; engine already torn down
 				console.error("Failed to generate hitbox:", err);
 				// Fallback: create simple circle
 				const pubmonBody = Matter.Bodies.circle(
@@ -544,7 +552,7 @@ export function PlayCanvas({
 		document.addEventListener("mousemove", handleDocumentMouseMove);
 
 		const render = () => {
-			if (!canvasRef.current || !ctx) return;
+			if (cancelled || !canvasRef.current || !ctx) return; // stop on teardown
 
 			// Clear canvas
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -921,6 +929,7 @@ export function PlayCanvas({
 
 		// Cleanup
 		return () => {
+			cancelled = true;
 			Matter.Runner.stop(runner);
 			Matter.World.clear(engine.world, false);
 			Matter.Engine.clear(engine);
