@@ -92,7 +92,24 @@ export async function getSpriteHitbox(
 				// Simplify to max 16 vertices
 				const simplified = simplifyPolygon(hull, 16);
 
-				resolve(simplified);
+				// Strip coincident vertices (e.g. concaveman's closing point that
+				// duplicates the first vertex). A zero-length edge normalises to a
+				// (0,0) collision axis in Matter.js SAT, which silently disables ALL
+				// collisions for the body while leaving area/rendering intact.
+				const cleaned = removeCoincidentPoints(simplified);
+
+				if (cleaned.length < 3) {
+					// Degenerate after cleanup; fall back to a simple rectangle.
+					resolve([
+						{ x: 0, y: 0 },
+						{ x: canvas.width, y: 0 },
+						{ x: canvas.width, y: canvas.height },
+						{ x: 0, y: canvas.height },
+					]);
+					return;
+				}
+
+				resolve(cleaned);
 			} catch (error) {
 				reject(error);
 			}
@@ -201,6 +218,44 @@ export function simplifyPolygon(points: Point[], maxVertices: number): Point[] {
 	}
 
 	return simplified;
+}
+
+/**
+ * Remove consecutive coincident vertices, including a closing point that
+ * duplicates the first vertex (concaveman returns a closed ring). Zero-length
+ * edges break Matter.js collision detection: each edge becomes a SAT axis, and
+ * a zero-length edge normalises to (0,0), which SAT reads as zero overlap on
+ * that axis and therefore reports the bodies as never colliding.
+ * @param points - Polygon vertices
+ * @param epsilon - Max distance for two points to be considered the same
+ * @returns Polygon with coincident vertices removed
+ */
+export function removeCoincidentPoints(
+	points: Point[],
+	epsilon = 0.5,
+): Point[] {
+	if (points.length < 2) return points;
+
+	const result: Point[] = [];
+	for (const p of points) {
+		const prev = result[result.length - 1];
+		if (!prev || Math.hypot(p.x - prev.x, p.y - prev.y) > epsilon) {
+			result.push(p);
+		}
+	}
+
+	// Drop trailing points that wrap around onto the first vertex.
+	while (
+		result.length > 1 &&
+		Math.hypot(
+			result[0].x - result[result.length - 1].x,
+			result[0].y - result[result.length - 1].y,
+		) <= epsilon
+	) {
+		result.pop();
+	}
+
+	return result;
 }
 
 /**
