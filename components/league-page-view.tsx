@@ -254,10 +254,31 @@ function PlayerAvatar({
 // 1. PODIUM SPOTLIGHT — LeaguePageView
 // ============================================================================
 
-const PODIUM_COLORS: Record<number, { bg: string; dark: string }> = {
-	1: { bg: "#f8d030", dark: "#a88820" },
-	2: { bg: "#d8e0e8", dark: "#a8b0b8" },
-	3: { bg: "#c28b4a", dark: "#8a5a2a" },
+const PODIUM_COLORS: Record<
+	number,
+	{ bg: string; dark: string; light: string; name: string; label: string }
+> = {
+	1: {
+		bg: "#f8d030",
+		dark: "#a88820",
+		light: "#fff0a0",
+		name: "#ffe060",
+		label: "1ST",
+	},
+	2: {
+		bg: "#d8e0e8",
+		dark: "#90a0b0",
+		light: "#ffffff",
+		name: "#e8f0f8",
+		label: "2ND",
+	},
+	3: {
+		bg: "#d8924a",
+		dark: "#8a5a2a",
+		light: "#f0c088",
+		name: "#f0b878",
+		label: "3RD",
+	},
 };
 
 function PodiumStep({
@@ -267,12 +288,12 @@ function PodiumStep({
 	rank: 1 | 2 | 3;
 	entry: { name: string; sprite?: string; winRate: number };
 }) {
-	const { bg, dark } = PODIUM_COLORS[rank];
+	const { bg, dark, light, name, label } = PODIUM_COLORS[rank];
 	const heightClass =
 		rank === 1 ? "h-gba-[56]" : rank === 2 ? "h-gba-[36]" : "h-gba-[24]";
 
 	return (
-		<div className="flex flex-col items-center flex-1 gap-gba-[3]">
+		<div className="flex flex-col items-center flex-1 min-w-0 gap-gba-[3]">
 			{rank === 1 && (
 				<div className="mb-gba-[-4]">
 					<PixelCrown />
@@ -281,27 +302,51 @@ function PodiumStep({
 			<PlayerAvatar
 				name={entry.name}
 				sprite={entry.sprite}
-				size={56}
+				size={42}
 				highlight={rank === 1}
 			/>
-			<div className="font-heading text-gba-[9] text-pixel-black">
+			<div
+				className="font-heading text-gba-[7] max-w-full truncate"
+				style={{ color: name, textShadow: "1px 1px 0 #101828" }}
+			>
 				{entry.name}
 			</div>
-			<div className="font-heading text-gba-[7] text-[#686868]">
+			<div
+				className="font-heading text-gba-[5] px-gba-[4] py-px border-[2px] border-pixel-black"
+				style={{
+					background: bg,
+					color: "#282828",
+					boxShadow: `inset 1px 1px 0 ${light}, inset -1px -1px 0 ${dark}`,
+				}}
+			>
 				{entry.winRate}% WR
 			</div>
 			<div
-				className={`w-full border-t-[3px] border-x-[2px] border-pixel-black flex items-center justify-center ${heightClass}`}
+				className={`relative w-full overflow-hidden border-t-[3px] border-x-[2px] border-pixel-black flex flex-col items-center justify-center ${heightClass}`}
 				style={{
-					background: bg,
-					boxShadow: `inset 2px 2px 0 rgba(255,255,255,0.4), inset -2px -2px 0 ${dark}`,
+					background: `linear-gradient(180deg, ${light} 0%, ${bg} 45%, ${dark} 100%)`,
+					boxShadow: `inset 2px 2px 0 rgba(255,255,255,0.5), inset -2px -2px 0 ${dark}`,
 				}}
 			>
+				{/* diagonal sheen */}
+				<div
+					className="absolute inset-0 pointer-events-none opacity-60"
+					style={{
+						background:
+							"linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.55) 48%, transparent 58%)",
+					}}
+				/>
 				<span
-					className="font-heading text-gba-[16] text-pixel-black"
-					style={{ textShadow: `1px 1px 0 ${dark}` }}
+					className="font-heading text-gba-[16] text-pixel-black relative"
+					style={{ textShadow: `1px 1px 0 ${light}, 2px 2px 0 ${dark}` }}
 				>
 					{rank}
+				</span>
+				<span
+					className="font-heading text-gba-[6] relative -mt-px"
+					style={{ color: "#282828", textShadow: `1px 1px 0 ${light}` }}
+				>
+					{label}
 				</span>
 			</div>
 		</div>
@@ -332,7 +377,7 @@ export function LeaguePageView({
 		e.totalBattles > 0 ? Math.round((e.battlesWon / e.totalBattles) * 100) : 0;
 
 	return (
-		<div className="w-full flex flex-col h-full animate-[fade-in_0.3s_ease-out_forwards]">
+		<div className="w-full flex flex-col animate-[fade-in_0.3s_ease-out_forwards]">
 			<PixelHeader
 				title="HALL OF CHAMPS"
 				subtitle={concluded ? "FINAL STANDINGS" : "LEADERBOARD"}
@@ -365,7 +410,7 @@ export function LeaguePageView({
 			{/* Podium Hero */}
 			{hasPodium && (
 				<div
-					className="relative px-gba-[12] pt-gba-[16] pb-gba-[10]"
+					className="relative px-gba-[12]"
 					style={{
 						background:
 							"linear-gradient(180deg, #262b44 0%, #262b44 60%, #3a4466 100%)",
@@ -411,7 +456,7 @@ export function LeaguePageView({
 			)}
 
 			{/* Rank list */}
-			<div className="flex-1 overflow-y-auto pixel-scroll bg-pixel-gray-light">
+			<div className="bg-pixel-gray-light">
 				{/* Info strip */}
 				<div
 					className="font-sans font-palette-blue text-gba-[8] flex justify-between px-gba-[8] py-gba-[5]"
@@ -884,16 +929,11 @@ function ChampionBanner() {
 function CeremonyPodiumLane({
 	rank,
 	player,
-	height,
-	color,
-	dark,
 }: {
 	rank: 1 | 2 | 3;
 	player: CeremonyPlayer;
-	height: number;
-	color: string;
-	dark: string;
 }) {
+	const { bg, dark, light, name } = PODIUM_COLORS[rank];
 	const avatarSize: AvatarSize = rank === 1 ? 64 : 52;
 	const heightClass =
 		rank === 1 ? "h-gba-[64]" : rank === 2 ? "h-gba-[42]" : "h-gba-[28]";
@@ -911,7 +951,7 @@ function CeremonyPodiumLane({
 	);
 
 	return (
-		<div className="flex flex-col items-center flex-1 gap-gba-[4]">
+		<div className="flex flex-col items-center flex-1 min-w-0 gap-gba-[4]">
 			{rank === 1 && <PixelCrown />}
 			<div
 				className={`bg-[#d0e8f0] border-[3px] border-pixel-black flex items-start justify-center overflow-hidden ${AVATAR[avatarSize].outer} ${
@@ -931,24 +971,42 @@ function CeremonyPodiumLane({
 					style={{ imageRendering: "pixelated" }}
 				/>
 			</div>
-			<div className="font-sans font-palette-default text-gba-[9]">
+			<div
+				className="font-heading text-gba-[7] max-w-full truncate"
+				style={{ color: name, textShadow: "1px 1px 0 #101828" }}
+			>
 				{player.name}
 			</div>
 			<div
-				className={`w-full border-[3px] border-pixel-black flex flex-col items-center justify-center ${heightClass}`}
+				className={`relative w-full overflow-hidden border-[3px] border-pixel-black flex flex-col items-center justify-center ${heightClass}`}
 				style={{
-					background: color,
+					background: `linear-gradient(180deg, ${light} 0%, ${bg} 45%, ${dark} 100%)`,
 					boxShadow: `inset 2px 2px 0 rgba(255,255,255,0.5), inset -2px -2px 0 ${dark}`,
 				}}
 			>
+				{/* diagonal sheen */}
 				<div
-					className="font-heading text-gba-[16] text-pixel-black"
-					style={{ textShadow: `1px 1px 0 ${dark}` }}
+					className="absolute inset-0 pointer-events-none opacity-60"
+					style={{
+						background:
+							"linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.55) 48%, transparent 58%)",
+					}}
+				/>
+				<div
+					className="font-heading text-gba-[16] text-pixel-black relative"
+					style={{ textShadow: `1px 1px 0 ${light}, 2px 2px 0 ${dark}` }}
 				>
 					{rank}
 				</div>
 			</div>
-			<div className="font-sans font-palette-default text-gba-[7] mt-gba-[2]">
+			<div
+				className="font-heading text-gba-[6] max-w-full truncate px-gba-[4] py-px border-[2px] border-pixel-black"
+				style={{
+					background: bg,
+					color: "#282828",
+					boxShadow: `inset 1px 1px 0 ${light}, inset -1px -1px 0 ${dark}`,
+				}}
+			>
 				{player.title}
 			</div>
 		</div>
@@ -993,27 +1051,9 @@ export function CeremonyPodiumView({
 
 					{/* Podium */}
 					<div className="flex items-end gap-gba-[4] mt-gba-[4]">
-						<CeremonyPodiumLane
-							rank={2}
-							player={second}
-							height={42}
-							color="#d8e0e8"
-							dark="#a8b0b8"
-						/>
-						<CeremonyPodiumLane
-							rank={1}
-							player={first}
-							height={64}
-							color="#f8d030"
-							dark="#a88820"
-						/>
-						<CeremonyPodiumLane
-							rank={3}
-							player={third}
-							height={28}
-							color="#c28b4a"
-							dark="#8a5a2a"
-						/>
+						<CeremonyPodiumLane rank={2} player={second} />
+						<CeremonyPodiumLane rank={1} player={first} />
+						<CeremonyPodiumLane rank={3} player={third} />
 					</div>
 
 					{/* Final score card */}

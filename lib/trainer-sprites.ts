@@ -18,6 +18,7 @@ export const CUSTOM_TRAINER_SPRITES = new Set([
 	"ashley",
 	"calum",
 	"chloe",
+	"chloefay",
 	"emilie",
 	"emily",
 	"emma",
@@ -31,6 +32,7 @@ export const CUSTOM_TRAINER_SPRITES = new Set([
 	"oli",
 	"ornella",
 	"quitterie",
+	"sean",
 	"theo",
 	"tom",
 ]);

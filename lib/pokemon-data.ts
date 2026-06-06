@@ -707,7 +707,7 @@ export const ALL_PUBMON: PubMon[] = [
 			"A translucent poltergeist that smells heavily of pine. Hard to hit, harder to track.",
 		cry: 9,
 		visuals:
-			"a fakemon, a translucent, ghostly poltergeist with a distinct, pine-needle-like jagged silhouette. The clear, glass-like body bends light through refraction, making its icy-blue core almost invisible save for crisp, freezing edge highlights.",
+			"a fakemon, a collection of white juniper berries and pine needles with eyes poking out. two ice cubes and legs.",
 	},
 	{
 		id: 16,
@@ -748,7 +748,7 @@ export const ALL_PUBMON: PubMon[] = [
 	},
 	{
 		id: 18,
-		name: "Shivernoff",
+		name: "Gaygroose",
 		type: "shot",
 		hp: 43,
 		maxHp: 43,
@@ -757,7 +757,7 @@ export const ALL_PUBMON: PubMon[] = [
 		attack: 13,
 		defense: 12,
 		moves: ["Clear Flame", "Potato Smash", "Winter Chill", "Distilled Beam"],
-		sprite: "shivernoff",
+		sprite: "gaygroose",
 		description:
 			"Despite being a Fire-type, its flames burn cold and clear. It thrives in freezing climates.",
 		cry: 144,
@@ -931,10 +931,10 @@ export const ALL_PUBMON: PubMon[] = [
 		moves: ["Earthy Aroma", "Velvet Claw", "Cherry Strike", "Noir Veil"],
 		sprite: "pinota",
 		description:
-			"A highly sensitive, brooding fairy-type that requires a very specific climate to thrive.",
+			"A plump grape-bodied sprite that totters about on spindly little limbs. Rounder than it is graceful.",
 		cry: 122,
 		visuals:
-			"a fakemon, a brooding, delicate fairy with thin, frail limbs and a cloak of deep, bruised-purple grape leaves. Its highly sensitive anatomy features sharp, angular shadows and a muted, earthy palette that conveys a moody, complex materiality.",
+			"a fakemon, a small round creature whose body is a single plump, taut grape with a deep wine-purple sheen, balanced on long, thin, spindly arms and legs. The glossy spherical body carries soft specular highlights and a dusty powder-blue bloom, with two tiny dot eyes, giving it a juicy, ripe, slightly top-heavy materiality.",
 	},
 	{
 		id: 24,
@@ -1203,7 +1203,7 @@ export const ALL_PUBMON: PubMon[] = [
 			"A wise, fluid avian that keeps the pub ecosystem hydrated and functioning smoothly.",
 		cry: 85,
 		visuals:
-			"a fakemon, a wise, fluid avian whose feathers are perfectly formed, heavy droplets of pure morning dew. Its large, dark eyes contrast with the translucent, watery plumage, creating a soft, deeply hydrated, and smoothly flowing aerial silhouette.",
+			"a fakemon, a water bird whose wet feathers are. Its large, dark eyes contrast with the translucent, watery plumage, creating a soft, deeply hydrated, and smoothly flowing aerial silhouette.",
 	},
 	{
 		id: 36,
@@ -1335,10 +1335,10 @@ export const ALL_PUBMON: PubMon[] = [
 		moves: ["Lime Crush", "Sugar Rush", "Muddle Smash", "Tropical Gale"],
 		sprite: "caiprinha",
 		description:
-			"A tropical grass warrior with lime-green armor. Fights with raw, muddled power.",
+			"A round little lime creature with a zesty kick. Small, sour, and surprisingly scrappy.",
 		cry: 83,
 		visuals:
-			"a fakemon, a stout, tropical warrior encased in thick, heavily muddled lime-green rind armor. Its coarse, sugary exterior features granular, crystalline highlights that contrast with the raw, wet, bruised plant matter of its powerful, bipedal form.",
+			"a fakemon, a small round creature whose body is a single bright lime, a glossy citrus-green sphere with a softly dimpled rind and a tiny mint sprig on top, standing on short stubby legs with little stub arms and two dot eyes. Clean simple silhouette with fresh juicy highlights and a zesty lime-green palette.",
 	},
 	{
 		id: 40,
@@ -1396,10 +1396,10 @@ export const ALL_PUBMON: PubMon[] = [
 		moves: ["Tomato Tang", "Celery Whip", "Tabasco Burn", "Hangover Cure"],
 		sprite: "maryvine",
 		description:
-			"A restorative but deeply savory plant. Its celery stalks act as protective spears.",
+			"A round, savory tomato creature with a celery sprig. Restorative after a rough night.",
 		cry: 72,
 		visuals:
-			"a fakemon, a deeply savory, rooted plant creature anchored by a thick, pulpy, blood-red tomato core. Tall, rigid celery stalks act as protective spears. Deep, rich reds and intense, peppery textures imply a thick, restorative, and highly caustic biological soup.",
+			"a fakemon, a small round creature whose body is a single plump, glossy blood-red tomato with a little green stem cap and one short celery stick tucked beside it, standing on short stubby legs with little stub arms and two dot eyes. Clean simple silhouette with juicy red highlights and a fresh celery-green accent.",
 	},
 	{
 		id: 43,
@@ -1469,7 +1469,7 @@ export const ALL_PUBMON: PubMon[] = [
 	// ==========================================
 	{
 		id: 152,
-		name: "Voltbite",
+		name: "Kebolt",
 		type: "food",
 		hp: 38,
 		maxHp: 38,
@@ -1478,17 +1478,17 @@ export const ALL_PUBMON: PubMon[] = [
 		attack: 16,
 		defense: 7,
 		moves: ["Fizz Shock", "Caffeine Jolt", "Static Pop", "Snack Smash"],
-		sprite: "sagondroop",
+		sprite: "kebolt",
 		spriteVariant: 1,
 		description:
-			"A jittery snack-sprite crackling with carbonated static. It never stops vibrating.",
+			"A late-night kebab creature crackling with greasy static. Best caught after midnight.",
 		visuals:
-			"a fakemon, a small round energy-drink creature with a glossy aluminium-can body, sparking with bright electric-yellow static. Fizzy bubbles and tiny lightning arcs crackle across its hyperactive, twitchy frame.",
+			"a fakemon, a chunky kebab creature: a stacked vertical doner skewer wrapped in a golden toasted flatbread, balanced on short stubby legs with little stub arms and two dot eyes. Clean simple silhouette with warm grilled-meat browns and crackling bright electric-yellow static.",
 		cry: 25,
 	},
 	{
 		id: 153,
-		name: "Zappuccino",
+		name: "Chargrill",
 		type: "food",
 		hp: 44,
 		maxHp: 44,
@@ -1497,17 +1497,17 @@ export const ALL_PUBMON: PubMon[] = [
 		attack: 15,
 		defense: 9,
 		moves: ["Volt Bite", "Energy Slam", "Static Pop", "Gummi Guard"],
-		sprite: "martini",
-		spriteVariant: 5,
+		sprite: "chargrill",
+		spriteVariant: 2,
 		description:
-			"A frothy, caffeinated brute that runs on pure sugar and voltage. Wired and ready to brawl.",
+			"A stacked burger creature running on char and voltage. Sizzles when it moves.",
 		visuals:
-			"a fakemon, a steaming paper-cup creature crowned with crackling electric foam. Warm coffee-brown tones clash with arcs of bright yellow current dancing across its jittery, over-caffeinated body.",
+			"a fakemon, a round cheeseburger creature: a glossy sesame-seed bun stacked with a patty, melting cheese and a leaf of lettuce, standing on short stubby legs with little stub arms and two dot eyes. Clean simple silhouette with warm toasted tones and sparks of bright electric-yellow current.",
 		cry: 26,
 	},
 	{
 		id: 154,
-		name: "Crispark",
+		name: "Battervolt",
 		type: "food",
 		hp: 40,
 		maxHp: 40,
@@ -1516,12 +1516,12 @@ export const ALL_PUBMON: PubMon[] = [
 		attack: 18,
 		defense: 6,
 		moves: ["Volt Bite", "Sherbet Zap", "Fizz Shock", "Caffeine Jolt"],
-		sprite: "tequilar",
+		sprite: "battervolt",
 		spriteVariant: 1,
 		description:
-			"A bag of static-charged crisps that shocks anything that reaches inside. Lightning-fast.",
+			"A battered fish-and-chips creature: hot, crispy, and full of static.",
 		visuals:
-			"a fakemon, a crinkled foil snack-bag creature bursting with golden crisps, each one snapping with tiny lightning. A bright electric-yellow palette and sharp crackling sparks give it a fast, frenetic energy.",
+			"a fakemon, a single high detail battered fish with cross eyes",
 		cry: 101,
 	},
 ];

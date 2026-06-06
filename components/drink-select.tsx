@@ -235,8 +235,8 @@ export function DrinkSelect({
 						<div
 							className="border-gba-[1] border-black"
 							style={{
-								width: 56,
-								height: 64,
+								width: 72,
+								height: 80,
 								background: "#d0e8f0",
 								flexShrink: 0,
 								display: "flex",
@@ -251,7 +251,7 @@ export function DrinkSelect({
 							<TrainerSprite
 								sprite={playerSprite ?? playerName ?? playerGender}
 								gender={playerGender}
-								size={64}
+								size={80}
 								className="pt-4"
 								flipped
 							/>
@@ -303,7 +303,7 @@ export function DrinkSelect({
 
 				{/* Drink type grid */}
 				<PixelBox className="p-2">
-					<div className="flex flex-col gap-2">
+					<div className="grid grid-cols-2 gap-2">
 						{DRINK_TYPES.map((drink, idx) => (
 							<button
 								key={drink.type}

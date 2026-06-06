@@ -76,6 +76,7 @@ DEFAULTS = {
     "despeckle": False,
     "fill_max_frac": 0.08,
     "keep_frac": 0.12,
+    "flip": False,  # mirror horizontally (e.g. sprite faces the wrong way)
 }
 
 # birefnet-general is the default for everything. Entries below are only the
@@ -85,6 +86,8 @@ DEFAULTS = {
 OVERRIDES: dict[str, dict] = {
     # this one looked better on the old model
     "seltzerpent": {"model": ISNET, "alpha_matting": True, "threshold": 48},
+    # raw art faces the wrong way
+    "springer": {"flip": True},
 }
 
 
@@ -234,7 +237,11 @@ def finalize(small_soft: Image.Image, cfg: dict) -> Image.Image:
 
     arr[..., 3] = np.where(mask, 255, 0).astype(np.uint8)
     arr[..., :3][~mask] = 0  # zero RGB where transparent (clean, smaller PNG)
-    return Image.fromarray(arr, "RGBA")
+
+    out = Image.fromarray(arr, "RGBA")
+    if cfg.get("flip"):
+        out = out.transpose(Image.FLIP_LEFT_RIGHT)
+    return out
 
 
 _SESSIONS: dict = {}
@@ -442,6 +449,12 @@ def main() -> int:
         default="u2net,isnet-general-use,isnet-anime",
         help="Comma-separated models for --compare.",
     )
+    parser.add_argument(
+        "--only",
+        nargs="+",
+        metavar="NAME",
+        help="Process only sprites whose name matches (always reprocessed).",
+    )
     args = parser.parse_args()
 
     if args.model:
@@ -485,13 +498,21 @@ def main() -> int:
         print(f"\n== {cat}: {len(files)} files -> {box}x{box} box ==", flush=True)
 
         for name in files:
+            if args.only:
+                low = name.lower()
+                stem = normalise_name(name)
+                if not any(q.lower() in low or q.lower() == stem for q in args.only):
+                    continue
+
             src = os.path.join(src_dir, name)
             # Normalise accidental double extensions (e.g. "*.png.png").
             out_name = re.sub(r"(\.png)+$", ".png", name, flags=re.I)
             dst = os.path.join(dst_dir, out_name)
 
+            # --only always reprocesses; otherwise honour the up-to-date check.
             if (
                 not args.force
+                and not args.only
                 and os.path.exists(dst)
                 and os.path.getmtime(dst) >= os.path.getmtime(src)
             ):

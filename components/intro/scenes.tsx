@@ -582,7 +582,7 @@ export function GenderScene({ onPick }: { onPick: (kind: Gender) => void }) {
 // ═══════════════════════════════════════════════════════════════════
 // NAME SCENE
 // ═══════════════════════════════════════════════════════════════════
-const NAME_MAX = 7;
+const NAME_MAX = 10;
 
 export function NameScene({
 	kind,
